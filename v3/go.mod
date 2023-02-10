@@ -1,6 +1,6 @@
 module modernc.org/ccgo/v3
 
-go 1.17
+go 1.18
 
 require (
 	github.com/dustin/go-humanize v1.0.0
@@ -10,7 +10,7 @@ require (
 	golang.org/x/tools v0.0.0-20201124115921-2c860bdd6e78
 	modernc.org/cc/v3 v3.40.0
 	modernc.org/ccorpus v1.11.6
-	modernc.org/libc v1.21.4
+	modernc.org/libc v1.22.2
 	modernc.org/mathutil v1.5.0
 	modernc.org/opt v0.1.3
 )
