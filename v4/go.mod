@@ -6,7 +6,7 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/pmezard/go-difflib v1.0.0
 	golang.org/x/mod v0.7.0
-	golang.org/x/sys v0.2.0
+	golang.org/x/sys v0.3.0
 	golang.org/x/tools v0.3.0
 	modernc.org/cc/v4 v4.0.0-20221024171749-78c3befa8b20
 	modernc.org/ccorpus2 v1.2.0
