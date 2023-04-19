@@ -3,11 +3,11 @@ module modernc.org/ccgo/v4
 go 1.18
 
 require (
-	github.com/dustin/go-humanize v1.0.0
+	github.com/dustin/go-humanize v1.0.1
 	github.com/pmezard/go-difflib v1.0.0
-	golang.org/x/mod v0.7.0
-	golang.org/x/sys v0.3.0
-	golang.org/x/tools v0.3.0
+	golang.org/x/mod v0.8.0
+	golang.org/x/sys v0.5.0
+	golang.org/x/tools v0.6.0
 	modernc.org/cc/v4 v4.0.0-20221024171749-78c3befa8b20
 	modernc.org/ccorpus2 v1.2.0
 	modernc.org/fileutil v1.1.2
