@@ -240,6 +240,20 @@ func (c *ctx) selectionStatement(w writer, n *cc.SelectionStatement) {
 				c.selectionStatementFlat(w, n)
 				return
 			}
+
+			if v.Statement == nil {
+				continue
+			}
+
+			switch v.Statement.Case {
+			case cc.StatementIteration:
+				if c.f.flatScopes == nil {
+					c.f.flatScopes = map[*cc.Scope]struct{}{}
+				}
+				c.f.flatScopes[v.Statement.IterationStatement.LexicalScope()] = struct{}{}
+				c.selectionStatementFlat(w, n)
+				return
+			}
 		}
 
 		ok := false
