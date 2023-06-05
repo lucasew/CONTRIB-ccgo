@@ -80,6 +80,7 @@ shorttest:
 	grep TOTAL log-shorttest
 	git status testdata
 	git diff testdata/
+	grep -a 'TOTAL\|PASS' log-shorttest || true
 
 sqlitetest:
 	go test -v -timeout 24h -run SQL -xtags=libc.memgrind -trc -trco 2>&1 | tee log-sqlitetest

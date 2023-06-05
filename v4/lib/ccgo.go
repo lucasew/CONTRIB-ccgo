@@ -173,7 +173,7 @@ func (t *Task) Main() (err error) {
 	set.Opt("ignore-unsupported-alignment", func(opt string) error { t.ignoreUnsupportedAligment = true; return nil })
 	set.Opt("ignore-vector-functions", func(opt string) error { t.ignoreVectorFunctions = true; return nil })
 	set.Opt("keep-object-files", func(opt string) error { t.keepObjectFiles = true; return nil })
-	set.Opt("nostdinc", func(opt string) error { t.nostdinc = true; return nil })
+	set.Opt("nostdinc", func(opt string) error { t.nostdinc = true; t.cfgArgs = append(t.cfgArgs, opt); return nil })
 	set.Opt("nostdlib", func(opt string) error { t.nostdlib = true; return nil })
 	set.Opt("positions", func(opt string) error { t.positions = true; return nil })
 	set.Opt("pthread", func(opt string) error { t.pthread = true; t.cfgArgs = append(t.cfgArgs, opt); return nil })

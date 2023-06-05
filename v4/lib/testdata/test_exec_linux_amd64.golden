@@ -4481,6 +4481,7 @@ assets/github.com/vnmakarov/mir/c-tests/andrewchambers_c/0021-tentativedefs1.c
 assets/github.com/vnmakarov/mir/c-tests/andrewchambers_c/0022-namespaces1.c
 assets/github.com/vnmakarov/mir/c-tests/andrewchambers_c/0023-incomplete1.c
 assets/github.com/vnmakarov/mir/c-tests/andrewchambers_c/0024-enums1.c
+assets/github.com/vnmakarov/mir/c-tests/andrewchambers_c/0025-duff.c
 assets/github.com/vnmakarov/mir/c-tests/andrewchambers_c/0026-sizeof1.c
 assets/github.com/vnmakarov/mir/c-tests/andrewchambers_c/0027-structcopy.c
 assets/github.com/vnmakarov/mir/c-tests/andrewchambers_c/0028-inits01.c
@@ -4558,6 +4559,7 @@ assets/github.com/vnmakarov/mir/c-tests/lacc/dereference-extern.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/directive-number.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/do-continue.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/do-while.c
+assets/github.com/vnmakarov/mir/c-tests/lacc/duffs-device.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/enum.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/exit.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/expression-div-mod.c
