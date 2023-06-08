@@ -76,7 +76,7 @@ func init() {
 
 // ----------------------------------------------------------------------------
 
-const execTimeout = time.Minute*30
+const execTimeout = time.Minute * 30
 
 var (
 	fs = ccorpus.FileSystem()
@@ -100,7 +100,7 @@ var (
 	writeFailed = flag.Bool("write-failed", false, "Write all failed tests into a file called FAILED in the cwd, in the format of go maps for easy copy-pasting.")
 
 	gccDir    = filepath.FromSlash("testdata/gcc-9.1.0")
-	sqliteDir = filepath.FromSlash("testdata/sqlite-amalgamation-3330000")
+	sqliteDir = filepath.FromSlash("testdata/sqlite-amalgamation-3420000")
 	tccDir    = filepath.FromSlash("testdata/tcc-0.9.27")
 
 	overlayDir           string
@@ -2676,6 +2676,7 @@ func testSQLite(t *testing.T, dir string) {
 		"-export-fields", "F",
 		"-ignore-unsupported-alignment",
 		"-all-errors",
+		"-err-trace",
 		"-o", main,
 		"-verify-structs",
 		"shell.c",
@@ -2697,6 +2698,7 @@ func testSQLite(t *testing.T, dir string) {
 			"-export-fields", "F",
 			"-ignore-unsupported-alignment",
 			"-all-errors",
+			"-err-trace",
 			"-o", main,
 			//TODO "-verify-structs",
 			"shell.c",
