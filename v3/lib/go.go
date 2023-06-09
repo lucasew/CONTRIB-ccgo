@@ -2113,11 +2113,11 @@ func (p *project) typ(nd cc.Node, t cc.Type) (r string) {
 		panic(todo("", p.pos(nd), t))
 	}
 
-	// if t.IsAliasType() {
-	// 	if tld := p.tlds[t.AliasDeclarator()]; tld != nil {
-	// 		return tld.name
-	// 	}
-	// }
+	if t.IsAliasType() && !t.IsScalarType() {
+		if tld := p.tlds[t.AliasDeclarator()]; tld != nil {
+			return tld.name
+		}
+	}
 
 	b := bytesBufferPool.Get().(*bytes.Buffer)
 	defer func() { b.Reset(); bytesBufferPool.Put(b) }()
