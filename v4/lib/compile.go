@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"golang.org/x/mod/semver"
@@ -479,7 +480,26 @@ func (c *ctx) defines(w writer) {
 			continue
 		}
 
-		w.w("%s%sconst %s%s = %q;", sep(m.Name), c.posComment(m), tag(define), m.Name.Src(), r)
+		if !c.task.header {
+			w.w("%s%sconst %s%s = %q;", sep(m.Name), c.posComment(m), tag(define), m.Name.Src(), r)
+		}
+		if c.task.header {
+			if _, err := strconv.ParseUint(r, 0, 64); err == nil {
+				w.w("%s%sconst %s%s = %s;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), r)
+				continue
+			}
+
+			if _, err := strconv.ParseFloat(r, 64); err == nil {
+				w.w("%s%sconst %s%s = %s;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), r)
+				continue
+			}
+
+			if _, err := strconv.Unquote(r); err == nil {
+				w.w("%s%sconst %s%s = %s;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), r)
+				continue
+			}
+		}
+
 		switch x := m.Value().(type) {
 		case cc.Int64Value:
 			w.w("%s%sconst %s%s = %v;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), x)

@@ -673,31 +673,32 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 		nm = "main"
 	}
 	l.prologue(nm)
-	l.w("\n\nimport (")
-	switch nm := l.reflectName; nm {
-	case "reflect":
-		l.w("\n\t\"reflect\"")
-	default:
-		l.w("\n\t%s \"reflect\"", nm)
-	}
-	switch nm := l.unsafeName; nm {
-	case "unsafe":
-		l.w("\n\t\"unsafe\"")
-	default:
-		l.w("\n\t%s \"unsafe\"", nm)
-	}
-	if len(l.imports) != 0 {
-		l.w("\n")
-	}
-	for _, v := range l.imports {
-		l.w("\n\t")
-		if v.pkgName != v.qualifier {
-			l.w("%s ", v.qualifier)
+	if !l.task.header {
+		l.w("\n\nimport (")
+		switch nm := l.reflectName; nm {
+		case "reflect":
+			l.w("\n\t\"reflect\"")
+		default:
+			l.w("\n\t%s \"reflect\"", nm)
 		}
-		l.w("%q", v.id)
-	}
-	l.w("\n)")
-	l.w(`
+		switch nm := l.unsafeName; nm {
+		case "unsafe":
+			l.w("\n\t\"unsafe\"")
+		default:
+			l.w("\n\t%s \"unsafe\"", nm)
+		}
+		if len(l.imports) != 0 {
+			l.w("\n")
+		}
+		for _, v := range l.imports {
+			l.w("\n\t")
+			if v.pkgName != v.qualifier {
+				l.w("%s ", v.qualifier)
+			}
+			l.w("%q", v.id)
+		}
+		l.w("\n)")
+		l.w(`
 
 var (
 	_ %s.Type
@@ -705,6 +706,7 @@ var (
 )
 
 `, l.reflectName, l.unsafeName)
+	}
 
 	for _, linkFile := range linkFiles {
 		object := objects[linkFile]
