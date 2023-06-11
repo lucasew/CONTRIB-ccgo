@@ -483,7 +483,7 @@ func (c *ctx) defines(w writer) {
 		if !c.task.header {
 			w.w("%s%sconst %s%s = %q;", sep(m.Name), c.posComment(m), tag(define), m.Name.Src(), r)
 		}
-		if c.task.header {
+		if c.task.header && r != "INFINITY" {
 			if _, err := strconv.ParseUint(r, 0, 64); err == nil {
 				w.w("%s%sconst %s%s = %s;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), r)
 				continue
