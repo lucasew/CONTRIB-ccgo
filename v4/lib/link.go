@@ -630,7 +630,7 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 			}
 		}
 	}
-	if len(undefs) != 0 {
+	if len(undefs) != 0 && !l.task.header {
 		sort.Slice(undefs, func(i, j int) bool {
 			a, b := undefs[i].pos, undefs[j].pos
 			if a.Filename < b.Filename {
@@ -849,7 +849,7 @@ var (
 				l.print0(&b, fi, n)
 				l.synthDecls[nm] = b.bytes()
 			case *gc.FunctionDecl:
-				if ln := x.FunctionName.Src(); l.meta(x, ln) {
+				if ln := x.FunctionName.Src(); l.meta(x, ln) || l.task.header {
 					break
 				}
 
@@ -1010,6 +1010,10 @@ func (l *linker) stmtPrune(n gc.Node, info *fnInfo, static *[]gc.Node) gc.Node {
 }
 
 func (l *linker) epilogue() {
+	if l.task.header {
+		return
+	}
+
 	l.w(`
 
 func %s(f interface{}) uintptr {

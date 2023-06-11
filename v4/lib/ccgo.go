@@ -76,6 +76,7 @@ type Task struct {
 	c                         bool // -c
 	debugLinkerSave           bool // -debug-linker-save, causes pre type checking save of the linker result.
 	fullPaths                 bool // -full-paths
+	header                    bool // -header
 	ignoreAsmErrors           bool // -ignore-asm-errors
 	ignoreUnsupportedAligment bool // -ignore-unsupported-alignment
 	ignoreVectorFunctions     bool // -ignore-vector-functions
@@ -169,6 +170,7 @@ func (t *Task) Main() (err error) {
 	set.Opt("debug-linker-save", func(opt string) error { t.debugLinkerSave = true; return nil })
 	set.Opt("extended-errors", func(opt string) error { extendedErrors = true; gc.ExtendedErrors = true; return nil })
 	set.Opt("full-paths", func(opt string) error { t.fullPaths = true; return nil })
+	set.Opt("header", func(opt string) error { t.header = true; return nil })
 	set.Opt("ignore-asm-errors", func(opt string) error { t.ignoreAsmErrors = true; return nil })
 	set.Opt("ignore-unsupported-alignment", func(opt string) error { t.ignoreUnsupportedAligment = true; return nil })
 	set.Opt("ignore-vector-functions", func(opt string) error { t.ignoreVectorFunctions = true; return nil })
