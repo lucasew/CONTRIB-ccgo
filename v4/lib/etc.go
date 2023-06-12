@@ -713,29 +713,6 @@ func export(s string) string {
 	return strings.ToUpper(string(r)) + s[sz:]
 }
 
-//TODO- func unexport(s string) string {
-//TODO- 	r, sz := utf8.DecodeRuneInString(s)
-//TODO- 	return strings.ToLower(string(r)) + s[sz:]
-//TODO- }
-
-//TODO- func cpos(n cc.Node) (r token.Position) {
-//TODO- 	if n == nil {
-//TODO- 		return r
-//TODO- 	}
-//TODO-
-//TODO- 	r = token.Position(n.Position())
-//TODO- 	r.Filename = filepath.Join("~/src/modernc.org/ccorpus2", r.Filename)
-//TODO- 	return r
-//TODO- }
-
-//TODO- func cpos0(n cc.Node) string {
-//TODO- 	if n == nil {
-//TODO- 		return ""
-//TODO- 	}
-//TODO-
-//TODO- 	return filepath.Join("~/src/modernc.org/ccorpus2", token.Position(n.Position()).Filename)
-//TODO- }
-
 // Same as cc.NodeSource but keeps the separators.
 func nodeSource(s ...cc.Node) string {
 	var a []cc.Token
@@ -1027,22 +1004,6 @@ func isZero(v cc.Value) bool {
 	}
 }
 
-//TODO- func dumpScope(s *cc.Scope) string {
-//TODO- 	var a []string
-//TODO- 	for k := range s.Nodes {
-//TODO- 		a = append(a, k)
-//TODO- 	}
-//TODO- 	sort.Strings(a)
-//TODO- 	for i, k := range a {
-//TODO- 		var b []string
-//TODO- 		for _, v := range s.Nodes[k] {
-//TODO- 			b = append(b, fmt.Sprintf("%v:", v.Position()))
-//TODO- 		}
-//TODO- 		a[i] = fmt.Sprintf("%q: %v", k, b)
-//TODO- 	}
-//TODO- 	return strings.Join(a, "\n")
-//TODO- }
-
 func gcKind(k cc.Kind, cabi *cc.ABI) gc.Kind {
 	switch k {
 	case cc.Bool:
@@ -1107,13 +1068,3 @@ func gcKind(k cc.Kind, cabi *cc.ABI) gc.Kind {
 	}
 	return -1
 }
-
-//TODO- func isUnreferencedFnDef(d *cc.Declarator) bool {
-//TODO- 	for _, v := range d.LexicalScope().Nodes[d.Name()] {
-//TODO- 		if x, ok := v.(*cc.Declarator); ok && x.ReadCount() != 0 {
-//TODO- 			return false
-//TODO- 		}
-//TODO- 	}
-//TODO-
-//TODO- 	return true
-//TODO- }

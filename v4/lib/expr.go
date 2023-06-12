@@ -280,22 +280,6 @@ func (c *ctx) convertMode(n cc.ExpressionNode, w writer, s *buf, from, to cc.Typ
 	return s //TODO
 }
 
-//TODO- func (c *ctx) isIdent(s string) bool {
-//TODO- 	for i, v := range s {
-//TODO- 		switch {
-//TODO- 		case i == 0:
-//TODO- 			if !unicode.IsLetter(v) && v != '_' {
-//TODO- 				return false
-//TODO- 			}
-//TODO- 		default:
-//TODO- 			if !unicode.IsLetter(v) && v != '_' && !unicode.IsDigit(v) {
-//TODO- 				return false
-//TODO- 			}
-//TODO- 		}
-//TODO- 	}
-//TODO- 	return len(s) != 0
-//TODO- }
-
 // mode unchanged
 func (c *ctx) convertType(n cc.ExpressionNode, s *buf, from, to cc.Type, fromMode, toMode mode) (r *buf) {
 	// defer func() { trc("%v: from %v: %v, to %v: %v %q -> %q", c.pos(n), from, fromMode, to, toMode, s, r) }()
@@ -2305,30 +2289,6 @@ func (c *ctx) expressionList(w writer, n *cc.ExpressionList, t cc.Type, mode mod
 	c.err(errorf("TODO internal error", n))
 	return r, rt, rmode
 }
-
-//TODO- func (c *ctx) expressionListLast(n cc.ExpressionNode) cc.ExpressionNode {
-//TODO- 	for {
-//TODO- 		switch x := n.(type) {
-//TODO- 		case *cc.ExpressionList:
-//TODO- 			for n := x; n != nil; n = n.ExpressionList {
-//TODO- 				switch {
-//TODO- 				case n.ExpressionList == nil:
-//TODO- 					return n.AssignmentExpression
-//TODO- 				}
-//TODO- 			}
-//TODO- 			return nil
-//TODO- 		case *cc.PrimaryExpression:
-//TODO- 			if x.Case == cc.PrimaryExpressionExpr {
-//TODO- 				n = x.ExpressionList
-//TODO- 				break
-//TODO- 			}
-//TODO-
-//TODO- 			return n
-//TODO- 		default:
-//TODO- 			return n
-//TODO- 		}
-//TODO- 	}
-//TODO- }
 
 func (c *ctx) primaryExpression(w writer, n *cc.PrimaryExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
 	var b buf

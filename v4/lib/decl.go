@@ -537,7 +537,6 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, externa
 		c.err(errorf("internal error %T %v", n, n.Case))
 	}
 	if info != nil {
-		// w.w("\n// read: %d, write: %d, address taken %v\n", d.ReadCount(), d.WriteCount(), d.AddressTaken()) //TODO-
 		if d.StorageDuration() == cc.Automatic && d.ReadCount() == d.SizeofCount() && !info.pinned() {
 			w.w("\n%s_ = %s;", tag(preserve), linkName)
 		}
