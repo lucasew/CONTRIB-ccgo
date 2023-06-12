@@ -1639,18 +1639,33 @@ func (c *ctx) atomicLoadN(w writer, n *cc.PostfixExpression, t cc.Type, mode mod
 
 	args := argumentExpressionList(n.ArgumentExpressionList)
 	if len(args) != 2 {
-		c.err(errorf("%v: invalid number of arguments to __atomic_store_n", n.ArgumentExpressionList.Position()))
+		c.err(errorf("%v: invalid number of arguments to __atomic_load_n", n.ArgumentExpressionList.Position()))
 		return &b, t, mode
 	}
 
 	pt, ok := args[0].Type().(*cc.PointerType)
 	if !ok {
-		c.err(errorf("%v: invalid first argument to __atomic_store_n: %s", n.ArgumentExpressionList.Position(), args[0].Type()))
+		c.err(errorf("%v: invalid first argument to __atomic_load_n: %s", n.ArgumentExpressionList.Position(), args[0].Type()))
 		return &b, t, mode
 	}
 
 	rt = pt.Elem()
-	b.w("%sAtomicLoadN%s(%s, %s)", c.task.tlsQualifier, c.helper(n, rt), c.expr(w, args[0], nil, exprDefault), c.expr(w, args[1], nil, exprDefault))
+	switch {
+	case cc.IsIntegerType(rt):
+		switch rt.Size() {
+		case 4, 8:
+			b.w("%sAtomicLoadN%s(%s, %s)", c.task.tlsQualifier, c.helper(n, rt), c.expr(w, args[0], nil, exprDefault), c.expr(w, args[1], nil, exprDefault))
+		default:
+			if !c.task.ignoreUnsupportedAligment {
+				c.err(errorf("%v: invalid pointee size of first argument to __atomic_load_n: %s", n.ArgumentExpressionList.Position(), args[0].Type()))
+				return &b, t, mode
+			}
+
+			b.w("(*(*%s)(unsafe.Pointer(%s)))", c.typ(n, rt), c.expr(w, args[0], nil, exprDefault))
+		}
+	default:
+		b.w("%sAtomicLoadN%s(%s, %s)", c.task.tlsQualifier, c.helper(n, rt), c.expr(w, args[0], nil, exprDefault), c.expr(w, args[1], nil, exprDefault))
+	}
 	return &b, rt, mode
 }
 

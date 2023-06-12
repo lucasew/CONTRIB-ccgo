@@ -1089,7 +1089,7 @@ func testSQLite(t *testing.T, dir string) {
 		ccgoArgs = append(ccgoArgs, "-DSQLITE_DEBUG_OS_TRACE", "-DSQLITE_FORCE_OS_TRACE", "-DSQLITE_LOCK_TRACE")
 	}
 	if os.Getenv("GO111MODULE") != "off" {
-		if out, err := shell(true, "go", "mod", "init", "example.com/ccgo/v3/lib/sqlite"); err != nil {
+		if out, err := shell(true, "go", "mod", "init", "example.com/ccgo/v4/lib/sqlite"); err != nil {
 			t.Fatalf("%v\n%s", err, out)
 		}
 
