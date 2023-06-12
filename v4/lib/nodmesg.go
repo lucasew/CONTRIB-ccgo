@@ -7,6 +7,8 @@
 
 package ccgo // import "modernc.org/ccgo/v4/lib"
 
+//lint:ignore U1000 debug support
 const dmesgs = false
 
+//lint:ignore U1000 debug support
 func dmesg(s string, args ...interface{}) {}

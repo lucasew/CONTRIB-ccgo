@@ -593,7 +593,7 @@ func (c *ctx) logicalAndExpression(w writer, n *cc.LogicalAndExpression, t cc.Ty
 	case cc.LogicalAndExpressionOr: // InclusiveOrExpression
 		c.err(errorf("TODO %v", n.Case))
 	case cc.LogicalAndExpressionLAnd: // LogicalAndExpression "&&" InclusiveOrExpression
-		rt, rmode = n.Type(), exprBool
+		_, rmode = n.Type(), exprBool
 		var al, ar buf
 		bl := c.expr(&al, n.LogicalAndExpression, nil, exprBool)
 		br := c.expr(&ar, n.InclusiveOrExpression, nil, exprBool)
@@ -639,7 +639,7 @@ func (c *ctx) logicalOrExpression(w writer, n *cc.LogicalOrExpression, t cc.Type
 	case cc.LogicalOrExpressionLAnd: // LogicalAndExpression
 		c.err(errorf("TODO %v", n.Case))
 	case cc.LogicalOrExpressionLOr: // LogicalOrExpression "||" LogicalAndExpression
-		rt, rmode = n.Type(), exprBool
+		_, rmode = n.Type(), exprBool
 		var al, ar buf
 		bl := c.expr(&al, n.LogicalOrExpression, nil, exprBool)
 		br := c.expr(&ar, n.LogicalAndExpression, nil, exprBool)
@@ -2306,29 +2306,29 @@ func (c *ctx) expressionList(w writer, n *cc.ExpressionList, t cc.Type, mode mod
 	return r, rt, rmode
 }
 
-func (c *ctx) expressionListLast(n cc.ExpressionNode) cc.ExpressionNode {
-	for {
-		switch x := n.(type) {
-		case *cc.ExpressionList:
-			for n := x; n != nil; n = n.ExpressionList {
-				switch {
-				case n.ExpressionList == nil:
-					return n.AssignmentExpression
-				}
-			}
-			return nil
-		case *cc.PrimaryExpression:
-			if x.Case == cc.PrimaryExpressionExpr {
-				n = x.ExpressionList
-				break
-			}
-
-			return n
-		default:
-			return n
-		}
-	}
-}
+//TODO- func (c *ctx) expressionListLast(n cc.ExpressionNode) cc.ExpressionNode {
+//TODO- 	for {
+//TODO- 		switch x := n.(type) {
+//TODO- 		case *cc.ExpressionList:
+//TODO- 			for n := x; n != nil; n = n.ExpressionList {
+//TODO- 				switch {
+//TODO- 				case n.ExpressionList == nil:
+//TODO- 					return n.AssignmentExpression
+//TODO- 				}
+//TODO- 			}
+//TODO- 			return nil
+//TODO- 		case *cc.PrimaryExpression:
+//TODO- 			if x.Case == cc.PrimaryExpressionExpr {
+//TODO- 				n = x.ExpressionList
+//TODO- 				break
+//TODO- 			}
+//TODO-
+//TODO- 			return n
+//TODO- 		default:
+//TODO- 			return n
+//TODO- 		}
+//TODO- 	}
+//TODO- }
 
 func (c *ctx) primaryExpression(w writer, n *cc.PrimaryExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
 	var b buf
@@ -2641,7 +2641,7 @@ func (c *ctx) primaryExpressionLCharConst(w writer, n *cc.PrimaryExpression, t c
 		switch {
 		case strings.HasPrefix(lit, `'\`) && isOctalString(lit[2:len(lit)-1]):
 			lit = fmt.Sprintf(`'\%03o'`, n.Value())
-			if val, err = strconv.Unquote(lit); err != nil {
+			if _, err = strconv.Unquote(lit); err != nil {
 				lit = fmt.Sprintf(`'\u%04x'`, n.Value())
 			}
 		case src == `'\"'`:

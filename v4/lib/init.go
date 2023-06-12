@@ -5,7 +5,6 @@
 package ccgo // import "modernc.org/ccgo/v4/lib"
 
 import (
-	"fmt"
 	"math/big"
 	"sort"
 
@@ -492,42 +491,42 @@ func sortInitializers(a []*cc.Initializer, group func(int64) int64) (r [][]*cc.I
 	return r
 }
 
-func dumpInitializer(a []*cc.Initializer, pref string) {
-	for _, v := range a {
-		var t string
-		for p := v.Parent(); p != nil; p = p.Parent() {
-			switch d := p.Type().Typedef(); {
-			case d != nil:
-				t = fmt.Sprintf("[%s].", d.Name()) + t
-			default:
-				switch x, ok := p.Type().(interface{ Tag() cc.Token }); {
-				case ok:
-					tag := x.Tag()
-					t = fmt.Sprintf("[%s].", tag.SrcStr()) + t
-				default:
-					t = fmt.Sprintf("[%s].", p.Type()) + t
-				}
-			}
-		}
-		var fs string
-		if f := v.Field(); f != nil {
-			var ps string
-			for p := f.Parent(); p != nil; p = p.Parent() {
-				ps = ps + fmt.Sprintf("{%q %v}", p.Name(), p.Type())
-			}
-			fs = fmt.Sprintf(
-				" %s(field %q, IsBitfield %v, Offset %v, OffsetBits %v, OuterGroupOffset %v, InOverlapGroup %v, Mask %#0x, ValueBits %v)",
-				ps, f.Name(), f.IsBitfield(), f.Offset(), f.OffsetBits(), f.OuterGroupOffset(), f.InOverlapGroup(), f.Mask(), f.ValueBits(),
-			)
-		}
-		switch v.Case {
-		case cc.InitializerExpr:
-			fmt.Printf("%s %v: order %v off %#05x '%s' %s type %q <- %s%s\n", pref, pos(v.AssignmentExpression), v.Order(), v.Offset(), cc.NodeSource(v.AssignmentExpression), t, v.Type(), v.AssignmentExpression.Type(), fs)
-		case cc.InitializerInitList:
-			s := pref + "· " + fs
-			for l := v.InitializerList; l != nil; l = l.InitializerList {
-				dumpInitializer([]*cc.Initializer{l.Initializer}, s)
-			}
-		}
-	}
-}
+//TODO- func dumpInitializer(a []*cc.Initializer, pref string) {
+//TODO- 	for _, v := range a {
+//TODO- 		var t string
+//TODO- 		for p := v.Parent(); p != nil; p = p.Parent() {
+//TODO- 			switch d := p.Type().Typedef(); {
+//TODO- 			case d != nil:
+//TODO- 				t = fmt.Sprintf("[%s].", d.Name()) + t
+//TODO- 			default:
+//TODO- 				switch x, ok := p.Type().(interface{ Tag() cc.Token }); {
+//TODO- 				case ok:
+//TODO- 					tag := x.Tag()
+//TODO- 					t = fmt.Sprintf("[%s].", tag.SrcStr()) + t
+//TODO- 				default:
+//TODO- 					t = fmt.Sprintf("[%s].", p.Type()) + t
+//TODO- 				}
+//TODO- 			}
+//TODO- 		}
+//TODO- 		var fs string
+//TODO- 		if f := v.Field(); f != nil {
+//TODO- 			var ps string
+//TODO- 			for p := f.Parent(); p != nil; p = p.Parent() {
+//TODO- 				ps = ps + fmt.Sprintf("{%q %v}", p.Name(), p.Type())
+//TODO- 			}
+//TODO- 			fs = fmt.Sprintf(
+//TODO- 				" %s(field %q, IsBitfield %v, Offset %v, OffsetBits %v, OuterGroupOffset %v, InOverlapGroup %v, Mask %#0x, ValueBits %v)",
+//TODO- 				ps, f.Name(), f.IsBitfield(), f.Offset(), f.OffsetBits(), f.OuterGroupOffset(), f.InOverlapGroup(), f.Mask(), f.ValueBits(),
+//TODO- 			)
+//TODO- 		}
+//TODO- 		switch v.Case {
+//TODO- 		case cc.InitializerExpr:
+//TODO- 			fmt.Printf("%s %v: order %v off %#05x '%s' %s type %q <- %s%s\n", pref, pos(v.AssignmentExpression), v.Order(), v.Offset(), cc.NodeSource(v.AssignmentExpression), t, v.Type(), v.AssignmentExpression.Type(), fs)
+//TODO- 		case cc.InitializerInitList:
+//TODO- 			s := pref + "· " + fs
+//TODO- 			for l := v.InitializerList; l != nil; l = l.InitializerList {
+//TODO- 				dumpInitializer([]*cc.Initializer{l.Initializer}, s)
+//TODO- 			}
+//TODO- 		}
+//TODO- 	}
+//TODO- }

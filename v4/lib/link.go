@@ -2,25 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//	jnml@e5-1650:~/tmp$ wc 1.go
-//	 100021  300054 3804357 1.go
-//	jnml@e5-1650:~/tmp$ go clean -cache ; time go build 1.go
-//
-//	real	0m1,832s
-//	user	0m4,902s
-//	sys	0m1,061s
-//	jnml@e5-1650:~/tmp$
-//
-//	cases x 1000	real time	secs
-//		   0	0m1,832s	  1
-//		   1	0m2,053s	  2
-//		   2	0m2,838s	  3
-//		   4	0m5,188s	  5
-//		   8	0m14,448s	 14
-//		  16	0m50,383s	 50
-//		  32	3m17,064s	197
-//		  64	13m28,119s	808
-
 package ccgo // import "modernc.org/ccgo/v4/lib"
 
 import (
@@ -1564,13 +1545,13 @@ func (c *uctx) unsafeQI(n gc.Expression) *gc.QualifiedIdent {
 	return nil
 }
 
-func (c *uctx) isUnsafe(n gc.Expression) (fn string, ok bool) {
-	if qi := c.unsafeQI(n); qi != nil {
-		return qi.Ident.Src(), true
-	}
-
-	return "", false
-}
+//TODO- func (c *uctx) isUnsafe(n gc.Expression) (fn string, ok bool) {
+//TODO- 	if qi := c.unsafeQI(n); qi != nil {
+//TODO- 		return qi.Ident.Src(), true
+//TODO- 	}
+//TODO-
+//TODO- 	return "", false
+//TODO- }
 
 func (c *uctx) unconvertExpr(n gc.Expression, strict bool) (r gc.Expression, changed bool) {
 	switch x := n.(type) {
@@ -1768,31 +1749,31 @@ func (l *linker) isIntegerType(t gc.Type) bool {
 	}
 }
 
-func (l *linker) sizeOf(t gc.Type) int64 {
-	switch t.Kind() {
-	case gc.Int:
-		return int64(l.task.intSize)
-	case gc.Int16:
-		return 2
-	case gc.Int32:
-		return 4
-	case gc.Int64:
-		return 8
-	case gc.Int8:
-		return 1
-	case gc.Uint:
-		return int64(l.task.intSize)
-	case gc.Uint16:
-		return 2
-	case gc.Uint32:
-		return 4
-	case gc.Uint64:
-		return 8
-	case gc.Uint8:
-		return 1
-	case gc.Uintptr:
-		return int64(l.task.intSize)
-	default:
-		return -1
-	}
-}
+//TODO- func (l *linker) sizeOf(t gc.Type) int64 {
+//TODO- 	switch t.Kind() {
+//TODO- 	case gc.Int:
+//TODO- 		return int64(l.task.intSize)
+//TODO- 	case gc.Int16:
+//TODO- 		return 2
+//TODO- 	case gc.Int32:
+//TODO- 		return 4
+//TODO- 	case gc.Int64:
+//TODO- 		return 8
+//TODO- 	case gc.Int8:
+//TODO- 		return 1
+//TODO- 	case gc.Uint:
+//TODO- 		return int64(l.task.intSize)
+//TODO- 	case gc.Uint16:
+//TODO- 		return 2
+//TODO- 	case gc.Uint32:
+//TODO- 		return 4
+//TODO- 	case gc.Uint64:
+//TODO- 		return 8
+//TODO- 	case gc.Uint8:
+//TODO- 		return 1
+//TODO- 	case gc.Uintptr:
+//TODO- 		return int64(l.task.intSize)
+//TODO- 	default:
+//TODO- 		return -1
+//TODO- 	}
+//TODO- }

@@ -110,7 +110,7 @@ type buf struct {
 	n cc.Node
 }
 
-func newBufFromtring(s string) *buf { return &buf{b: []byte(s)} }
+//TODO- func newBufFromtring(s string) *buf { return &buf{b: []byte(s)} }
 
 func (b *buf) Write(p []byte) (int, error) { b.b = append(b.b, p...); return len(p), nil }
 func (b *buf) len() int                    { return len(b.b) }
@@ -230,10 +230,10 @@ func (c *ctx) setSwitchCtx(m map[*cc.LabeledStatement]string) func() {
 	return func() { c.switchCtx = save }
 }
 
-func (c *ctx) baseName(n cc.Node) string {
-	p := c.pos(n)
-	return filepath.Base(p.Filename)
-}
+//TODO- func (c *ctx) baseName(n cc.Node) string {
+//TODO- 	p := c.pos(n)
+//TODO- 	return filepath.Base(p.Filename)
+//TODO- }
 
 func (c *ctx) id() int {
 	if c.f != nil {

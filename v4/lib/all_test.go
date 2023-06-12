@@ -62,7 +62,6 @@ var (
 	goos   = runtime.GOOS
 	hostCC string
 	re     *regexp.Regexp
-	testWD string
 
 	csmithDefaultArgs = strings.Join([]string{
 		"--max-nested-struct-level", "10", // --max-nested-struct-level <num>: limit maximum nested level of structs to <num>(default 0). Only works in the exhaustive mode.
@@ -149,31 +148,31 @@ func h(v interface{}) string {
 	return fmt.Sprint(v)
 }
 
-func cfsWalk(dir string, f func(pth string, fi os.FileInfo) error) error {
-	fis, err := fs.ReadDir(cfs, dir)
-	if err != nil {
-		return err
-	}
-
-	for _, v := range fis {
-		switch {
-		case v.IsDir():
-			if err = cfsWalk(dir+"/"+v.Name(), f); err != nil {
-				return err
-			}
-		default:
-			fi, err := v.Info()
-			if err != nil {
-				return err
-			}
-
-			if err = f(dir+"/"+v.Name(), fi); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
+//TODO- func cfsWalk(dir string, f func(pth string, fi os.FileInfo) error) error {
+//TODO- 	fis, err := fs.ReadDir(cfs, dir)
+//TODO- 	if err != nil {
+//TODO- 		return err
+//TODO- 	}
+//TODO-
+//TODO- 	for _, v := range fis {
+//TODO- 		switch {
+//TODO- 		case v.IsDir():
+//TODO- 			if err = cfsWalk(dir+"/"+v.Name(), f); err != nil {
+//TODO- 				return err
+//TODO- 			}
+//TODO- 		default:
+//TODO- 			fi, err := v.Info()
+//TODO- 			if err != nil {
+//TODO- 				return err
+//TODO- 			}
+//TODO-
+//TODO- 			if err = f(dir+"/"+v.Name(), fi); err != nil {
+//TODO- 				return err
+//TODO- 			}
+//TODO- 		}
+//TODO- 	}
+//TODO- 	return nil
+//TODO- }
 
 func TestGoAlign(t *testing.T) {
 	for _, osarch := range []string{
@@ -729,14 +728,14 @@ func (g *golden) close() {
 	}
 }
 
-func getCorpusFile(path string) ([]byte, error) {
-	f, err := cfs.Open(path)
-	if err != nil {
-		return nil, err
-	}
-
-	return ioutil.ReadAll(f)
-}
+//TODO- func getCorpusFile(path string) ([]byte, error) {
+//TODO- 	f, err := cfs.Open(path)
+//TODO- 	if err != nil {
+//TODO- 		return nil, err
+//TODO- 	}
+//TODO-
+//TODO- 	return ioutil.ReadAll(f)
+//TODO- }
 
 func TestCSmith(t *testing.T) {
 	abi, err := cc.NewABI(runtime.GOOS, runtime.GOARCH)

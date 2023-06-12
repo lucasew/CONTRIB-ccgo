@@ -54,6 +54,7 @@ editor:
 	gofmt -l -s -w *.go
 	go test -o /dev/null -c
 	go install -v -tags=ccgo.assert modernc.org/ccgo/v4 2>&1 | tee log-editor
+	staticcheck
 
 tmp:
 	go test -tags=ccgo.assert -v -run TestExec -trc -trctodo -shelltimeout 5s 2>&1 | tee log-tmp
