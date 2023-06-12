@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -40,6 +41,7 @@ type Task struct {
 	cfgArgs        []string
 	compiledfFiles map[string]string // *.c -> *.c.go
 	defs           string
+	fakeCC         string // -fake-cc
 	fs             fs.FS
 	goABI          *gc.ABI
 	goarch         string
@@ -121,6 +123,10 @@ func NewTask(goos, goarch string, args []string, stdout, stderr io.Writer, fs fs
 
 // Main executes task.
 func (t *Task) Main() (err error) {
+	if s := os.Getenv(realCCEnvVar); s != "" {
+		return t.faked(s)
+	}
+
 	switch len(t.args) {
 	case 0:
 		return errorf("invalid arguments")
@@ -156,6 +162,7 @@ func (t *Task) Main() (err error) {
 		t.linkFiles = append(t.linkFiles, opt+"="+val)
 		return nil
 	})
+	set.Arg("fake-cc", false, func(opt, val string) error { t.fakeCC = val; return nil })
 	set.Arg("o", true, func(opt, val string) error { t.o = val; return nil })
 	set.Arg("std", true, func(opt, val string) error {
 		t.std = fmt.Sprintf("%s=%s", opt, val)
@@ -169,6 +176,7 @@ func (t *Task) Main() (err error) {
 	set.Opt("c", func(opt string) error { t.c = true; return nil })
 	set.Opt("debug-linker-save", func(opt string) error { t.debugLinkerSave = true; return nil })
 	set.Opt("extended-errors", func(opt string) error { extendedErrors = true; gc.ExtendedErrors = true; return nil })
+	set.Opt("fake", func(optVal string) error { return opt.Skip(nil) })
 	set.Opt("full-paths", func(opt string) error { t.fullPaths = true; return nil })
 	set.Opt("header", func(opt string) error { t.header = true; return nil })
 	set.Opt("ignore-asm-errors", func(opt string) error { t.ignoreAsmErrors = true; return nil })
@@ -201,25 +209,30 @@ func (t *Task) Main() (err error) {
 	set.Opt("static", func(opt string) error { return nil })
 	set.Opt("w", func(opt string) error { return nil })
 
-	if err := set.Parse(t.args[1:], func(opt string) error {
-		if strings.HasPrefix(opt, "-") {
-			return errorf(" unrecognized command-line option '%s'", opt)
+	if err := set.Parse(t.args[1:], func(optVal string) error {
+		if strings.HasPrefix(optVal, "-") {
+			return errorf(" unrecognized command-line option '%s'", optVal)
 		}
 
-		if strings.HasSuffix(opt, ".c") || strings.HasSuffix(opt, ".h") {
-			t.inputFiles = append(t.inputFiles, opt)
-			t.linkFiles = append(t.linkFiles, opt)
+		if strings.HasSuffix(optVal, ".c") || strings.HasSuffix(optVal, ".h") {
+			t.inputFiles = append(t.inputFiles, optVal)
+			t.linkFiles = append(t.linkFiles, optVal)
 			return nil
 		}
 
-		if strings.HasSuffix(opt, ".go") {
-			t.linkFiles = append(t.linkFiles, opt)
+		if strings.HasSuffix(optVal, ".go") {
+			t.linkFiles = append(t.linkFiles, optVal)
 			return nil
 		}
 
-		return errorf("unexpected argument %s", opt)
+		return errorf("unexpected argument %s", optVal)
 	}); err != nil {
-		return errorf("parsing %v: %v", t.args[1:], err)
+		switch x := err.(type) {
+		case opt.Skip:
+			return t.fake([]string(x))
+		default:
+			return errorf("parsing %v: %v", t.args[1:], err)
+		}
 	}
 
 	t.cfgArgs = append(t.cfgArgs, t.D...)
