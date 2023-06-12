@@ -34,7 +34,7 @@ const (
 )
 
 const (
-	// Lower number has higher priority in name allocation.
+	// Lower values have higher priority in name allocation.
 	external name = iota // storage class static, linkage external
 	//TODO externalUnpinned
 
@@ -67,7 +67,7 @@ var (
 	// objectFileSemver must be incremented.
 	//
 	// The concatenation of a tag and a valid C identifier must not create a Go
-	// keyword neither it can be a prefix of a Go predefined/protected identifier,
+	// keyword, neither it can be a prefix of a Go predefined/protected identifier,
 	// see reservedNames.
 	tags = [...]string{
 		meta:            "_",
