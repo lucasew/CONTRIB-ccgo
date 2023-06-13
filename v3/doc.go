@@ -66,7 +66,7 @@
 // -Dfoo
 //
 // Equals `#define foo 1`.
-// 
+//
 // -Dfoo=bar
 //
 // Equals `#define foo bar`.
@@ -105,7 +105,7 @@
 //	ccgo -compiledb compile_commands.json make -DFOO -w
 //
 // This will execute `make -DFOO -w` and attempts to extract the compile and
-// archive commands. 
+// archive commands.
 //
 // Only POSIX operating systems are supported.
 //
@@ -440,4 +440,3 @@
 // temporary and/or unsupported and may be removed without notice.
 // Alternatively, they may eventually get promoted to "documented" options.
 package main // import "modernc.org/ccgo/v3"
-

@@ -45,7 +45,7 @@ edit:
 
 editor:
 	gofmt -l -s -w *.go
-	GO111MODULE=off go build -v -o $(GOPATH)/bin/ccgo
+	go build -v -o $(GOPATH)/bin/ccgo
 
 later:
 	@grep -n $(grep) LATER * || true
