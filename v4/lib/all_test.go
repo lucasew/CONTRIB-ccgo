@@ -53,6 +53,7 @@ var (
 	oStackTrace   = flag.Bool("trcstack", false, "")
 	oTrace        = flag.Bool("trc", false, "print tested paths.")
 	oTraceC       = flag.Bool("trcc", false, "trace TestExec transiple errors")
+	oTraceCC      = flag.Bool("trccc", false, "trace TestExec C compiler errors")
 	oTraceF       = flag.Bool("trcf", false, "print test file content")
 	oTraceO       = flag.Bool("trco", false, "print test output")
 	oXTags        = flag.String("xtags", "", "passed to go build of TestSQLite")
@@ -415,6 +416,12 @@ func testExec(t *testing.T, cfsDir string, exec bool, g *golden) {
 	}))
 }
 
+func trccc(path string, err error) {
+	if *oTraceCC {
+		fmt.Printf("%v: C compiler failed: %v\n", path, err)
+	}
+}
+
 func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *golden, id int, args []string) (err error) {
 	// p.Lock()
 	// trc("ADD %q", path)
@@ -441,9 +448,11 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 	case !execute:
 		if _, err = shell(false, hostCC, "-c", "-w", path, "-lm"); err != nil {
 			cCompilerFailed = true
+			trccc(path, err)
 		}
 	default:
 		if _, err = shell(false, hostCC, "-o", bin, "-w", path, "-lm"); err != nil {
+			trccc(path, err)
 			cCompilerFailed = true
 		}
 	}

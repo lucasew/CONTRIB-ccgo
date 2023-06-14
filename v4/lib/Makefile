@@ -53,7 +53,7 @@ editor:
 	stringer -output stringer.go -type mode,name
 	gofmt -l -s -w *.go
 	go test -o /dev/null -c
-	go install -v -tags=ccgo.assert modernc.org/ccgo/v4 2>&1 | tee log-editor
+	go install -v -tags=ccgo.assert,ccgo.dmesg modernc.org/ccgo/v4 2>&1 | tee log-editor
 	staticcheck
 
 tmp:
@@ -77,7 +77,7 @@ fftest:
 	git diff testdata/
 
 shorttest:
-	go test -v -timeout 24h -short -tags=ccgo.assert -trc -shelltimeout 1m 2>&1 | tee log-shorttest
+	go test -v -timeout 24h -short -tags=ccgo.assert -trc -trccc -shelltimeout 1m 2>&1 | tee log-shorttest
 	grep TOTAL log-shorttest
 	git status testdata
 	git diff testdata/

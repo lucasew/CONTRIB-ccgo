@@ -1162,9 +1162,11 @@ func (l *linker) print0(w writer, fi *fnInfo, n interface{}) {
 			}
 
 			obj := fi.linker.externs[id]
-			if assert && obj == nil {
-				panic(todo("%v: %q", x.Position(), id))
+			if obj == nil {
+				l.err(errorf("%v: undefined: %s", x.Position(), id))
+				return
 			}
+
 			if obj.kind == objectPkg {
 				w.w("%s.%s", obj.qualifier, nm)
 				return

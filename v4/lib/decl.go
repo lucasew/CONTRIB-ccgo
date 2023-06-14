@@ -220,6 +220,10 @@ func (c *ctx) functionDefinition(w writer, n *cc.FunctionDefinition) {
 		return
 	}
 
+	if c.task.ignoreHeaderFunctions && strings.HasSuffix(n.Position().Filename, ".h") {
+		return
+	}
+
 	c.functionDefinition0(w, sep(n), n, n.Declarator, n.CompoundStatement, false)
 }
 

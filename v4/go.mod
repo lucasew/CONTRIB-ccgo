@@ -8,13 +8,14 @@ require (
 	golang.org/x/mod v0.10.0
 	golang.org/x/sys v0.8.0
 	golang.org/x/tools v0.9.3
-	modernc.org/cc/v4 v4.2.1
+	modernc.org/cc/v4 v4.3.0
 	modernc.org/ccgo/v3 v3.16.14
 	modernc.org/ccorpus2 v1.3.1
 	modernc.org/fileutil v1.1.2
 	modernc.org/gc/v2 v2.1.2-0.20220923113132-f3b5abcf8083
 	modernc.org/mathutil v1.5.0
 	modernc.org/opt v0.1.3
+	modernc.org/strutil v1.1.3
 )
 
 require (
@@ -26,6 +27,5 @@ require (
 	modernc.org/cc/v3 v3.41.0 // indirect
 	modernc.org/libc v1.24.1 // indirect
 	modernc.org/memory v1.6.0 // indirect
-	modernc.org/strutil v1.1.3 // indirect
 	modernc.org/token v1.1.0 // indirect
 )

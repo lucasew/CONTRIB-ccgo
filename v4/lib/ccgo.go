@@ -21,6 +21,7 @@ import (
 	"modernc.org/cc/v4"
 	"modernc.org/gc/v2"
 	"modernc.org/opt"
+	"modernc.org/strutil"
 )
 
 var (
@@ -41,7 +42,7 @@ type Task struct {
 	cfgArgs        []string
 	compiledfFiles map[string]string // *.c -> *.c.go
 	defs           string
-	fakeCC         string // -fake-cc
+	execCC         string // -exec-cc
 	fs             fs.FS
 	goABI          *gc.ABI
 	goarch         string
@@ -80,6 +81,7 @@ type Task struct {
 	fullPaths                 bool // -full-paths
 	header                    bool // -header
 	ignoreAsmErrors           bool // -ignore-asm-errors
+	ignoreHeaderFunctions     bool // -ignore-header-functions
 	ignoreUnsupportedAligment bool // -ignore-unsupported-alignment
 	ignoreVectorFunctions     bool // -ignore-vector-functions
 	keepObjectFiles           bool // -keep-object-files
@@ -123,8 +125,23 @@ func NewTask(goos, goarch string, args []string, stdout, stderr io.Writer, fs fs
 
 // Main executes task.
 func (t *Task) Main() (err error) {
-	if s := os.Getenv(realCCEnvVar); s != "" {
-		return t.faked(s)
+	if realCC := os.Getenv(realCCEnvVar); realCC != "" {
+		var flags []string
+		if cflags := os.Getenv(cflagsEnvVar); cflags != "" {
+			flags = strutil.SplitFields(cflags, cflagsSep)
+		}
+		return t.execed(realCC, flags)
+	}
+
+	return t.main()
+}
+
+func (t *Task) main() (err error) {
+	if dmesgs {
+		dmesg("%v: ==== enter %s", origin(1), t.args)
+		defer func() {
+			dmesg("%v: ==== exit: %v", origin(1), err)
+		}()
 	}
 
 	switch len(t.args) {
@@ -139,97 +156,98 @@ func (t *Task) Main() (err error) {
 	}
 
 	set := opt.NewSet()
-	set.Arg("-package-name", false, func(opt, val string) error { t.packageName = val; t.packageNameSet = true; return nil })
-	set.Arg("-prefix-automatic", false, func(opt, val string) error { t.prefixAutomatic = val; return nil })
-	set.Arg("-prefix-define", false, func(opt, val string) error { t.prefixDefine = val; return nil })
-	set.Arg("-prefix-enumerator", false, func(opt, val string) error { t.prefixEnumerator = val; return nil })
-	set.Arg("-prefix-external", false, func(opt, val string) error { t.prefixExternal = val; return nil })
-	set.Arg("-prefix-field", false, func(opt, val string) error { t.prefixField = val; return nil })
-	set.Arg("-prefix-import-qualifier", false, func(opt, val string) error { t.prefixImportQualifier = val; return nil })
-	set.Arg("-prefix-macro", false, func(opt, val string) error { t.prefixMacro = val; return nil })
-	set.Arg("-prefix-static-none", false, func(opt, val string) error { t.prefixStaticNone = val; return nil })
-	set.Arg("-prefix-tagged-enum", false, func(opt, val string) error { t.prefixTaggedEnum = val; return nil })
-	set.Arg("-prefix-tagged-struct", false, func(opt, val string) error { t.prefixTaggedStruct = val; return nil })
-	set.Arg("-prefix-tagged-union", false, func(opt, val string) error { t.prefixTaggedUnion = val; return nil })
-	set.Arg("-prefix-typename", false, func(opt, val string) error { t.prefixTypename = val; return nil })
-	//TODO set.Arg("-prefix-unpinned", false, func(opt, val string) error { t.prefixUnpinned = val; return nil })
-	set.Arg("D", true, func(opt, val string) error { t.D = append(t.D, fmt.Sprintf("%s%s", opt, val)); return nil })
-	set.Arg("I", true, func(opt, val string) error { t.I = append(t.I, val); return nil })
-	set.Arg("O", true, func(opt, val string) error { t.O = fmt.Sprintf("%s%s", opt, val); return nil })
-	set.Arg("U", true, func(opt, val string) error { t.U = append(t.U, fmt.Sprintf("%s%s", opt, val)); return nil })
-	set.Arg("l", true, func(opt, val string) error {
+	set.Arg("-package-name", false, func(arg, val string) error { t.packageName = val; t.packageNameSet = true; return nil })
+	set.Arg("-prefix-automatic", false, func(arg, val string) error { t.prefixAutomatic = val; return nil })
+	set.Arg("-prefix-define", false, func(arg, val string) error { t.prefixDefine = val; return nil })
+	set.Arg("-prefix-enumerator", false, func(arg, val string) error { t.prefixEnumerator = val; return nil })
+	set.Arg("-prefix-external", false, func(arg, val string) error { t.prefixExternal = val; return nil })
+	set.Arg("-prefix-field", false, func(arg, val string) error { t.prefixField = val; return nil })
+	set.Arg("-prefix-import-qualifier", false, func(arg, val string) error { t.prefixImportQualifier = val; return nil })
+	set.Arg("-prefix-macro", false, func(arg, val string) error { t.prefixMacro = val; return nil })
+	set.Arg("-prefix-static-none", false, func(arg, val string) error { t.prefixStaticNone = val; return nil })
+	set.Arg("-prefix-tagged-enum", false, func(arg, val string) error { t.prefixTaggedEnum = val; return nil })
+	set.Arg("-prefix-tagged-struct", false, func(arg, val string) error { t.prefixTaggedStruct = val; return nil })
+	set.Arg("-prefix-tagged-union", false, func(arg, val string) error { t.prefixTaggedUnion = val; return nil })
+	set.Arg("-prefix-typename", false, func(arg, val string) error { t.prefixTypename = val; return nil })
+	//TODO set.Arg("-prefix-unpinned", false, func(arg, val string) error { t.prefixUnpinned = val; return nil })
+	set.Arg("D", true, func(arg, val string) error { t.D = append(t.D, fmt.Sprintf("%s%s", arg, val)); return nil })
+	set.Arg("I", true, func(arg, val string) error { t.I = append(t.I, val); return nil })
+	set.Arg("O", true, func(arg, val string) error { t.O = fmt.Sprintf("%s%s", arg, val); return nil })
+	set.Arg("U", true, func(arg, val string) error { t.U = append(t.U, fmt.Sprintf("%s%s", arg, val)); return nil })
+	set.Arg("exec-cc", false, func(arg, val string) error { t.execCC = val; return nil })
+	set.Arg("l", true, func(arg, val string) error {
 		t.l = append(t.l, val)
-		t.linkFiles = append(t.linkFiles, opt+"="+val)
+		t.linkFiles = append(t.linkFiles, arg+"="+val)
 		return nil
 	})
-	set.Arg("fake-cc", false, func(opt, val string) error { t.fakeCC = val; return nil })
-	set.Arg("o", true, func(opt, val string) error { t.o = val; return nil })
-	set.Arg("std", true, func(opt, val string) error {
-		t.std = fmt.Sprintf("%s=%s", opt, val)
+	set.Arg("o", true, func(arg, val string) error { t.o = val; return nil })
+	set.Arg("std", true, func(arg, val string) error {
+		t.std = fmt.Sprintf("%s=%s", arg, val)
 		if val == "c90" {
 			t.strictISOMode = true
 		}
 		return nil
 	})
-	set.Opt("E", func(opt string) error { t.E = true; return nil })
-	set.Opt("ansi", func(opt string) error { t.ansi = true; t.strictISOMode = true; return nil })
-	set.Opt("c", func(opt string) error { t.c = true; return nil })
-	set.Opt("debug-linker-save", func(opt string) error { t.debugLinkerSave = true; return nil })
-	set.Opt("extended-errors", func(opt string) error { extendedErrors = true; gc.ExtendedErrors = true; return nil })
-	set.Opt("fake", func(optVal string) error { return opt.Skip(nil) })
-	set.Opt("full-paths", func(opt string) error { t.fullPaths = true; return nil })
-	set.Opt("header", func(opt string) error { t.header = true; return nil })
-	set.Opt("ignore-asm-errors", func(opt string) error { t.ignoreAsmErrors = true; return nil })
-	set.Opt("ignore-unsupported-alignment", func(opt string) error { t.ignoreUnsupportedAligment = true; return nil })
-	set.Opt("ignore-vector-functions", func(opt string) error { t.ignoreVectorFunctions = true; return nil })
-	set.Opt("keep-object-files", func(opt string) error { t.keepObjectFiles = true; return nil })
-	set.Opt("nostdinc", func(opt string) error { t.nostdinc = true; t.cfgArgs = append(t.cfgArgs, opt); return nil })
-	set.Opt("nostdlib", func(opt string) error { t.nostdlib = true; return nil })
-	set.Opt("positions", func(opt string) error { t.positions = true; return nil })
-	set.Opt("pthread", func(opt string) error { t.pthread = true; t.cfgArgs = append(t.cfgArgs, opt); return nil })
-	set.Opt("verify-types", func(opt string) error { t.verifyTypes = true; return nil })
+	set.Opt("E", func(arg string) error { t.E = true; return nil })
+	set.Opt("ansi", func(arg string) error { t.ansi = true; t.strictISOMode = true; return nil })
+	set.Opt("c", func(arg string) error { t.c = true; return nil })
+	set.Opt("debug-linker-save", func(arg string) error { t.debugLinkerSave = true; return nil })
+	set.Opt("extended-errors", func(arg string) error { extendedErrors = true; gc.ExtendedErrors = true; return nil })
+	set.Opt("exec", func(arg string) error { return opt.Skip(nil) })
+	set.Opt("full-paths", func(arg string) error { t.fullPaths = true; return nil })
+	set.Opt("header", func(arg string) error { t.header = true; return nil })
+	set.Opt("ignore-asm-errors", func(arg string) error { t.ignoreAsmErrors = true; return nil })
+	set.Opt("ignore-header-functions", func(arg string) error { t.ignoreHeaderFunctions = true; return nil })
+	set.Opt("ignore-unsupported-alignment", func(arg string) error { t.ignoreUnsupportedAligment = true; return nil })
+	set.Opt("ignore-vector-functions", func(arg string) error { t.ignoreVectorFunctions = true; return nil })
+	set.Opt("keep-object-files", func(arg string) error { t.keepObjectFiles = true; return nil })
+	set.Opt("nostdinc", func(arg string) error { t.nostdinc = true; t.cfgArgs = append(t.cfgArgs, arg); return nil })
+	set.Opt("nostdlib", func(arg string) error { t.nostdlib = true; return nil })
+	set.Opt("positions", func(arg string) error { t.positions = true; return nil })
+	set.Opt("pthread", func(arg string) error { t.pthread = true; t.cfgArgs = append(t.cfgArgs, arg); return nil })
+	set.Opt("verify-types", func(arg string) error { t.verifyTypes = true; return nil })
 
 	// Ignored
-	set.Arg("MF", true, func(opt, val string) error { return nil })
-	set.Arg("MQ", true, func(opt, val string) error { return nil })
-	set.Arg("MT", true, func(opt, val string) error { return nil })
-	set.Opt("M", func(opt string) error { return nil })
-	set.Opt("MD", func(opt string) error { return nil })
-	set.Opt("MM", func(opt string) error { return nil })
-	set.Opt("MMD", func(opt string) error { return nil })
-	set.Opt("MP", func(opt string) error { return nil })
-	set.Opt("Qunused-arguments", func(opt string) error { return nil })
-	set.Opt("S", func(opt string) error { return nil })
-	set.Opt("dynamiclib", func(opt string) error { return nil })
-	set.Opt("herror_on_warning", func(opt string) error { return nil })
-	set.Opt("pedantic", func(opt string) error { return nil })
-	set.Opt("pipe", func(opt string) error { return nil })
-	set.Opt("s", func(opt string) error { return nil })
-	set.Opt("shared", func(opt string) error { return nil })
-	set.Opt("static", func(opt string) error { return nil })
-	set.Opt("w", func(opt string) error { return nil })
+	set.Arg("MF", true, func(arg, val string) error { return nil })
+	set.Arg("MQ", true, func(arg, val string) error { return nil })
+	set.Arg("MT", true, func(arg, val string) error { return nil })
+	set.Opt("M", func(arg string) error { return nil })
+	set.Opt("MD", func(arg string) error { return nil })
+	set.Opt("MM", func(arg string) error { return nil })
+	set.Opt("MMD", func(arg string) error { return nil })
+	set.Opt("MP", func(arg string) error { return nil })
+	set.Opt("Qunused-arguments", func(arg string) error { return nil })
+	set.Opt("S", func(arg string) error { return nil })
+	set.Opt("dynamiclib", func(arg string) error { return nil })
+	set.Opt("herror_on_warning", func(arg string) error { return nil })
+	set.Opt("pedantic", func(arg string) error { return nil })
+	set.Opt("pipe", func(arg string) error { return nil })
+	set.Opt("s", func(arg string) error { return nil })
+	set.Opt("shared", func(arg string) error { return nil })
+	set.Opt("static", func(arg string) error { return nil })
+	set.Opt("w", func(arg string) error { return nil })
 
-	if err := set.Parse(t.args[1:], func(optVal string) error {
-		if strings.HasPrefix(optVal, "-") {
-			return errorf(" unrecognized command-line option '%s'", optVal)
+	if err := set.Parse(t.args[1:], func(arg string) error {
+		if strings.HasPrefix(arg, "-") {
+			return errorf(" unrecognized command-line option '%s'", arg)
 		}
 
-		if strings.HasSuffix(optVal, ".c") || strings.HasSuffix(optVal, ".h") {
-			t.inputFiles = append(t.inputFiles, optVal)
-			t.linkFiles = append(t.linkFiles, optVal)
+		if strings.HasSuffix(arg, ".c") || strings.HasSuffix(arg, ".h") {
+			t.inputFiles = append(t.inputFiles, arg)
+			t.linkFiles = append(t.linkFiles, arg)
 			return nil
 		}
 
-		if strings.HasSuffix(optVal, ".go") {
-			t.linkFiles = append(t.linkFiles, optVal)
+		if strings.HasSuffix(arg, ".go") {
+			t.linkFiles = append(t.linkFiles, arg)
 			return nil
 		}
 
-		return errorf("unexpected argument %s", optVal)
+		return errorf("unexpected argument %s", arg)
 	}); err != nil {
 		switch x := err.(type) {
 		case opt.Skip:
-			return t.fake([]string(x))
+			return t.exec([]string(x))
 		default:
 			return errorf("parsing %v: %v", t.args[1:], err)
 		}

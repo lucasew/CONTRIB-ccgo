@@ -2,9 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// ~/src/modernc.org/ccorpus2/
+
 package ccgo // import "modernc.org/ccgo/v4/lib"
 
 import (
+	"fmt"
 	"math/big"
 	"sort"
 
@@ -273,7 +276,7 @@ func (c *ctx) initializerStruct(w writer, n cc.Node, a []*cc.Initializer, t *cc.
 	// 			continue
 	// 		}
 
-	// 		trc("%d.%d: %q off %v, ogo %v, %s", i, j, w.Field().Name(), w.Field().Offset(), w.Field().OuterGroupOffset(), cc.NodeSource(w.AssignmentExpression))
+	// 		trc("%d.%d: %q off %v foff %v, fogo %v, %s", i, j, w.Field().Name(), w.Offset(), w.Field().Offset(), w.Field().OuterGroupOffset(), cc.NodeSource(w.AssignmentExpression))
 	// 	}
 	// }
 	// trc("==== initializers (Z)")
@@ -345,10 +348,31 @@ func (c *ctx) initializerUnion(w writer, n cc.Node, a []*cc.Initializer, t *cc.U
 	}
 
 	b.w("*(*%s)(%sunsafe.%sPointer(&struct{ ", c.typ(n, t), tag(importQualifier), tag(preserve))
+out:
 	switch len(a) {
 	case 1:
 		b.w("%s", c.initializerUnionOne(w, n, a, t, off0))
 	default:
+		switch x := cc.LeastCommonAncestorType(a).(type) {
+		case *cc.StructType:
+			in0 := a[0]
+			f := x.FieldByName(in0.Field().Name())
+			fOff := in0.Offset() - f.OuterGroupOffset()
+			pre := fOff - off0
+			if pre != 0 {
+				b.w("%s_ [%d]byte;", tag(preserve), pre)
+			}
+			b.w("%sf ", tag(preserve))
+			b.w("%s ", c.typ(n, x))
+			if post := t.Size() - (pre + x.Size()); post != 0 {
+				b.w("; %s_ [%d]byte", tag(preserve), post)
+			}
+			b.w("}{%sf: ", tag(preserve))
+			b.w("%s", c.initializerStruct(w, n, a, x, off0))
+			b.w("}")
+			break out
+		}
+
 		b.w("%s", c.initializerUnionMany(w, n, a, t, off0, arrayElem))
 	}
 	b.w("))")
@@ -485,8 +509,66 @@ func sortInitializers(a []*cc.Initializer, group func(int64) int64) (r [][]*cc.I
 		m[off] = append(m[off], v)
 	}
 	for _, v := range m {
+		sort.Slice(v, func(i, j int) bool {
+			a, b := v[i].Offset(), v[j].Offset()
+			if a < b {
+				return true
+			}
+
+			if a > b {
+				return false
+			}
+
+			c, d := v[i].Field(), v[j].Field()
+			if c == nil || d != nil {
+				return false
+			}
+
+			return c.Index() < d.Index()
+		})
 		r = append(r, v)
 	}
 	sort.Slice(r, func(i, j int) bool { return r[i][0].Offset() < r[j][0].Offset() })
 	return r
+}
+
+//lint:ignore U1000 debug helper
+func dumpInitializer(a []*cc.Initializer, pref string) {
+	for _, v := range a {
+		var t string
+		for p := v.Parent(); p != nil; p = p.Parent() {
+			switch d := p.Type().Typedef(); {
+			case d != nil:
+				t = fmt.Sprintf("[%s].", d.Name()) + t
+			default:
+				switch x, ok := p.Type().(interface{ Tag() cc.Token }); {
+				case ok:
+					tag := x.Tag()
+					t = fmt.Sprintf("[%s].", tag.SrcStr()) + t
+				default:
+					t = fmt.Sprintf("[%s].", p.Type()) + t
+				}
+			}
+		}
+		var fs string
+		if f := v.Field(); f != nil {
+			var ps string
+			for p := f.Parent(); p != nil; p = p.Parent() {
+				ps = ps + fmt.Sprintf("{%q %v}", p.Name(), p.Type())
+			}
+			fs = fmt.Sprintf(
+				" %s(field %q, IsBitfield %v, Offset %v, OffsetBits %v, OuterGroupOffset %v, InOverlapGroup %v, Mask %#0x, ValueBits %v)",
+				ps, f.Name(), f.IsBitfield(), f.Offset(), f.OffsetBits(), f.OuterGroupOffset(), f.InOverlapGroup(), f.Mask(), f.ValueBits(),
+			)
+		}
+		switch v.Case {
+		case cc.InitializerExpr:
+			fmt.Printf("%s %v: order %v off %#05x '%s' %s type %q <- %s%s\n", pref, pos(v.AssignmentExpression), v.Order(), v.Offset(), cc.NodeSource(v.AssignmentExpression), t, v.Type(), v.AssignmentExpression.Type(), fs)
+		case cc.InitializerInitList:
+			s := pref + "· " + fs
+			for l := v.InitializerList; l != nil; l = l.InitializerList {
+				dumpInitializer([]*cc.Initializer{l.Initializer}, s)
+			}
+		}
+	}
 }
