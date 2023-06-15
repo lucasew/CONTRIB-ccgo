@@ -135,7 +135,9 @@ func (t *Task) execed(realCC string, cflags []string) (err error) {
 	set.Arg("std", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Opt("c", func(arg string) error { args.add(arg); return nil })
 	set.Opt("nostdinc", func(arg string) error { args.add(arg); return nil })
+	set.Opt("nostdlib", func(arg string) error { args.add(arg); return nil })
 	set.Opt("pipe", func(arg string) error { return nil })
+	set.Opt("shared", func(arg string) error { args.add(arg); return nil })
 	if err := set.Parse(t.args[1:], func(arg string) error {
 		if strings.HasPrefix(arg, "-f") { // eg. -ffreestanding
 			return nil
@@ -149,12 +151,11 @@ func (t *Task) execed(realCC string, cflags []string) (err error) {
 			return fmt.Errorf("unexpected/unsupported option: %s", arg)
 		}
 
-		if strings.HasSuffix(arg, ".c") || strings.HasSuffix(arg, ".h") {
+		switch filepath.Ext(arg) {
+		case ".c", ".h":
 			args.add(arg)
 			return nil
-		}
-
-		if strings.HasSuffix(arg, ".s") {
+		case ".s", ".lo":
 			return opt.Skip(nil)
 		}
 
