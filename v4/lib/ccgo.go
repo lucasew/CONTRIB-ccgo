@@ -125,7 +125,7 @@ func NewTask(goos, goarch string, args []string, stdout, stderr io.Writer, fs fs
 
 // Main executes task.
 func (t *Task) Main() (err error) {
-	if realCC := os.Getenv(realCCEnvVar); realCC != "" {
+	if realCC := os.Getenv(CCEnvVar); realCC != "" {
 		var flags []string
 		if cflags := os.Getenv(cflagsEnvVar); cflags != "" {
 			flags = strutil.SplitFields(cflags, cflagsSep)

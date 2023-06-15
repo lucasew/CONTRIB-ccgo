@@ -348,48 +348,11 @@ func (c *ctx) initializerUnion(w writer, n cc.Node, a []*cc.Initializer, t *cc.U
 	}
 
 	b.w("*(*%s)(%sunsafe.%sPointer(&struct{ ", c.typ(n, t), tag(importQualifier), tag(preserve))
-out:
+	//out:
 	switch len(a) {
 	case 1:
 		b.w("%s", c.initializerUnionOne(w, n, a, t, off0))
 	default:
-		switch x := cc.LeastCommonAncestorType(a).(type) {
-		case *cc.StructType:
-			in0 := a[0]
-			f := x.FieldByName(in0.Field().Name())
-			fOff := in0.Offset() - f.OuterGroupOffset()
-			pre := fOff - off0
-			if pre != 0 {
-				b.w("%s_ [%d]byte;", tag(preserve), pre)
-			}
-			b.w("%sf ", tag(preserve))
-			b.w("%s ", c.typ(n, x))
-			if post := t.Size() - (pre + x.Size()); post != 0 {
-				b.w("; %s_ [%d]byte", tag(preserve), post)
-			}
-			b.w("}{%sf: ", tag(preserve))
-			b.w("%s", c.initializerStruct(w, n, a, x, off0))
-			b.w("}")
-			break out
-		case *cc.UnionType:
-			in0 := a[0]
-			f := x.FieldByName(in0.Field().Name())
-			fOff := in0.Offset() - f.OuterGroupOffset()
-			pre := fOff - off0
-			if pre != 0 {
-				b.w("%s_ [%d]byte;", tag(preserve), pre)
-			}
-			b.w("%sf ", tag(preserve))
-			b.w("%s ", c.typ(n, x))
-			if post := t.Size() - (pre + x.Size()); post != 0 {
-				b.w("; %s_ [%d]byte", tag(preserve), post)
-			}
-			b.w("}{%sf: ", tag(preserve))
-			b.w("%s", c.initializerUnionOne(w, n, a, x, off0))
-			b.w("}")
-			break out
-		}
-
 		b.w("%s", c.initializerUnionMany(w, n, a, t, off0, arrayElem))
 	}
 	b.w("))")
@@ -432,7 +395,12 @@ func (c *ctx) initializerUnionOne(w writer, n cc.Node, a []*cc.Initializer, t *c
 
 func (c *ctx) initializerUnionMany(w writer, n cc.Node, a []*cc.Initializer, t *cc.UnionType, off0 int64, arrayElem bool) (r *buf) {
 	var b buf
-	path, x := c.initlializerLCA(a)
+	path, x := c.initializerLCA(a)
+	if len(path) == 0 {
+		c.err(errorf("TODO %T", x))
+		return &b
+	}
+
 	lca := path[x]
 	ft := lca.Type()
 	fOff := lca.Offset()
@@ -490,7 +458,7 @@ out:
 }
 
 // https://en.wikipedia.org/wiki/Lowest_common_ancestor
-func (c ctx) initlializerLCA(a []*cc.Initializer) (r []*cc.Initializer, ri int) {
+func (c ctx) initializerLCA(a []*cc.Initializer) (r []*cc.Initializer, ri int) {
 	if len(a) < 2 {
 		panic(todo("internal error"))
 	}

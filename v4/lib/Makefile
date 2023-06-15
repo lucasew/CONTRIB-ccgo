@@ -77,7 +77,7 @@ fftest:
 	git diff testdata/
 
 shorttest:
-	go test -v -timeout 24h -short -tags=ccgo.assert -trc -trccc -shelltimeout 1m 2>&1 | tee log-shorttest
+	go test -v -timeout 24h -short -tags=ccgo.assert -trc -shelltimeout 1m 2>&1 | tee log-shorttest
 	grep TOTAL log-shorttest
 	git status testdata
 	git diff testdata/

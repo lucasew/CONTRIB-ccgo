@@ -17,14 +17,16 @@ import (
 )
 
 const (
-	realCCEnvVar = "CCGO_EXEC_CC"
+	// CCEnvVar contains the path to the C compiler ccgo acts as a proxy
+	// for when -exec is in effect.
+	CCEnvVar     = "CCGO_EXEC_CC"
 	cflagsEnvVar = "CCGO_EXEC_CFLAGS"
 	cflagsSep    = "|"
 )
 
 func (t *Task) exec(args []string) (err error) {
-	if s := os.Getenv(realCCEnvVar); s != "" {
-		return fmt.Errorf("-fake: env var %s already set: %q", realCCEnvVar, s)
+	if s := os.Getenv(CCEnvVar); s != "" {
+		return fmt.Errorf("-fake: env var %s already set: %q", CCEnvVar, s)
 	}
 
 	if t.execCC == "" {
@@ -40,8 +42,8 @@ func (t *Task) exec(args []string) (err error) {
 		return fmt.Errorf("-fake: %v", err)
 	}
 
-	if err := os.Setenv(realCCEnvVar, cc); err != nil {
-		return fmt.Errorf("cannot set env var %s: %v", realCCEnvVar, err)
+	if err := os.Setenv(CCEnvVar, cc); err != nil {
+		return fmt.Errorf("cannot set env var %s: %v", CCEnvVar, err)
 	}
 
 	cflags := t.args[1 : (len(t.args))-len(args)-1] // -1 for the final "-fake"
