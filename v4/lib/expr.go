@@ -309,29 +309,10 @@ func (c *ctx) convertType(n cc.ExpressionNode, s *buf, from, to cc.Type, fromMod
 		return s
 	}
 
-	//TODO if to.Kind() == cc.Union {
-	//TODO 	return c.convertToUnion(n, s, from, to, fromMode)
-	//TODO }
-
 	c.err(errorf("TODO %q %s, %v %s -> %s, %v %s (%v:)", s, from, from.Size(), fromMode, to, to.Size(), toMode, c.pos(n)))
 	//trc("", errorf("ERROR %q %s %s -> %s %s (%v:)", s, from, fromMode, to, toMode, c.pos(n))) //TODO-DBG
 	return s //TODO
 }
-
-// mode unchanged
-//TODO func (c *ctx) convertToUnion(n cc.ExpressionNode, s *buf, from, to cc.Type, mode mode) (r *buf) {
-//TODO 	var b buf
-//TODO 	dsz, ssz := to.Size(), from.Size()
-//TODO 	switch {
-//TODO 	case dsz > ssz:
-//TODO 		b.w("(*(%s))(unsafe.Pointer(&struct{}))", c.typ(n, to))
-//TODO 	case dsz == ssz:
-//TODO 		panic(todo(""))
-//TODO 	default:
-//TODO 		panic(todo(""))
-//TODO 	}
-//TODO 	return &b
-//TODO }
 
 func (c *ctx) isCharType(t cc.Type) bool {
 	switch t.Kind() {

@@ -51,7 +51,7 @@ func (c *ctx) typ2(n cc.Node, t cc.Type, useNames bool) string {
 
 func (c *ctx) initTyp(n cc.Node, t cc.Type) string {
 	var b strings.Builder
-	c.typ0(&b, n, t, false, false, false)
+	c.typ0(&b, n, t, true, false, false)
 	return b.String()
 }
 

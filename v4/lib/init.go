@@ -85,7 +85,7 @@ func (c *ctx) initializer(w writer, n cc.Node, a []*cc.Initializer, t cc.Type, o
 
 		return c.initializerStruct(w, n, a, x, off0)
 	case *cc.UnionType:
-		if len(a) == 1 && a[0].Type().Kind() == cc.Union {
+		if len(a) == 1 && a[0].Type().Kind() == cc.Union && a[0].Type().Size() == x.Size() {
 			return c.expr(w, a[0].AssignmentExpression, t, exprDefault)
 		}
 
@@ -347,7 +347,7 @@ func (c *ctx) initializerUnion(w writer, n cc.Node, a []*cc.Initializer, t *cc.U
 		return &b
 	}
 
-	b.w("*(*%s)(%sunsafe.%sPointer(&struct{ ", c.typ(n, t), tag(importQualifier), tag(preserve))
+	b.w("(*(*%s)(%sunsafe.%sPointer(&struct{ ", c.typ(n, t), tag(importQualifier), tag(preserve))
 	//out:
 	switch len(a) {
 	case 1:
@@ -355,7 +355,7 @@ func (c *ctx) initializerUnion(w writer, n cc.Node, a []*cc.Initializer, t *cc.U
 	default:
 		b.w("%s", c.initializerUnionMany(w, n, a, t, off0, arrayElem))
 	}
-	b.w("))")
+	b.w(")))")
 	return &b
 }
 
@@ -382,18 +382,16 @@ func (c *ctx) initializerUnionOne(w writer, n cc.Node, a []*cc.Initializer, t *c
 	case f != nil && f.IsBitfield():
 		b.w("(((%suint%d(%s))&%#0x)<<%d)", tag(preserve), f.AccessBytes()*8, c.expr(w, in.AssignmentExpression, nil, exprDefault), uint(1)<<f.ValueBits()-1, f.OffsetBits())
 	default:
-		switch x := in.Type().(type) {
-		case *cc.PredefinedType, *cc.PointerType:
-			b.w("%s", c.expr(w, in.AssignmentExpression, in.Type(), exprDefault))
-		default:
-			c.err(errorf("TODO %T", x))
-		}
+		b.w("%s", c.expr(w, in.AssignmentExpression, in.Type(), exprDefault))
 	}
 	b.w("}")
 	return &b
 }
 
 func (c *ctx) initializerUnionMany(w writer, n cc.Node, a []*cc.Initializer, t *cc.UnionType, off0 int64, arrayElem bool) (r *buf) {
+	// trc("==== %v: (union many A.%v, size %v) %s off0 %#0x, arrayElem %v", n.Position(), c.pass, t.Size(), t, off0, arrayElem)
+	// dumpInitializer(a, "")
+	// trc("---- (union many Z)")
 	var b buf
 	path, x := c.initializerLCA(a)
 	if len(path) == 0 {
@@ -404,6 +402,7 @@ func (c *ctx) initializerUnionMany(w writer, n cc.Node, a []*cc.Initializer, t *
 	lca := path[x]
 	ft := lca.Type()
 	fOff := lca.Offset()
+	// trc("%v: ft %s, fOff %v", lca.Position(), ft, fOff)
 out:
 	switch {
 	case ft == t:

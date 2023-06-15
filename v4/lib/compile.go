@@ -272,10 +272,12 @@ func (c *ctx) compile(ifn, ofn string) (err error) {
 			return
 		}
 
-		if err2 := exec.Command("gofmt", "-s", "-w", "-r", "(x) -> x", ofn).Run(); err2 != nil {
-			c.err(errorf("%s: gofmt: %v", ifn, err2))
-			if err == nil {
-				err = err2
+		if !c.task.noObjFmt {
+			if err2 := exec.Command("gofmt", "-s", "-w", "-r", "(x) -> x", ofn).Run(); err2 != nil {
+				c.err(errorf("%s: gofmt: %v", ifn, err2))
+				if err == nil {
+					err = err2
+				}
 			}
 		}
 		if *oTraceL {

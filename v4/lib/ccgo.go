@@ -85,6 +85,7 @@ type Task struct {
 	ignoreUnsupportedAligment bool // -ignore-unsupported-alignment
 	ignoreVectorFunctions     bool // -ignore-vector-functions
 	keepObjectFiles           bool // -keep-object-files
+	noObjFmt                  bool // -no-object-file-format
 	nostdinc                  bool // -nostdinc
 	nostdlib                  bool // -nostdlib
 	packageNameSet            bool
@@ -192,8 +193,8 @@ func (t *Task) main() (err error) {
 	set.Opt("ansi", func(arg string) error { t.ansi = true; t.strictISOMode = true; return nil })
 	set.Opt("c", func(arg string) error { t.c = true; return nil })
 	set.Opt("debug-linker-save", func(arg string) error { t.debugLinkerSave = true; return nil })
-	set.Opt("extended-errors", func(arg string) error { extendedErrors = true; gc.ExtendedErrors = true; return nil })
 	set.Opt("exec", func(arg string) error { return opt.Skip(nil) })
+	set.Opt("extended-errors", func(arg string) error { extendedErrors = true; gc.ExtendedErrors = true; return nil })
 	set.Opt("full-paths", func(arg string) error { t.fullPaths = true; return nil })
 	set.Opt("header", func(arg string) error { t.header = true; return nil })
 	set.Opt("ignore-asm-errors", func(arg string) error { t.ignoreAsmErrors = true; return nil })
@@ -201,6 +202,7 @@ func (t *Task) main() (err error) {
 	set.Opt("ignore-unsupported-alignment", func(arg string) error { t.ignoreUnsupportedAligment = true; return nil })
 	set.Opt("ignore-vector-functions", func(arg string) error { t.ignoreVectorFunctions = true; return nil })
 	set.Opt("keep-object-files", func(arg string) error { t.keepObjectFiles = true; return nil })
+	set.Opt("no-object-file-format", func(arg string) error { t.noObjFmt = true; return nil })
 	set.Opt("nostdinc", func(arg string) error { t.nostdinc = true; t.cfgArgs = append(t.cfgArgs, arg); return nil })
 	set.Opt("nostdlib", func(arg string) error { t.nostdlib = true; return nil })
 	set.Opt("positions", func(arg string) error { t.positions = true; return nil })
