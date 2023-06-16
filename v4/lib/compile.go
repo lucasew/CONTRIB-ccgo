@@ -398,7 +398,7 @@ func (c *ctx) verifyTypes() {
 	for i, k := range a {
 		t := m[k]
 		v := fmt.Sprintf("%sv%d", tag(preserve), i)
-		c.w("\n\tvar %s %s", v, c.initTyp(nil, t))
+		c.w("\n\tvar %s %s", v, c.verifyTyp(nil, t))
 		if x, ok := t.(*cc.StructType); ok {
 			t := x.Tag()
 			if s := t.SrcStr(); s != "" {

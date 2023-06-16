@@ -55,6 +55,12 @@ func (c *ctx) initTyp(n cc.Node, t cc.Type) string {
 	return b.String()
 }
 
+func (c *ctx) verifyTyp(n cc.Node, t cc.Type) string {
+	var b strings.Builder
+	c.typ0(&b, n, t, false, false, false)
+	return b.String()
+}
+
 func (c *ctx) typ0(b *strings.Builder, n cc.Node, t cc.Type, useTypenames, useTags, isField bool) {
 	if t.Kind() != cc.Array && !c.isValidType1(n, t, true) {
 		b.WriteString(tag(preserve))

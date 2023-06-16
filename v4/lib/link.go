@@ -852,14 +852,56 @@ var (
 		return errorf("%s", err)
 	}
 
-	if e := exec.Command("gofmt", "-s", "-w", "-r", "(x) -> x", ofn).Run(); e != nil {
+	switch e := exec.Command("gofmt", "-s", "-w", "-r", "(x) -> x", ofn).Run(); {
+	case e != nil:
 		l.err(errorf("%s: gofmt: %v", ofn, e))
-	}
-	if *oTraceG {
-		b, _ := os.ReadFile(ofn)
-		fmt.Fprintf(os.Stderr, "%s\n", b)
+	default:
+		b, err := os.ReadFile(ofn)
+		if err != nil {
+			break
+		}
+
+		b = l.postProcess(b)
+		if err := os.WriteFile(ofn, b, 0666); err != nil {
+			return errorf("%s", err)
+		}
+
+		if *oTraceG {
+			fmt.Fprintf(os.Stderr, "%s\n", b)
+		}
 	}
 	return l.errors.err()
+}
+
+var (
+	bfunc   = []byte("func ")
+	bnl     = []byte("\n")
+	brbrace = []byte("}")
+)
+
+// Input must be formatted.
+func (l *linker) postProcess(b []byte) (r []byte) {
+	lines := bytes.Split(b, bnl)
+	r = make([]byte, 0, len(b))
+	var inFunc bool
+	for _, v := range lines {
+		switch {
+		case bytes.HasPrefix(v, bfunc):
+			inFunc = true
+			r = append(r, v...)
+		case len(v) == 0:
+			if inFunc {
+				continue
+			}
+		case bytes.HasPrefix(v, brbrace):
+			inFunc = false
+			r = append(r, v...)
+		default:
+			r = append(r, v...)
+		}
+		r = append(r, '\n')
+	}
+	return append(r, bnl...)
 }
 
 func (l *linker) meta(n gc.Node, linkName string) bool {
