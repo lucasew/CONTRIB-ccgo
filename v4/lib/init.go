@@ -347,15 +347,17 @@ func (c *ctx) initializerUnion(w writer, n cc.Node, a []*cc.Initializer, t *cc.U
 		return &b
 	}
 
-	b.w("(*(*%s)(%sunsafe.%sPointer(&struct{ ", c.typ(n, t), tag(importQualifier), tag(preserve))
 	//out:
 	switch len(a) {
 	case 1:
+		b.w("(*(*%s)(%sunsafe.%sPointer(&struct{ ", c.typ(n, t), tag(importQualifier), tag(preserve))
 		b.w("%s", c.initializerUnionOne(w, n, a, t, off0))
+		b.w(")))")
 	default:
+		b.w("(*(*%s)(%sunsafe.%sPointer(&", c.typ(n, t), tag(importQualifier), tag(preserve))
 		b.w("%s", c.initializerUnionMany(w, n, a, t, off0, arrayElem))
+		b.w(")))")
 	}
-	b.w(")))")
 	return &b
 }
 
@@ -388,101 +390,162 @@ func (c *ctx) initializerUnionOne(w writer, n cc.Node, a []*cc.Initializer, t *c
 	return &b
 }
 
+//TODO -assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr42691.c
+//TODO -assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/strlen-5.c
+//TODO -assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr42691.c
+//TODO -assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/strlen-5.c
+//TODO -assets/tcc-0.9.27/tests/tests2/90_struct-init.c
 func (c *ctx) initializerUnionMany(w writer, n cc.Node, a []*cc.Initializer, t *cc.UnionType, off0 int64, arrayElem bool) (r *buf) {
-	// trc("==== %v: (union many A.%v, size %v) %s off0 %#0x, arrayElem %v", n.Position(), c.pass, t.Size(), t, off0, arrayElem)
+	// trc("%v:", pos(n))
+	// trc("==== %v: (union many A.%v, size %v) type %s off0 %#0x, arrayElem %v", n.Position(), c.pass, t.Size(), t, off0, arrayElem)
 	// dumpInitializer(a, "")
 	// trc("---- (union many Z)")
 	var b buf
-	path, x := c.initializerLCA(a)
-	if len(path) == 0 {
-		c.err(errorf("TODO %T", x))
+	lcaf := cc.LeastCommonAncestorField(a)
+	if lcaf == nil {
+		// panic(todo(""))
+		// trc("%s", cc.LeastCommonAncestorType(a))
+		b.w("/* %v: TODO */", origin(1))
 		return &b
 	}
 
-	lca := path[x]
-	ft := lca.Type()
-	fOff := lca.Offset()
-	// trc("%v: ft %s, fOff %v", lca.Position(), ft, fOff)
-out:
-	switch {
-	case ft == t:
-		f := lca.InitializerList.UnionField()
-		ft = f.Type()
-		fOff = off0 + f.Offset()
-	case arrayElem:
-		// trc("arrayElem, x %v", x)
-		for _, v := range path {
-			if v.InitializerList != nil && v.InitializerList.UnionField() != nil {
-				if f := v.InitializerList.UnionField(); f == t.FieldByIndex(f.Index()) {
-					ft = f.Type()
-					fOff = off0 + f.Offset()
-					break out
-				}
-			}
+	lcaft := lcaf.Type()
+	// lcafpt := lcaf.ParentType()
+	// trc("lcaf %q %s, %d fld ix %v, pt %s", lcaf.Name(), lcaft, lcaft.Size(), lcaf.Index(), lcafpt)
+	if lcaft.Size() == t.Size() {
+		return c.initializer(w, n, a, lcaf.Type(), off0, arrayElem)
+	}
+
+	if nm := lcaf.Name(); nm != "" {
+		f := t.FieldByName(nm)
+		if f == nil {
+			// panic(todo(""))
+			b.w("/* %v: TODO */", origin(1))
+			return &b
 		}
 
-		// for i, v := range path {
-		// 	var s string
-		// 	if v.InitializerList != nil && v.InitializerList.UnionField() != nil {
-		// 		f := v.InitializerList.UnionField()
-		// 		s = fmt.Sprintf("%q %v", f.Name(), f.Type())
-		// 	}
-		// 	trc("%d/%d: %v: %s", i, len(path), v.Position(), s)
-		// }
-		c.err(errorf("TODO"))
+		var pre, off int64
+		if f.Offset() != 0 {
+			pre = f.Offset()
+			off += pre
+		}
+		post := t.Size() - lcaft.Size() - off
+		b.w("struct{")
+		if pre != 0 {
+			b.w("%s_ [%d]byte;", tag(preserve), pre)
+		}
+		b.w("%sf ", tag(preserve))
+		b.w("%s ", c.typ(n, lcaft))
+		if post != 0 {
+			b.w("; %s_ [%d]byte", tag(preserve), post)
+		}
+		b.w("}{%sf: ", tag(preserve))
+		b.w("%s", c.initializer(w, n, a, lcaf.Type(), off0, arrayElem))
+		b.w("}")
 		return &b
 	}
-	pre := fOff - off0
-	if pre != 0 {
-		b.w("%s_ [%d]byte;", tag(preserve), pre)
-	}
-	b.w("%sf ", tag(preserve))
-	b.w("%s ", c.typ(n, ft))
-	if post := t.Size() - (pre + ft.Size()); post != 0 {
-		b.w("; %s_ [%d]byte", tag(preserve), post)
-	}
-	b.w("}{%sf: ", tag(preserve))
-	switch x := ft.(type) {
-	case *cc.ArrayType:
-		b.w("%s", c.initializerArray(w, n, a, x, off0))
-	case *cc.StructType:
-		b.w("%s", c.initializerStruct(w, n, a, x, off0))
-	case *cc.UnionType:
-		b.w("%s", c.initializerUnion(w, n, a, x, off0, false))
-	default:
-		c.err(errorf("TODO %T", x))
-	}
-	b.w("}")
+
+	// panic(todo(""))
+	b.w("/* %v: TODO */", origin(1))
 	return &b
 }
 
-// https://en.wikipedia.org/wiki/Lowest_common_ancestor
-func (c ctx) initializerLCA(a []*cc.Initializer) (r []*cc.Initializer, ri int) {
-	if len(a) < 2 {
-		panic(todo("internal error"))
-	}
-
-	nodes := map[*cc.Initializer]struct{}{}
-	var path []*cc.Initializer
-	for p := a[0].Parent(); p != nil; p = p.Parent() {
-		path = append(path, p)
-		r = append(r, p)
-		nodes[p] = struct{}{}
-	}
-	for _, v := range a[1:] {
-		for p := v.Parent(); p != nil; p = p.Parent() {
-			if _, ok := nodes[p]; ok {
-				for path[0] != p {
-					delete(nodes, p)
-					path = path[1:]
-					ri++
-				}
-				break
-			}
-		}
-	}
-	return r, ri
-}
+//TODO- func (c *ctx) initializerUnionMany0(w writer, n cc.Node, a []*cc.Initializer, t *cc.UnionType, off0 int64, arrayElem bool) (r *buf) { //TODO-
+//TODO- 	trc("%v:", pos(n))
+//TODO- 	// trc("==== %v: (union many A.%v, size %v) %s off0 %#0x, arrayElem %v", n.Position(), c.pass, t.Size(), t, off0, arrayElem)
+//TODO- 	// dumpInitializer(a, "")
+//TODO- 	// trc("---- (union many Z)")
+//TODO- 	var b buf
+//TODO- 	path, x := c.initializerLCA(a)
+//TODO- 	if len(path) == 0 {
+//TODO- 		c.err(errorf("TODO %T", x))
+//TODO- 		return &b
+//TODO- 	}
+//TODO-
+//TODO- 	lca := path[x]
+//TODO- 	ft := lca.Type()
+//TODO- 	fOff := lca.Offset()
+//TODO- 	// trc("%v: ft %s, fOff %v", lca.Position(), ft, fOff)
+//TODO- out:
+//TODO- 	switch {
+//TODO- 	case ft == t:
+//TODO- 		f := lca.InitializerList.UnionField()
+//TODO- 		ft = f.Type()
+//TODO- 		fOff = off0 + f.Offset()
+//TODO- 	case arrayElem:
+//TODO- 		// trc("arrayElem, x %v", x)
+//TODO- 		for _, v := range path {
+//TODO- 			if v.InitializerList != nil && v.InitializerList.UnionField() != nil {
+//TODO- 				if f := v.InitializerList.UnionField(); f == t.FieldByIndex(f.Index()) {
+//TODO- 					ft = f.Type()
+//TODO- 					fOff = off0 + f.Offset()
+//TODO- 					break out
+//TODO- 				}
+//TODO- 			}
+//TODO- 		}
+//TODO-
+//TODO- 		// for i, v := range path {
+//TODO- 		// 	var s string
+//TODO- 		// 	if v.InitializerList != nil && v.InitializerList.UnionField() != nil {
+//TODO- 		// 		f := v.InitializerList.UnionField()
+//TODO- 		// 		s = fmt.Sprintf("%q %v", f.Name(), f.Type())
+//TODO- 		// 	}
+//TODO- 		// 	trc("%d/%d: %v: %s", i, len(path), v.Position(), s)
+//TODO- 		// }
+//TODO- 		c.err(errorf("TODO"))
+//TODO- 		return &b
+//TODO- 	}
+//TODO- 	pre := fOff - off0
+//TODO- 	if pre != 0 {
+//TODO- 		b.w("%s_ [%d]byte;", tag(preserve), pre)
+//TODO- 	}
+//TODO- 	b.w("%sf ", tag(preserve))
+//TODO- 	b.w("%s ", c.typ(n, ft))
+//TODO- 	if post := t.Size() - (pre + ft.Size()); post != 0 {
+//TODO- 		b.w("; %s_ [%d]byte", tag(preserve), post)
+//TODO- 	}
+//TODO- 	b.w("}{%sf: ", tag(preserve))
+//TODO- 	switch x := ft.(type) {
+//TODO- 	case *cc.ArrayType:
+//TODO- 		b.w("%s", c.initializerArray(w, n, a, x, off0))
+//TODO- 	case *cc.StructType:
+//TODO- 		b.w("%s", c.initializerStruct(w, n, a, x, off0))
+//TODO- 	case *cc.UnionType:
+//TODO- 		b.w("%s", c.initializerUnion(w, n, a, x, off0, false))
+//TODO- 	default:
+//TODO- 		c.err(errorf("TODO %T", x))
+//TODO- 	}
+//TODO- 	b.w("}")
+//TODO- 	return &b
+//TODO- }
+//TODO-
+//TODO- // https://en.wikipedia.org/wiki/Lowest_common_ancestor
+//TODO- func (c ctx) initializerLCA(a []*cc.Initializer) (r []*cc.Initializer, ri int) {
+//TODO- 	if len(a) < 2 {
+//TODO- 		panic(todo("internal error"))
+//TODO- 	}
+//TODO-
+//TODO- 	nodes := map[*cc.Initializer]struct{}{}
+//TODO- 	var path []*cc.Initializer
+//TODO- 	for p := a[0].Parent(); p != nil; p = p.Parent() {
+//TODO- 		path = append(path, p)
+//TODO- 		r = append(r, p)
+//TODO- 		nodes[p] = struct{}{}
+//TODO- 	}
+//TODO- 	for _, v := range a[1:] {
+//TODO- 		for p := v.Parent(); p != nil; p = p.Parent() {
+//TODO- 			if _, ok := nodes[p]; ok {
+//TODO- 				for path[0] != p {
+//TODO- 					delete(nodes, p)
+//TODO- 					path = path[1:]
+//TODO- 					ri++
+//TODO- 				}
+//TODO- 				break
+//TODO- 			}
+//TODO- 		}
+//TODO- 	}
+//TODO- 	return r, ri
+//TODO- }
 
 func sortInitializers(a []*cc.Initializer, group func(int64) int64) (r [][]*cc.Initializer) {
 	// [0]6.7.8/23: The order in which any side effects occur among the
