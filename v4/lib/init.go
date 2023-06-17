@@ -390,81 +390,174 @@ func (c *ctx) initializerUnionOne(w writer, n cc.Node, a []*cc.Initializer, t *c
 	return &b
 }
 
-//TODO -assets/tcc-0.9.27/tests/tests2/90_struct-init.c
 func (c *ctx) initializerUnionMany(w writer, n cc.Node, a []*cc.Initializer, t *cc.UnionType, off0 int64, arrayElem bool) (r *buf) {
-	// trc("==== %v: (union many A.%v, size %v) type %s off0 %#0x, arrayElem %v", n.Position(), c.pass, t.Size(), t, off0, arrayElem)
-	// dumpInitializer(a, "")
-	// trc("---- (union many Z)")
+	trc("==== %v: (union many A.%v, size %v) type %s off0 %#0x, arrayElem %v", n.Position(), c.pass, t.Size(), t, off0, arrayElem)
+	dumpInitializer(a, "")
+	trc("---- (union many Z)")
 	var b buf
-	lcaf := cc.LeastCommonAncestorField(a)
-	if lcaf == nil {
-		// trc("%s", cc.LeastCommonAncestorType(a))
-		if cc.LeastCommonAncestorType(a) != nil {
-			b.w("/* %v: TODO */", origin(1))
-			return &b
-		}
-
-		path, x := c.initializerLCA(a)
-		if len(path) == 0 {
-			c.err(errorf("TODO %T", x))
-			return &b
-		}
-
-		if x < 0 || x >= len(path) {
-			b.w("/* %v: TODO */", origin(1))
-			return &b
-		}
-
-		lca := path[x]
-		lcat := lca.Type()
-		if lcat == nil {
-			b.w("/* %v: TODO */", origin(1))
-			return &b
-		}
-
-		if lcat == t {
-			if uf := lca.InitializerList.UnionField(); uf != nil {
-				lcat = uf.Type()
-			}
-		}
-
-		if lcat.Size() == t.Size() {
-			return c.initializer(w, n, a, lcat, off0, arrayElem)
-		}
-
+	nf := t.NumFields()
+	if nf == 0 && len(a) != 0 {
+		trc("MANY %v: (%v:)", pos(n), origin(1))
 		b.w("/* %v: TODO */", origin(1))
 		return &b
 	}
 
-	lcaft := lcaf.Type()
-	if lcaft.Size() == t.Size() {
-		return c.initializer(w, n, a, lcaft, off0, arrayElem)
+	var uf *cc.Field
+	var uft cc.Type
+	var ufOff, ufSize int64
+	var ok bool
+nextUf:
+	for i := 0; i < nf; i++ {
+		uf = t.FieldByIndex(i)
+		uft = uf.Type()
+		ufOff = uf.OuterGroupOffset()
+		ufSize = uf.Type().Size()
+		trc("i %d, uf %q ufOff %v ufSize %v", i, uf.Name(), ufOff, ufSize)
+		switch x := uft.(type) {
+		case *cc.UnionType:
+			for j, in := range a {
+				switch inf := in.Field(); {
+				case inf != nil && inf.Name() != "":
+					switch subf := x.FieldByName(inf.Name()); {
+					case subf != nil:
+						if off := subf.Offset(); off < ufOff || off >= ufOff+ufSize {
+							continue nextUf
+						}
+						trc("j %v, subf %q ok", j, subf.Name())
+					default:
+						continue nextUf
+					}
+				default:
+					continue nextUf
+				}
+			}
+			ok = true
+			break nextUf
+		case *cc.StructType:
+			for j, in := range a {
+				switch inf := in.Field(); {
+				case inf != nil && inf.Name() != "":
+					switch subf := x.FieldByName(inf.Name()); {
+					case subf != nil:
+						if off := subf.Offset(); off < ufOff || off >= ufOff+ufSize {
+							continue nextUf
+						}
+						trc("j %v, subf %q ok", j, subf.Name())
+					default:
+						continue nextUf
+					}
+				default:
+					continue nextUf
+				}
+			}
+			ok = true
+			break nextUf
+		default:
+			trc("MANY %v: %T (%v:)", pos(n), x, origin(1))
+			b.w("/* %v: TODO %T */", origin(1), x)
+			return &b
+		}
 	}
-
-	if lcaft.Size() > t.Size() {
-		b.w("/* %v: TODO internal error */", origin(1))
+	if !ok {
+		trc("MANY %v: (%v:)", pos(n), origin(1))
+		b.w("/* %v: TODO */", origin(1))
 		return &b
 	}
 
-	var pre, off int64
-	if lcaf.Offset() != 0 {
-		pre = lcaf.Offset()
-		off += pre
+	trc("ufSize %v, t.Size() %v", ufSize, t.Size())
+	if ufSize == t.Size() {
+		trc("%s: size ok ", uft)
+		return c.initializer(w, n, a, uft, off0, arrayElem)
 	}
-	post := t.Size() - lcaft.Size() - off
+
+	post := t.Size() - ufSize - ufOff
 	b.w("struct{")
-	if pre != 0 {
-		b.w("%s_ [%d]byte;", tag(preserve), pre)
+	if ufOff != 0 {
+		b.w("%s_ [%d]byte;", tag(preserve), ufOff)
 	}
 	b.w("%sf ", tag(preserve))
-	b.w("%s ", c.typ(n, lcaft))
+	b.w("%s ", c.typ(n, uft))
 	if post != 0 {
 		b.w("; %s_ [%d]byte", tag(preserve), post)
 	}
 	b.w("}{%sf: ", tag(preserve))
-	b.w("%s", c.initializer(w, n, a, lcaf.Type(), off0, arrayElem))
+	b.w("%s", c.initializer(w, n, a, uft, off0-ufOff, arrayElem))
 	b.w("}")
 	return &b
+
+	// trc("MANY %v: (%v:)", pos(n), origin(1))
+	// b.w("/* %v: TODO */", origin(1))
+	// return &b
+
+	// lcaf := cc.LeastCommonAncestorField(a)
+	// if lcaf == nil {
+	// 	// trc("%s", cc.LeastCommonAncestorType(a))
+	// 	if cc.LeastCommonAncestorType(a) != nil {
+	// 		b.w("/* %v: TODO */", origin(1))
+	// 		return &b
+	// 	}
+
+	// 	path, x := c.initializerLCA(a)
+	// 	if len(path) == 0 {
+	// 		c.err(errorf("TODO %T", x))
+	// 		return &b
+	// 	}
+
+	// 	if x < 0 || x >= len(path) {
+	// 		b.w("/* %v: TODO */", origin(1))
+	// 		return &b
+	// 	}
+
+	// 	lca := path[x]
+	// 	lcat := lca.Type()
+	// 	if lcat == nil {
+	// 		b.w("/* %v: TODO */", origin(1))
+	// 		return &b
+	// 	}
+
+	// 	if lcat == t {
+	// 		if uf := lca.InitializerList.UnionField(); uf != nil {
+	// 			lcat = uf.Type()
+	// 		}
+	// 	}
+
+	// 	if lcat.Size() == t.Size() {
+	// 		return c.initializer(w, n, a, lcat, off0, arrayElem)
+	// 	}
+
+	// 	b.w("/* %v: TODO */", origin(1))
+	// 	return &b
+	// }
+
+	// lcaft := lcaf.Type()
+	// if lcaft.Size() == t.Size() {
+	// 	return c.initializer(w, n, a, lcaft, off0, arrayElem)
+	// }
+
+	// if lcaft.Size() > t.Size() {
+	// 	b.w("/* %v: TODO internal error */", origin(1))
+	// 	return &b
+	// }
+
+	// var pre, off int64
+	// if lcaf.Offset() != 0 {
+	// 	pre = lcaf.Offset()
+	// 	off += pre
+	// }
+	// post := t.Size() - lcaft.Size() - off
+	// b.w("struct{")
+	// if pre != 0 {
+	// 	b.w("%s_ [%d]byte;", tag(preserve), pre)
+	// }
+	// b.w("%sf ", tag(preserve))
+	// b.w("%s ", c.typ(n, lcaft))
+	// if post != 0 {
+	// 	b.w("; %s_ [%d]byte", tag(preserve), post)
+	// }
+	// b.w("}{%sf: ", tag(preserve))
+	// b.w("%s", c.initializer(w, n, a, lcaf.Type(), off0, arrayElem))
+	// b.w("}")
+	// return &b
 }
 
 // https://en.wikipedia.org/wiki/Lowest_common_ancestor

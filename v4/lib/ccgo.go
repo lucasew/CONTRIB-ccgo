@@ -262,8 +262,10 @@ func (t *Task) main() (err error) {
 		t.O,
 		t.std,
 	)
-	if flag := cc.LongDouble64Flag(t.goos, t.goarch); flag != "" {
-		t.cfgArgs = append(t.cfgArgs, flag)
+
+	ldflag := cc.LongDouble64Flag(t.goos, t.goarch)
+	if ldflag != "" {
+		t.cfgArgs = append(t.cfgArgs, ldflag)
 	}
 
 	if t.goos == "windows" && (t.goarch == "386" || t.goarch == "amd64") {
@@ -308,6 +310,12 @@ func (t *Task) main() (err error) {
 	cfg, err := cc.NewConfig(t.goos, t.goarch, t.cfgArgs...)
 	if err != nil {
 		return err
+	}
+
+	if ldflag == "" {
+		if err = cfg.AdjustLongDouble(); err != nil {
+			return err
+		}
 	}
 
 	if t.header {
