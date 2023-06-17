@@ -121,9 +121,9 @@ func (c *ctx) typ0(b *strings.Builder, n cc.Node, t cc.Type, useTypenames, useTa
 			b.WriteString(tag(preserve))
 			b.WriteString("float64")
 		case t.Kind() == cc.LongDouble:
-			// if t.Size() != 8 {
-			// 	c.err(errorf("C %v of unexpected size %d", x.Kind(), t.Size()))
-			// }
+			if t.Size() != 8 {
+				c.err(errorf("C %v of unexpected size %d", x.Kind(), t.Size()))
+			}
 			switch t.Size() {
 			case 8:
 				b.WriteString(tag(preserve))
@@ -142,6 +142,12 @@ func (c *ctx) typ0(b *strings.Builder, n cc.Node, t cc.Type, useTypenames, useTa
 		case t.Kind() == cc.ComplexDouble:
 			if t.Size() != 16 {
 				c.err(errorf("C %v of unexpected size %d", x.Kind(), t.Size()))
+			}
+			b.WriteString(tag(preserve))
+			b.WriteString("complex128")
+		case t.Kind() == cc.ComplexLongDouble:
+			if t.Size() != 16 {
+				c.err(errorf("%v: C %v of unexpected size %d", pos(n), x.Kind(), t.Size()))
 			}
 			b.WriteString(tag(preserve))
 			b.WriteString("complex128")

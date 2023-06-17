@@ -230,6 +230,8 @@ func (c *ctx) convertMode(n cc.ExpressionNode, w writer, s *buf, from, to cc.Typ
 				trc("%v:", n.Position())
 				c.err(errorf("TODO %T", x))
 			}
+		case exprSelect:
+			return s
 		}
 	case exprUintptr:
 		switch toMode {
@@ -275,8 +277,9 @@ func (c *ctx) convertMode(n cc.ExpressionNode, w writer, s *buf, from, to cc.Typ
 			return s
 		}
 	}
-	//trc("%v: from %v, %v to %v %v, src '%s', buf '%s'", c.pos(n), from, fromMode, to, toMode, cc.NodeSource(n), s.bytes())
-	c.err(errorf("TODO %q %s %s -> %s %s", s, from, fromMode, to, toMode))
+	//TODO- trc("%v: from %v, %v to %v %v, src '%s', buf '%s'", c.pos(n), from, fromMode, to, toMode, cc.NodeSource(n), s.bytes())
+	c.err(errorf("TODO %v: from %v, %v to %v %v, src '%s', buf '%s'", c.pos(n), from, fromMode, to, toMode, cc.NodeSource(n), s.bytes()))
+	//TODO- c.err(errorf("TODO %q %s %s -> %s %s", s, from, fromMode, to, toMode))
 	return s //TODO
 }
 
@@ -1111,7 +1114,7 @@ out:
 					rt, rmode = n.Type(), mode
 					t := p.Elem()
 					if !cc.IsScalarType(t) {
-						c.err(errorf("unsupported va_arg type: %v", t.Kind()))
+						c.err(errorf("%v: unsupported va_arg type: %v", n.Position(), t.Kind()))
 						t = p
 					}
 					b.w("%sVa%s(&%s)", c.task.tlsQualifier, c.helper(n, t), c.expr(w, pfe.ArgumentExpressionList.AssignmentExpression, nil, exprDefault))
