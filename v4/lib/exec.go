@@ -134,6 +134,7 @@ func (t *Task) execed(realCC string, cflags []string) (err error) {
 	set.Arg("o", true, func(arg, val string) error { args.add(arg, val+".go"); return nil })
 	set.Arg("std", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Opt("c", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mlong-double-64", func(arg string) error { args.add(arg); return nil })
 	set.Opt("nostdinc", func(arg string) error { args.add(arg); return nil })
 	set.Opt("nostdlib", func(arg string) error { args.add(arg); return nil })
 	set.Opt("pipe", func(arg string) error { return nil })

@@ -202,6 +202,7 @@ func (t *Task) main() (err error) {
 	set.Opt("ignore-unsupported-alignment", func(arg string) error { t.ignoreUnsupportedAligment = true; return nil })
 	set.Opt("ignore-vector-functions", func(arg string) error { t.ignoreVectorFunctions = true; return nil })
 	set.Opt("keep-object-files", func(arg string) error { t.keepObjectFiles = true; return nil })
+	set.Opt("mlong-double-64", func(arg string) error { t.cfgArgs = append(t.cfgArgs, arg); return nil })
 	set.Opt("no-object-file-format", func(arg string) error { t.noObjFmt = true; return nil })
 	set.Opt("nostdinc", func(arg string) error { t.nostdinc = true; t.cfgArgs = append(t.cfgArgs, arg); return nil })
 	set.Opt("nostdlib", func(arg string) error { t.nostdlib = true; return nil })
