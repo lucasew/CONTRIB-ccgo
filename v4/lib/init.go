@@ -342,12 +342,14 @@ func (c *ctx) initializerUnion(w writer, n cc.Node, a []*cc.Initializer, t *cc.U
 		return &b
 	}
 
-	if t.NumFields() == 1 {
+	switch t.NumFields() {
+	case 0:
+		c.err(errorf("%v: cannot initialize empty union", n.Position()))
+	case 1:
 		b.w("%s{%s%s: %s}", c.typ(n, t), tag(field), c.fieldName(t, t.FieldByIndex(0)), c.initializer(w, n, a, t.FieldByIndex(0).Type(), off0, false))
 		return &b
 	}
 
-	//out:
 	switch len(a) {
 	case 1:
 		b.w("(*(*%s)(%sunsafe.%sPointer(&struct{ ", c.typ(n, t), tag(importQualifier), tag(preserve))
@@ -359,6 +361,181 @@ func (c *ctx) initializerUnion(w writer, n cc.Node, a []*cc.Initializer, t *cc.U
 		b.w(")))")
 	}
 	return &b
+}
+
+func (c *ctx) initializerUnionMany(w writer, n cc.Node, a []*cc.Initializer, t *cc.UnionType, off0 int64, arrayElem bool) (r *buf) {
+	// trc("==== %v: (union many A.%v, size %v) type %s off0 %#0x, arrayElem %v", n.Position(), c.pass, t.Size(), t, off0, arrayElem)
+	// dumpInitializer(a, "")
+	// trc("---- (union many Z)")
+	var arrayElemOff int64
+	if arrayElem {
+		arrayElemOff = off0 - off0%t.Size()
+		// trc("adjust %#0x(%[1]v)", arrayElemOff)
+	}
+	var b buf
+	var paths [][]*cc.Initializer
+	for _, v := range a {
+		var path []*cc.Initializer
+		for p := v.Parent(); p != nil; p = p.Parent() {
+			path = append(path, p)
+		}
+		paths = append(paths, path)
+	}
+	// for _, v := range paths {
+	// 	var a []string
+	// 	for _, w := range v {
+	// 		a = append(a, w.Type().String())
+	// 	}
+	// 	trc("path A %q", a)
+	// }
+	// var common []*cc.Initializer
+	var lca *cc.Initializer
+	for {
+		var path *cc.Initializer
+		for i, v := range paths {
+			if len(v) == 0 {
+				goto done
+			}
+
+			w := v[len(v)-1]
+			if i == 0 {
+				path = w
+				continue
+			}
+
+			if w != path {
+				goto done
+			}
+		}
+		lca = path
+		if lca.Type() == t {
+			goto done
+		}
+
+		// common = append(common, lca)
+		for i, v := range paths {
+			paths[i] = v[:len(v)-1]
+		}
+	}
+done:
+	// for _, v := range paths {
+	// 	var a []string
+	// 	for _, w := range v {
+	// 		a = append(a, w.Type().String())
+	// 	}
+	// 	trc("path Z %q", a)
+	// }
+	// var aa []string
+	// for _, v := range common {
+	// 	aa = append(aa, v.Type().String())
+	// }
+	// trc("common %q", aa)
+	if lca == nil {
+		trc("MANY %v: (%v:)", pos(n), origin(1))
+		b.w("/* %v: TODO */", origin(1))
+		return &b
+	}
+
+	// trc("lca0 %s, size %v, off %v", lca.Type(), lca.Type().Size(), lca.Offset())
+	lcaType, lcaOff := c.fixLCA(t, lca, a, off0)
+	if lcaType == nil {
+		trc("MANY %v: (%v:)", pos(n), origin(1))
+		b.w("/* %v: TODO */", origin(1))
+		return &b
+	}
+
+	// trc("lcaType %s, size %v, lcaOff %v", lcaType, lcaType.Size(), lcaOff)
+	if lcaType.Size() == t.Size() {
+		// trc("%v: size ok, initializer(%s off0 %v)", n.Position(), lcaType, off0)
+		return c.initializer(w, n, a, lcaType, off0, false)
+	}
+
+	pre := lcaOff - arrayElemOff
+	post := t.Size() - lcaType.Size() - pre
+	b.w("struct{")
+	if lcaOff != 0 {
+		// trc("pre %v", pre)
+		b.w("%s_ [%d]byte;", tag(preserve), pre)
+	}
+	b.w("%sf ", tag(preserve))
+	b.w("%s ", c.typ(n, lcaType))
+	if post != 0 {
+		// trc("post %v", post)
+		b.w("; %s_ [%d]byte", tag(preserve), post)
+	}
+	b.w("}{%sf: ", tag(preserve))
+	// trc("size not ok, initializer(%s off0 %v)", lcaType, off0)
+	b.w("%s", c.initializer(w, n, a, lcaType, off0, false))
+	b.w("}")
+	return &b
+}
+
+func (c *ctx) fixLCA(t *cc.UnionType, lca *cc.Initializer, a []*cc.Initializer, off0 int64) (rt cc.Type, off int64) {
+	// trc("fixLCA off0 %v\n%5d t   %s\n%5d lca %s", off0, t.Size(), t, lca.Type().Size(), lca.Type())
+	rt = lca.Type()
+	switch {
+	case rt.Size() > t.Size():
+		// trc("too big")
+	case rt != t:
+		// ;trc("size ok and types are different")
+		return rt, lca.Offset()
+	}
+
+	// trc("self or big, search")
+	okField, okName := true, true
+	for _, v := range a {
+		if v.Field() == nil {
+			okField = false
+			okName = false
+			// trc("nofield")
+			break
+		}
+
+		if v.Field().Name() == "" {
+			// trc("noname")
+			okName = false
+			break
+		}
+	}
+
+	// trc("", okField, okName)
+	if okField && okName {
+	nextUf:
+		for i := 0; i < t.NumFields(); i++ {
+			uf := t.FieldByIndex(i)
+			// trc("%d: %q %s", i, uf.Name(), uf.Type())
+			for _, v := range a {
+				af := v.Field()
+				// trc("%T", af)
+				x, ok := uf.Type().(interface{ FieldByName(string) *cc.Field })
+				if !ok {
+					// trc("continue uf cannot FieldByName")
+					continue nextUf
+				}
+
+				f := x.FieldByName(af.Name())
+				if f == nil {
+					// trc("continue no field %q", af.Name())
+					continue nextUf
+				}
+
+				// ufOff := uf.Offset()
+				// ufSize := uf.Type().Size()
+				fOff := f.Offset()
+				vOff := v.Offset()
+				// trc("ufOff %v, ufSize %v, fOff %v, vOff %v", ufOff, ufSize, fOff, vOff)
+				if !(vOff-off0 == fOff && f.Type().Size() == v.Type().Size()) {
+					// trc("continue bad off")
+					continue nextUf
+				}
+			}
+			return uf.Type(), lca.Offset() + uf.Offset()
+		}
+	}
+
+	f := t.FieldByIndex(0)
+	// trc("uf[0] %q %s, %v", f.Name(), f.Type(), f.Type().Size())
+	return f.Type(), f.Offset()
 }
 
 func (c *ctx) initializerUnionOne(w writer, n cc.Node, a []*cc.Initializer, t *cc.UnionType, off0 int64) (r *buf) {
@@ -388,204 +565,6 @@ func (c *ctx) initializerUnionOne(w writer, n cc.Node, a []*cc.Initializer, t *c
 	}
 	b.w("}")
 	return &b
-}
-
-func (c *ctx) initializerUnionMany(w writer, n cc.Node, a []*cc.Initializer, t *cc.UnionType, off0 int64, arrayElem bool) (r *buf) {
-	trc("==== %v: (union many A.%v, size %v) type %s off0 %#0x, arrayElem %v", n.Position(), c.pass, t.Size(), t, off0, arrayElem)
-	dumpInitializer(a, "")
-	trc("---- (union many Z)")
-	var b buf
-	nf := t.NumFields()
-	if nf == 0 && len(a) != 0 {
-		trc("MANY %v: (%v:)", pos(n), origin(1))
-		b.w("/* %v: TODO */", origin(1))
-		return &b
-	}
-
-	var uf *cc.Field
-	var uft cc.Type
-	var ufOff, ufSize int64
-	var ok bool
-nextUf:
-	for i := 0; i < nf; i++ {
-		uf = t.FieldByIndex(i)
-		uft = uf.Type()
-		ufOff = uf.OuterGroupOffset()
-		ufSize = uf.Type().Size()
-		trc("i %d, uf %q ufOff %v ufSize %v", i, uf.Name(), ufOff, ufSize)
-		switch x := uft.(type) {
-		case *cc.UnionType:
-			for j, in := range a {
-				switch inf := in.Field(); {
-				case inf != nil && inf.Name() != "":
-					switch subf := x.FieldByName(inf.Name()); {
-					case subf != nil:
-						if off := subf.Offset(); off < ufOff || off >= ufOff+ufSize {
-							continue nextUf
-						}
-						trc("j %v, subf %q ok", j, subf.Name())
-					default:
-						continue nextUf
-					}
-				default:
-					continue nextUf
-				}
-			}
-			ok = true
-			break nextUf
-		case *cc.StructType:
-			for j, in := range a {
-				switch inf := in.Field(); {
-				case inf != nil && inf.Name() != "":
-					switch subf := x.FieldByName(inf.Name()); {
-					case subf != nil:
-						if off := subf.Offset(); off < ufOff || off >= ufOff+ufSize {
-							continue nextUf
-						}
-						trc("j %v, subf %q ok", j, subf.Name())
-					default:
-						continue nextUf
-					}
-				default:
-					continue nextUf
-				}
-			}
-			ok = true
-			break nextUf
-		default:
-			trc("MANY %v: %T (%v:)", pos(n), x, origin(1))
-			b.w("/* %v: TODO %T */", origin(1), x)
-			return &b
-		}
-	}
-	if !ok {
-		trc("MANY %v: (%v:)", pos(n), origin(1))
-		b.w("/* %v: TODO */", origin(1))
-		return &b
-	}
-
-	trc("ufSize %v, t.Size() %v", ufSize, t.Size())
-	if ufSize == t.Size() {
-		trc("%s: size ok ", uft)
-		return c.initializer(w, n, a, uft, off0, arrayElem)
-	}
-
-	post := t.Size() - ufSize - ufOff
-	b.w("struct{")
-	if ufOff != 0 {
-		b.w("%s_ [%d]byte;", tag(preserve), ufOff)
-	}
-	b.w("%sf ", tag(preserve))
-	b.w("%s ", c.typ(n, uft))
-	if post != 0 {
-		b.w("; %s_ [%d]byte", tag(preserve), post)
-	}
-	b.w("}{%sf: ", tag(preserve))
-	b.w("%s", c.initializer(w, n, a, uft, off0-ufOff, arrayElem))
-	b.w("}")
-	return &b
-
-	// trc("MANY %v: (%v:)", pos(n), origin(1))
-	// b.w("/* %v: TODO */", origin(1))
-	// return &b
-
-	// lcaf := cc.LeastCommonAncestorField(a)
-	// if lcaf == nil {
-	// 	// trc("%s", cc.LeastCommonAncestorType(a))
-	// 	if cc.LeastCommonAncestorType(a) != nil {
-	// 		b.w("/* %v: TODO */", origin(1))
-	// 		return &b
-	// 	}
-
-	// 	path, x := c.initializerLCA(a)
-	// 	if len(path) == 0 {
-	// 		c.err(errorf("TODO %T", x))
-	// 		return &b
-	// 	}
-
-	// 	if x < 0 || x >= len(path) {
-	// 		b.w("/* %v: TODO */", origin(1))
-	// 		return &b
-	// 	}
-
-	// 	lca := path[x]
-	// 	lcat := lca.Type()
-	// 	if lcat == nil {
-	// 		b.w("/* %v: TODO */", origin(1))
-	// 		return &b
-	// 	}
-
-	// 	if lcat == t {
-	// 		if uf := lca.InitializerList.UnionField(); uf != nil {
-	// 			lcat = uf.Type()
-	// 		}
-	// 	}
-
-	// 	if lcat.Size() == t.Size() {
-	// 		return c.initializer(w, n, a, lcat, off0, arrayElem)
-	// 	}
-
-	// 	b.w("/* %v: TODO */", origin(1))
-	// 	return &b
-	// }
-
-	// lcaft := lcaf.Type()
-	// if lcaft.Size() == t.Size() {
-	// 	return c.initializer(w, n, a, lcaft, off0, arrayElem)
-	// }
-
-	// if lcaft.Size() > t.Size() {
-	// 	b.w("/* %v: TODO internal error */", origin(1))
-	// 	return &b
-	// }
-
-	// var pre, off int64
-	// if lcaf.Offset() != 0 {
-	// 	pre = lcaf.Offset()
-	// 	off += pre
-	// }
-	// post := t.Size() - lcaft.Size() - off
-	// b.w("struct{")
-	// if pre != 0 {
-	// 	b.w("%s_ [%d]byte;", tag(preserve), pre)
-	// }
-	// b.w("%sf ", tag(preserve))
-	// b.w("%s ", c.typ(n, lcaft))
-	// if post != 0 {
-	// 	b.w("; %s_ [%d]byte", tag(preserve), post)
-	// }
-	// b.w("}{%sf: ", tag(preserve))
-	// b.w("%s", c.initializer(w, n, a, lcaf.Type(), off0, arrayElem))
-	// b.w("}")
-	// return &b
-}
-
-// https://en.wikipedia.org/wiki/Lowest_common_ancestor
-func (c ctx) initializerLCA(a []*cc.Initializer) (r []*cc.Initializer, ri int) {
-	if len(a) < 2 {
-		panic(todo("internal error"))
-	}
-
-	nodes := map[*cc.Initializer]struct{}{}
-	var path []*cc.Initializer
-	for p := a[0].Parent(); p != nil; p = p.Parent() {
-		path = append(path, p)
-		r = append(r, p)
-		nodes[p] = struct{}{}
-	}
-	for _, v := range a[1:] {
-		for p := v.Parent(); p != nil; p = p.Parent() {
-			if _, ok := nodes[p]; ok {
-				for path[0] != p {
-					delete(nodes, p)
-					path = path[1:]
-					ri++
-				}
-				break
-			}
-		}
-	}
-	return r, ri
 }
 
 func sortInitializers(a []*cc.Initializer, group func(int64) int64) (r [][]*cc.Initializer) {
@@ -653,6 +632,11 @@ func dumpInitializer(a []*cc.Initializer, pref string) {
 		case cc.InitializerExpr:
 			fmt.Printf("%s %v: order %v off %#05x '%s' %s type %q <- %s%s\n", pref, pos(v.AssignmentExpression), v.Order(), v.Offset(), cc.NodeSource(v.AssignmentExpression), t, v.Type(), v.AssignmentExpression.Type(), fs)
 		case cc.InitializerInitList:
+			if v.InitializerList != nil {
+				if uf := v.InitializerList.UnionField(); uf != nil {
+					fmt.Printf("%s· union field %q %s\n", pref, uf.Name(), uf.Type())
+				}
+			}
 			s := pref + "· " + fs
 			for l := v.InitializerList; l != nil; l = l.InitializerList {
 				dumpInitializer([]*cc.Initializer{l.Initializer}, s)

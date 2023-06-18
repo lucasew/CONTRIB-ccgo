@@ -697,13 +697,13 @@ func typeID0(b *strings.Builder, in map[string]gc.Node, out map[string]string, t
 		}
 		b.WriteByte('}')
 	case *gc.ArrayTypeNode:
-		fmt.Fprintf(b, "[%s]", x.ArrayLength.Source(true))
+		fmt.Fprintf(b, "[%s]", x.ArrayLength.Source(false))
 		if err = typeID0(b, in, out, x.ElementType, m); err != nil {
 			return err
 		}
 	case *gc.TypeNameNode:
 		if x.TypeArgs != nil || x.Name.PackageName.IsValid() {
-			panic(todo("%T %s", x, x.Source(true)))
+			panic(todo("%T %s", x, x.Source(false)))
 		}
 
 		nm := x.Name.Ident.Src()
