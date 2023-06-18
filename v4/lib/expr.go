@@ -42,14 +42,14 @@ func (c *ctx) expr(w writer, n cc.ExpressionNode, to cc.Type, toMode mode) *buf 
 
 	if n == nil {
 		if toMode != exprVoid {
-			c.err(errorf("TODO"))
+			c.err(errorf("%v: TODO", pos(n)))
 		}
 		return &buf{}
 	}
 
 	if x, ok := n.(*cc.ExpressionList); ok && x == nil {
 		if toMode != exprVoid {
-			c.err(errorf("TODO"))
+			c.err(errorf("%v: TODO", pos(n)))
 		}
 		return &buf{}
 	}
@@ -76,7 +76,7 @@ func (c *ctx) convert(n cc.ExpressionNode, w writer, s *buf, from, to cc.Type, f
 	// }()
 	if to == nil {
 		// trc("ERR %v: from %v: %v, to <nil>: %v '%q' node: %T src: '%q' (%v: %v: %v:)", c.pos(n), from, fromMode, toMode, s.bytes(), s.n, cc.NodeSource(n), origin(4), origin(3), origin(2))
-		c.err(errorf("TODO"))
+		c.err(errorf("%v: TODO", pos(n)))
 		return s
 	}
 
@@ -312,7 +312,7 @@ func (c *ctx) convertType(n cc.ExpressionNode, s *buf, from, to cc.Type, fromMod
 		return s
 	}
 
-	c.err(errorf("TODO %q %s, %v %s -> %s, %v %s (%v:)", s, from, from.Size(), fromMode, to, to.Size(), toMode, c.pos(n)))
+	c.err(errorf("%v: TODO %q %s, %v %s -> %s, %v %s (%v:)", pos(n), s, from, from.Size(), fromMode, to, to.Size(), toMode, c.pos(n)))
 	//trc("", errorf("ERROR %q %s %s -> %s %s (%v:)", s, from, fromMode, to, toMode, c.pos(n))) //TODO-DBG
 	return s //TODO
 }
@@ -1005,7 +1005,7 @@ out:
 					w.w("\n%s = %s;", v, ds)
 					b.w("%s", v)
 				default:
-					c.err(errorf("TODO")) // -
+					c.err(errorf("%v: TODO", pos(n))) // -
 				}
 			default:
 				c.err(errorf("TODO %v", mode)) // -
@@ -1055,7 +1055,7 @@ out:
 					w.w("\n%s = %s;", v, ds)
 					b.w("%s", v)
 				default:
-					c.err(errorf("TODO")) // -
+					c.err(errorf("%v: TODO", pos(n))) // -
 				}
 			default:
 				c.err(errorf("TODO %v", mode)) // -
@@ -1206,7 +1206,7 @@ func (c *ctx) postfixExpressionIndex(w writer, p, index cc.ExpressionNode, pt *c
 	var mul string
 	if v := elem.Size(); v != 1 {
 		if v < 0 {
-			c.err(errorf("TODO"))
+			c.err(errorf("%v: TODO", pos(index)))
 		}
 		mul = fmt.Sprintf("*%v", v)
 	}
@@ -1388,7 +1388,7 @@ out:
 		case exprSelect:
 			switch n.Type().(type) {
 			case *cc.StructType:
-				c.err(errorf("TODO"))
+				c.err(errorf("%v: TODO", pos(n)))
 			case *cc.UnionType:
 				v := fmt.Sprintf("%sv%d", tag(ccgoAutomatic), c.id())
 				e, _, _ := c.postfixExpressionCall(w, n)
@@ -1506,7 +1506,7 @@ out:
 					b.w("%s", v)
 				}
 			default:
-				c.err(errorf("TODO")) // -
+				c.err(errorf("%v: TODO", pos(n))) // -
 			}
 		}
 	case cc.PostfixExpressionComplit: // '(' TypeName ')' '{' InitializerList ',' '}'
@@ -2241,7 +2241,7 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 					k = fmt.Sprintf("*%d", sz)
 				}
 			case cc.IsIntegerType(x) && y.Kind() == cc.Ptr:
-				c.err(errorf("TODO")) // -
+				c.err(errorf("%v: TODO", pos(n))) // -
 			}
 		case cc.AssignmentExpressionSub: // UnaryExpression "-=" AssignmentExpression
 			switch {
@@ -2575,7 +2575,7 @@ func (c *ctx) primaryExpressionStringConst(w writer, n *cc.PrimaryExpression, t 
 					break
 				}
 
-				c.err(errorf("TODO"))
+				c.err(errorf("%v: TODO", pos(n)))
 			default:
 				if cc.IsIntegerType(t) {
 					b.w("(%s(%q))", c.typ(n, t), s)
@@ -2586,7 +2586,7 @@ func (c *ctx) primaryExpressionStringConst(w writer, n *cc.PrimaryExpression, t 
 				c.err(errorf("TODO %s", t))
 			}
 		default:
-			c.err(errorf("TODO"))
+			c.err(errorf("%v: TODO", pos(n)))
 		}
 	default:
 		c.err(errorf("TODO %T", x))

@@ -577,7 +577,10 @@ func (c *ctx) iterationStatementFlat(w writer, n *cc.IterationStatement) {
 		// brk:
 		a := c.label()
 		c.expr(w, n.ExpressionList, nil, exprVoid)
-		w.w("%s: if !(%s) { goto %s };", a, c.expr(w, n.ExpressionList2, nil, exprBool), brk)
+		w.w("%s: ")
+		if n.ExpressionList2 != nil {
+			w.w("if !(%s) { goto %s };", c.expr(w, n.ExpressionList2, nil, exprBool), brk)
+		}
 		c.unbracedStatement(w, n.Statement)
 		w.w("goto %s; %[1]s: %s; goto %s; %s:", cont, c.expr(w, n.ExpressionList3, nil, exprVoid), a, brk)
 	case cc.IterationStatementForDecl: // "for" '(' Declaration ExpressionList ';' ExpressionList ')' Statement
