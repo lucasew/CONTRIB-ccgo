@@ -133,6 +133,7 @@ func (t *Task) execed(realCC string, cflags []string) (err error) {
 	set.Arg("O", true, func(arg, val string) error { args.add(arg + val); return nil })
 	set.Arg("o", true, func(arg, val string) error { args.add(arg, val+".go"); return nil })
 	set.Arg("std", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
+	set.Arg("l", true, func(arg, val string) error { return nil })
 	set.Opt("c", func(arg string) error { args.add(arg); return nil })
 	set.Opt("mlong-double-64", func(arg string) error { args.add(arg); return nil })
 	set.Opt("nostdinc", func(arg string) error { args.add(arg); return nil })
@@ -156,8 +157,22 @@ func (t *Task) execed(realCC string, cflags []string) (err error) {
 		case ".c", ".h":
 			args.add(arg)
 			return nil
-		case ".s", ".lo":
-			return opt.Skip(nil)
+		case ".s":
+			return nil
+		case ".o", ".lo":
+			nm := arg + ".go"
+			switch {
+			case t.fs != nil:
+				if _, err := t.fs.Open(nm); err != nil {
+					return nil
+				}
+			default:
+				if _, err := os.Stat(nm); err != nil {
+					return nil
+				}
+			}
+			args.add(nm)
+			return nil
 		}
 
 		return fmt.Errorf("unexpected/unsupported argument: %s", arg)
