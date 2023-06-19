@@ -262,6 +262,7 @@ assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20030405-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20030410-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20030415-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20030416-1.c
+assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20030503-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20030518-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20030530-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20030604-1.c
@@ -685,6 +686,7 @@ assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/970214-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/980329-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/980408-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/980504-1.c
+assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/980506-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/980506-2.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/980511-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/980701-1.c
@@ -1484,6 +1486,7 @@ assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr69209.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr69214.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr69740-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr69740-2.c
+assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr69989-2.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr69999.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr70061.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr70240.c
@@ -1552,6 +1555,7 @@ assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr83222.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr83448.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr83487.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr83510.c
+assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr83575.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr84111.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr84178-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr84195.c
