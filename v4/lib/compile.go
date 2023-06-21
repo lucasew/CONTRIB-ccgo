@@ -6,6 +6,7 @@ package ccgo // import "modernc.org/ccgo/v4/lib"
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"go/token"
 	"io"
@@ -18,6 +19,7 @@ import (
 
 	"golang.org/x/mod/semver"
 	"modernc.org/cc/v4"
+	"modernc.org/strutil"
 )
 
 type name int
@@ -27,6 +29,7 @@ const (
 
 	generatedFilePrefix = "Code generated for "
 	generatedFileSuffix = ", DO NOT EDIT."
+	jsonMetaRawName     = "__ccgo_meta_json"
 	//  package __ccgo_object_file_v1
 	objectFilePackageName       = objectFilePackageNamePrefix + objectFileSemver
 	objectFilePackageNamePrefix = "__ccgo_object_file_"
@@ -148,6 +151,10 @@ func tag(nm name) string {
 // errHandler is a function called on error.
 type errHandler func(msg string, args ...interface{})
 
+type jsonMeta struct {
+	WeakAliases map[string]string
+}
+
 type ctx struct {
 	ast                 *cc.AST
 	breakCtx            string
@@ -167,17 +174,18 @@ type ctx struct {
 	ifn                 string
 	imports             map[string]string // import path: qualifier
 	initPatch           func(int64, *buf)
-	maxAlign            int
-	out                 io.Writer
-	pvoid               cc.Type
-	switchCtx           map[*cc.LabeledStatement]string
-	taggedEnums         nameSet
-	taggedStructs       nameSet
-	taggedUnions        nameSet
-	task                *Task
-	typenames           nameSet
-	verify              map[cc.Type]struct{}
-	void                cc.Type
+	jsonMeta
+	maxAlign      int
+	out           io.Writer
+	pvoid         cc.Type
+	switchCtx     map[*cc.LabeledStatement]string
+	taggedEnums   nameSet
+	taggedStructs nameSet
+	taggedUnions  nameSet
+	task          *Task
+	typenames     nameSet
+	verify        map[cc.Type]struct{}
+	void          cc.Type
 
 	nextID int
 	pass   int // 0: out of function, 1: func 1st pass, 2: func 2nd pass.
@@ -207,6 +215,9 @@ func newCtx(task *Task, eh errHandler) *ctx {
 		maxAlign:            maxAlign,
 		task:                task,
 		verify:              map[cc.Type]struct{}{},
+		jsonMeta: jsonMeta{
+			WeakAliases: map[string]string{},
+		},
 	}
 }
 
@@ -371,6 +382,18 @@ func (c *ctx) compile(ifn, ofn string) (err error) {
 			c.w("\n\nvar %s%s %s", tag(meta), k, c.typ2(d, t, false))
 		}
 	}
+	b, err := json.MarshalIndent(&c.jsonMeta, "", "\t")
+	if err != nil {
+		return err
+	}
+
+	if dmesgs && len(c.jsonMeta.WeakAliases) != 0 {
+		dmesg("%s -> %s: write json meta: %+v", ifn, ofn, &c.jsonMeta)
+	}
+	s := string(b)
+	a = strings.Split(s, "`")
+	s = strutil.JoinFields(a, "|")
+	c.w("\n\nconst %s%s = `%s`", tag(meta), jsonMetaRawName, s)
 	return nil
 }
 

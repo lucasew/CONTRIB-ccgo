@@ -12,7 +12,6 @@ import (
 	"flag"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"math"
 	"os"
 	"os/exec"
@@ -664,7 +663,7 @@ func newGolden(t *testing.T, fn string) *golden {
 	f, err := os.Create(filepath.FromSlash(fn))
 	if err != nil { // Possibly R/O fs in a VM
 		base := filepath.Base(filepath.FromSlash(fn))
-		f, err = ioutil.TempFile("", base)
+		f, err = os.CreateTemp("", base)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -747,7 +746,7 @@ func TestCSmith(t *testing.T) {
 
 	defer os.Chdir(wd)
 
-	temp, err := ioutil.TempDir("", "ccgo-test-")
+	temp, err := os.MkdirTemp("", "ccgo-test-")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -873,12 +872,12 @@ out:
 		}
 
 		if fn := *oBlackBox; fn != "" {
-			if err := ioutil.WriteFile(fn, csOut, 0660); err != nil {
+			if err := os.WriteFile(fn, csOut, 0660); err != nil {
 				t.Fatal(err)
 			}
 		}
 
-		if err := ioutil.WriteFile("main.c", csOut, 0660); err != nil {
+		if err := os.WriteFile("main.c", csOut, 0660); err != nil {
 			t.Fatal(err)
 		}
 
@@ -1016,7 +1015,7 @@ func testSQLite(t *testing.T, dir string) {
 
 	defer os.Chdir(wd)
 
-	temp, err := ioutil.TempDir("", "ccgo-test-")
+	temp, err := os.MkdirTemp("", "ccgo-test-")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1084,7 +1083,7 @@ func testSQLite(t *testing.T, dir string) {
 				r = false
 			}
 			if *oTraceF {
-				b, _ := ioutil.ReadFile(main)
+				b, _ := os.ReadFile(main)
 				fmt.Printf("\n----\n%s\n----\n", b)
 			}
 		}()

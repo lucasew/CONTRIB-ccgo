@@ -374,6 +374,22 @@ func (c *ctx) declaration(w writer, n *cc.Declaration, external bool) {
 	}
 }
 
+func (c *ctx) aliasAttr(t cc.Type) (r string) {
+	if a := t.Attributes(); a != nil {
+		return a.Alias()
+	}
+
+	return ""
+}
+
+func (c *ctx) weakAttr(t cc.Type) (r bool) {
+	if a := t.Attributes(); a != nil {
+		return a.Weak()
+	}
+
+	return false
+}
+
 func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, external bool) {
 	d := n.Declarator
 	if sc := d.LexicalScope(); sc.Parent == nil {
@@ -389,11 +405,9 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, externa
 		}
 	}
 
-	if attr := d.Type().Attributes(); attr != nil {
-		if attr.Alias() != "" {
-			c.err(errorf("TODO unsupported attribute(s)"))
-			return
-		}
+	if t := d.Type(); c.weakAttr(t) && c.aliasAttr(t) != "" {
+		c.WeakAliases[d.Name()] = c.aliasAttr(t)
+		return
 	}
 
 	if d.Type().Kind() == cc.Function && d.Linkage() == cc.External || d.IsExtern() && !d.Type().IsIncomplete() {

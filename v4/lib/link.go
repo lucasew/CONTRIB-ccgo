@@ -6,7 +6,9 @@ package ccgo // import "modernc.org/ccgo/v4/lib"
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"go/constant"
 	"go/token"
 	"io"
 	"math"
@@ -21,6 +23,7 @@ import (
 	"golang.org/x/mod/semver"
 	"golang.org/x/tools/go/packages"
 	"modernc.org/gc/v2"
+	"modernc.org/strutil"
 )
 
 const (
@@ -32,6 +35,7 @@ type object struct {
 	defs           map[string]gc.Node // extern: node
 	externs        nameSet            // CAPI
 	id             string             // file name or import path
+	meta           jsonMeta
 	pkg            *gc.Package
 	pkgName        string // for kind == objectPkg
 	qualifier      string
@@ -216,15 +220,22 @@ func (t *Task) link() (err error) {
 
 	switch {
 	case t.o == "":
-		return errorf("TODO %v %v %v %v", t.args, t.inputFiles, t.compiledfFiles, t.linkFiles)
+		switch len(t.inputFiles) {
+		case 1:
+			nm := t.inputFiles[0]
+			ext := filepath.Ext(nm)
+			t.o = nm[:len(nm)-len(ext)] + ".go"
+		default:
+			t.o = fmt.Sprintf("a_%s_%s.go", t.goos, t.goarch)
+		}
+		fallthrough
 	case strings.HasSuffix(t.o, ".go"):
 		l, err := newLinker(t, libc)
 		if err != nil {
 			return err
 		}
 
-		r := l.link(t.o, t.linkFiles, objects)
-		return r
+		return l.link(t.o, t.linkFiles, objects)
 	default:
 		return errorf("TODO %v %v %v %v", t.args, t.inputFiles, t.compiledfFiles, t.linkFiles)
 	}
@@ -382,7 +393,7 @@ func (t *Task) getFileSymbols(fset *token.FileSet, fn string) (r *object, err er
 		}
 
 		if !strings.HasPrefix(s, fmt.Sprintf("%s/%s", t.goos, t.goarch)) {
-			return nil, errorf("%s: object file was compiled for different target: %s", fn, line)
+			return nil, errorf("%s: object file was compiled for a different target: %s", fn, line)
 		}
 	}
 
@@ -392,7 +403,35 @@ func (t *Task) getFileSymbols(fset *token.FileSet, fn string) (r *object, err er
 	for k, v := range file.TopLevelDecls {
 		var a []gc.Token
 		switch x := v.(type) {
-		case *gc.ConstDecl, *gc.TypeDecl:
+		case *gc.ConstDecl:
+			if len(x.ConstSpecs) == 0 {
+				continue
+			}
+
+			cs := x.ConstSpecs[0]
+			idl := cs.IdentifierList
+			exprl := cs.ExprList
+			if len(idl) == 0 || len(exprl) == 0 {
+				continue
+			}
+
+			if isJsonMeta(idl[0].Ident.Src()) {
+				switch v := exprl[0].Expr.Value(); v.Kind() {
+				case constant.String:
+					s := constant.StringVal(v)
+					a := strutil.SplitFields(s, "|")
+					if err := json.Unmarshal([]byte(strings.Join(a, "`")), &r.meta); err != nil {
+						return nil, err
+					}
+
+					if dmesgs && len(r.meta.WeakAliases) != 0 {
+						dmesg("%v: read json meta: %+v", fn, &r.meta)
+					}
+				default:
+					panic(todo("", v.Kind()))
+				}
+			}
+		case *gc.TypeDecl:
 			continue
 		case *gc.VarDecl:
 			for _, v := range x.VarSpecs {
@@ -547,15 +586,36 @@ func (l *linker) w(s string, args ...interface{}) {
 var hide = map[string]struct{}{}
 
 func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object) (err error) {
+	if dmesgs {
+		dmesg("link(%q, %q)", ofn, linkFiles)
+	}
 	// Force a link error for things not really supported or that only panic at runtime.
 	var tld nameSet
-	// Build the symbol table.
+	// Build the symbol table. First try normal definitions.
 	for _, linkFile := range linkFiles {
 		object := objects[linkFile]
-		for nm := range object.externs {
-			if _, ok := l.externs[nm]; !ok {
+		for nm := range object.externs { // object defines nm
+			if _, ok := l.externs[nm]; !ok { // extern is unresolved
 				if _, hidden := hide[nm]; !hidden {
 					l.externs[nm] = object
+					if dmesgs {
+						dmesg("extern %s resolved in %s", nm, object.id)
+					}
+				}
+			}
+			tld.add(nm)
+		}
+	}
+	// Then try weak aliases
+	for _, linkFile := range linkFiles {
+		object := objects[linkFile]
+		for nm := range object.meta.WeakAliases { // object defines a weak alias for nm
+			if _, ok := l.externs[nm]; !ok { // extern is still unresolved
+				if _, hidden := hide[nm]; !hidden {
+					l.externs[nm] = object
+					if dmesgs {
+						dmesg("extern %s weak resolved in %s", nm, object.id)
+					}
 				}
 			}
 			tld.add(nm)
@@ -791,6 +851,10 @@ var (
 		for _, n := range file.TopLevelDecls {
 			switch x := n.(type) {
 			case *gc.ConstDecl:
+				if ln := x.ConstSpecs[0].IdentifierList[0].Ident.Src(); isJsonMeta(ln) {
+					break
+				}
+
 				if len(x.ConstSpecs) != 1 {
 					panic(todo(""))
 				}
@@ -808,7 +872,7 @@ var (
 				l.print0(&b, fi, n)
 				l.synthDecls[nm] = b.bytes()
 			case *gc.VarDecl:
-				if ln := x.VarSpecs[0].IdentifierList[0].Ident.Src(); l.meta(x, ln) || symKind(ln) == external {
+				if ln := x.VarSpecs[0].IdentifierList[0].Ident.Src(); l.isMeta(x, ln) || symKind(ln) == external {
 					break
 				}
 
@@ -831,7 +895,7 @@ var (
 				l.print0(&b, fi, n)
 				l.synthDecls[nm] = b.bytes()
 			case *gc.FunctionDecl:
-				if ln := x.FunctionName.Src(); l.meta(x, ln) || l.task.header {
+				if ln := x.FunctionName.Src(); l.isMeta(x, ln) || l.task.header {
 					break
 				}
 
@@ -904,7 +968,11 @@ func (l *linker) postProcess(b []byte) (r []byte) {
 	return append(r, bnl...)
 }
 
-func (l *linker) meta(n gc.Node, linkName string) bool {
+func isJsonMeta(linkName string) bool {
+	return strings.HasPrefix(linkName, tag(meta)) && linkName[len(tag(meta)):] == jsonMetaRawName
+}
+
+func (l *linker) isMeta(n gc.Node, linkName string) bool {
 	if symKind(linkName) != meta {
 		return false
 	}
