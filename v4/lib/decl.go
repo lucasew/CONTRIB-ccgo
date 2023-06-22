@@ -390,7 +390,7 @@ func (c *ctx) weakAttr(t cc.Type) (r bool) {
 	return false
 }
 
-func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, external bool) {
+func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExternal bool) {
 	d := n.Declarator
 	if sc := d.LexicalScope(); sc.Parent == nil {
 		hasInitializer := false
@@ -406,7 +406,7 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, externa
 	}
 
 	if t := d.Type(); c.weakAttr(t) && c.aliasAttr(t) != "" {
-		c.WeakAliases[d.Name()] = c.aliasAttr(t)
+		c.WeakAliases[tag(external)+d.Name()] = c.aliasAttr(t)
 		return
 	}
 
@@ -447,7 +447,7 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, externa
 	case cc.InitDeclaratorDecl: // Declarator Asm
 		switch {
 		case d.IsTypename():
-			if external && c.typenames.add(nm) && !d.Type().IsIncomplete() && c.isValidType(d, d.Type(), false) {
+			if isExternal && c.typenames.add(nm) && !d.Type().IsIncomplete() && c.isValidType(d, d.Type(), false) {
 				if c.task.header && (strings.HasPrefix(nm, "__builtin_") || strings.HasPrefix(nm, "__predefined_")) {
 					break
 				}
@@ -455,7 +455,7 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, externa
 				w.w("\n\n%s%stype %s%s = %s;", sep, c.posComment(n), tag(typename), nm, c.typedef(d, d.Type()))
 				c.defineType(w, sep, n, d.Type())
 			}
-			if !external {
+			if !isExternal {
 				return
 			}
 		default:
