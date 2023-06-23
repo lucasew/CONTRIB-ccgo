@@ -474,31 +474,30 @@ type externVar struct {
 }
 
 type linker struct {
-	errors                   errors
-	externVars               map[string]*externVar // key: linkname
-	externs                  map[string]*object
-	fileLinkNames2GoNames    dict
-	fileLinkNames2IDs        dict
-	forceExternalPrefix      nameSet
-	fset                     *token.FileSet
-	goSynthDeclsProduced     nameSet
-	goTags                   []string
-	imports                  []*object
-	importsByPath            map[string]*object
-	libc                     *object
-	maxUintptr               uint64
-	out                      io.Writer
-	possiblyReplacedBuiltins map[string]*object
-	reflectName              string
-	stringLiterals           map[string]int64
-	synthDecls               map[string][]byte
-	task                     *Task
-	textSegment              strings.Builder
-	textSegmentName          string
-	textSegmentNameP         string
-	textSegmentOff           int64
-	tld                      nameSpace
-	unsafeName               string
+	errors                errors
+	externVars            map[string]*externVar // key: linkname
+	externs               map[string]*object
+	fileLinkNames2GoNames dict
+	fileLinkNames2IDs     dict
+	forceExternalPrefix   nameSet
+	fset                  *token.FileSet
+	goSynthDeclsProduced  nameSet
+	goTags                []string
+	imports               []*object
+	importsByPath         map[string]*object
+	libc                  *object
+	maxUintptr            uint64
+	out                   io.Writer
+	reflectName           string
+	stringLiterals        map[string]int64
+	synthDecls            map[string][]byte
+	task                  *Task
+	textSegment           strings.Builder
+	textSegmentName       string
+	textSegmentNameP      string
+	textSegmentOff        int64
+	tld                   nameSpace
+	unsafeName            string
 
 	closed bool
 }
@@ -553,17 +552,16 @@ func newLinker(task *Task, libc *object) (*linker, error) {
 		maxUintptr = math.MaxUint32
 	}
 	return &linker{
-		externVars:               map[string]*externVar{},
-		externs:                  map[string]*object{},
-		fset:                     token.NewFileSet(),
-		goTags:                   goTags[:],
-		importsByPath:            map[string]*object{},
-		libc:                     libc,
-		maxUintptr:               maxUintptr,
-		possiblyReplacedBuiltins: map[string]*object{},
-		stringLiterals:           map[string]int64{},
-		synthDecls:               map[string][]byte{},
-		task:                     task,
+		externVars:     map[string]*externVar{},
+		externs:        map[string]*object{},
+		fset:           token.NewFileSet(),
+		goTags:         goTags[:],
+		importsByPath:  map[string]*object{},
+		libc:           libc,
+		maxUintptr:     maxUintptr,
+		stringLiterals: map[string]int64{},
+		synthDecls:     map[string][]byte{},
+		task:           task,
 	}, nil
 }
 
@@ -597,12 +595,6 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 	for _, linkFile := range linkFiles {
 		object := objects[linkFile]
 		for nm := range object.externs { // object defines nm
-			if _, ok := l.possiblyReplacedBuiltins[nm]; !ok {
-				l.possiblyReplacedBuiltins[nm] = object
-				if dmesgs {
-					dmesg("l.possiblyReplacedBuiltins[%q] = %q", nm, object.id)
-				}
-			}
 			if _, ok := l.externs[nm]; !ok { // extern is unresolved
 				if _, hidden := hide[nm]; !hidden {
 					l.externs[nm] = object
@@ -641,7 +633,6 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 		nm  string
 	}
 	var undefs []undef
-	tagX := tag(external)
 	for _, linkFile := range linkFiles {
 		switch object := objects[linkFile]; {
 		case object.kind == objectFile:
@@ -657,19 +648,9 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 
 				lib, ok := l.externs[nm]
 				if !ok {
-					if strings.HasPrefix(nm, tagX+"__builtin_") {
-						xnm := strings.Replace(nm, "__builtin_", "", 1)
-						lib, ok = l.possiblyReplacedBuiltins[xnm]
-						if dmesgs {
-							dmesg("%q: l.possiblyReplacedBuiltins[%q], (%p %v)", nm, xnm, lib, ok)
-						}
-					}
-
-					if !ok {
-						// trc("%q %v: %q", object.id, pos, nm)
-						undefs = append(undefs, undef{pos, nm})
-						continue
-					}
+					// trc("%q %v: %q", object.id, pos, nm)
+					undefs = append(undefs, undef{pos, nm})
+					continue
 				}
 
 				// trc("extern %q found in %q", nm, lib.id)
@@ -714,7 +695,12 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 		for _, v := range undefs {
 			a = append(a, errorf("%v: undefined reference to '%s'", v.pos, l.rawName(v.nm)).Error())
 		}
-		return errorf("%s", strings.Join(a, "\n"))
+		err := errorf("%s", strings.Join(a, "\n"))
+		if !l.task.isExeced {
+			return err
+		}
+
+		l.err(err)
 	}
 
 	if libc := l.libc; libc != nil && !libc.imported {

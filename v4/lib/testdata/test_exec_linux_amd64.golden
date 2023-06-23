@@ -929,6 +929,7 @@ assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/m2.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/m5.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/m68.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/m68k-byte-addr.c
+assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/mangle-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/mbyte.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/mchar.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/mcmp.c

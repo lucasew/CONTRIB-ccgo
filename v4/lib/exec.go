@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"strings"
 
 	"modernc.org/opt"
@@ -100,10 +101,10 @@ func (t *Task) execed(realCC string, cflags []string) (err error) {
 
 	defer func() {
 		if e := recover(); e != nil && err == nil {
-			err = fmt.Errorf("PANIC: %v", e)
+			err = fmt.Errorf("PANIC: %v\n%s", e, debug.Stack())
 		}
 		if err != nil {
-			dmesg("%v: ==== EXIT FAIL: %v", origin(1), err)
+			dmesg("%v: ==== EXIT FAIL: %v\n", origin(1), err)
 			return
 		}
 
@@ -131,17 +132,19 @@ func (t *Task) execed(realCC string, cflags []string) (err error) {
 	set.Arg("D", true, func(arg, val string) error { args.add(arg + val); return nil })
 	set.Arg("I", true, func(arg, val string) error { args.add(arg + val); return nil })
 	set.Arg("O", true, func(arg, val string) error { args.add(arg + val); return nil })
+	set.Arg("l", true, func(arg, val string) error { return nil })
 	set.Arg("o", true, func(arg, val string) error { args.add(arg, val+".go"); return nil })
 	set.Arg("std", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
-	set.Arg("l", true, func(arg, val string) error { return nil })
 	set.Opt("c", func(arg string) error { args.add(arg); return nil })
+	set.Opt("ffreestanding", func(arg string) error { args.add(arg); return nil })
+	set.Opt("fno-builtin", func(arg string) error { args.add(arg); return nil })
 	set.Opt("mlong-double-64", func(arg string) error { args.add(arg); return nil })
 	set.Opt("nostdinc", func(arg string) error { args.add(arg); return nil })
 	set.Opt("nostdlib", func(arg string) error { args.add(arg); return nil })
 	set.Opt("pipe", func(arg string) error { return nil })
 	set.Opt("shared", func(arg string) error { args.add(arg); return nil })
 	if err := set.Parse(t.args[1:], func(arg string) error {
-		if strings.HasPrefix(arg, "-f") { // eg. -ffreestanding
+		if strings.HasPrefix(arg, "-f") {
 			return nil
 		}
 
@@ -184,5 +187,7 @@ func (t *Task) execed(realCC string, cflags []string) (err error) {
 		return err
 	}
 
-	return NewTask(t.goos, t.goarch, args, t.stdout, t.stderr, t.fs).main()
+	t = NewTask(t.goos, t.goarch, args, t.stdout, t.stderr, t.fs)
+	t.isExeced = true
+	return t.main()
 }

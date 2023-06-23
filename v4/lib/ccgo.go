@@ -78,22 +78,24 @@ type Task struct {
 	ansi                      bool // -ansi
 	c                         bool // -c
 	debugLinkerSave           bool // -debug-linker-save, causes pre type checking save of the linker result.
+	freeStanding              bool // -ffreestanding
 	fullPaths                 bool // -full-paths
 	header                    bool // -header
 	ignoreAsmErrors           bool // -ignore-asm-errors
 	ignoreHeaderFunctions     bool // -ignore-header-functions
 	ignoreUnsupportedAligment bool // -ignore-unsupported-alignment
 	ignoreVectorFunctions     bool // -ignore-vector-functions
+	isExeced                  bool // -exec ...
 	keepObjectFiles           bool // -keep-object-files
+	noBuiltin                 bool // -fno-builtin
 	noObjFmt                  bool // -no-object-file-format
 	nostdinc                  bool // -nostdinc
 	nostdlib                  bool // -nostdlib
 	packageNameSet            bool
 	positions                 bool // -positions
 	pthread                   bool // -pthread
+	strictISOMode             bool // -ansi or stc=c90
 	verifyTypes               bool // -verify-types
-
-	strictISOMode bool // -ansi or stc=c90
 }
 
 // NewTask returns a newly created Task. args[0] is the command name.
@@ -195,6 +197,8 @@ func (t *Task) main() (err error) {
 	set.Opt("debug-linker-save", func(arg string) error { t.debugLinkerSave = true; return nil })
 	set.Opt("exec", func(arg string) error { return opt.Skip(nil) })
 	set.Opt("extended-errors", func(arg string) error { extendedErrors = true; gc.ExtendedErrors = true; return nil })
+	set.Opt("ffreestanding", func(arg string) error { t.freeStanding = true; t.cfgArgs = append(t.cfgArgs, arg); return nil })
+	set.Opt("fno-builtin", func(arg string) error { t.noBuiltin = true; t.cfgArgs = append(t.cfgArgs, arg); return nil })
 	set.Opt("full-paths", func(arg string) error { t.fullPaths = true; return nil })
 	set.Opt("header", func(arg string) error { t.header = true; return nil })
 	set.Opt("ignore-asm-errors", func(arg string) error { t.ignoreAsmErrors = true; return nil })
@@ -339,14 +343,14 @@ func (t *Task) main() (err error) {
 		return nil
 	}
 
+	if t.nostdlib || t.freeStanding {
+		t.tlsQualifier = ""
+	}
 	if t.c {
 		return t.compile(t.o)
 	}
 
-	switch {
-	case t.nostdlib:
-		t.tlsQualifier = ""
-	default:
+	if !t.nostdlib && !t.freeStanding {
 		t.linkFiles = append(t.linkFiles, fmt.Sprintf("-l=%s", defaultLibc))
 	}
 	return t.link()

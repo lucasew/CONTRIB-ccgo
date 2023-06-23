@@ -2377,7 +2377,7 @@ out:
 				case exprCall:
 					switch y := x.Type().(type) {
 					case *cc.FunctionType:
-						if !c.task.strictISOMode {
+						if !c.task.strictISOMode && !c.task.freeStanding && !c.task.noBuiltin {
 							if _, ok := forcedBuiltins[nm]; ok {
 								nm = "__builtin_" + nm
 								linkName = c.declaratorTag(x) + nm
