@@ -151,7 +151,7 @@ func (f *fnCtx) declareLocals() string {
 	var a []string
 	for k, v := range f.locals {
 		if info := f.declInfos[k]; info != nil && info.pinned() {
-			a = append(a, fmt.Sprintf("var %s_ /* %s at bp%+d */ %s;", tag(preserve), k.Name(), info.bpOff, f.c.typ(k, k.Type())))
+			a = append(a, fmt.Sprintf("\nvar %s_ /* %s at bp%+d */ %s;", tag(preserve), k.Name(), info.bpOff, f.c.typ(k, k.Type())))
 			continue
 		}
 
@@ -160,7 +160,7 @@ func (f *fnCtx) declareLocals() string {
 		}
 
 		if k.StorageDuration() != cc.Static && v != "" {
-			a = append(a, fmt.Sprintf("var %s %s;", v, f.c.typ(k, k.Type())))
+			a = append(a, fmt.Sprintf("\nvar %s %s;", v, f.c.typ(k, k.Type())))
 		}
 	}
 	a = append(a, f.autovars...)
@@ -492,6 +492,10 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 			t = n.Initializer.Type()
 		}
 		if d.StorageDuration() == cc.Static {
+			if d.Linkage() == cc.None && d.ReadCount() == 0 && d.Name() == "__func__" {
+				return
+			}
+
 			var initPatches []initPatch
 			c.initPatch = func(off int64, b *buf) { initPatches = append(initPatches, initPatch{d, off, b}) }
 

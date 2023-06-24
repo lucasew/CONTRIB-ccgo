@@ -167,6 +167,7 @@ func (t *Task) main() (err error) {
 	set.Arg("-prefix-field", false, func(arg, val string) error { t.prefixField = val; return nil })
 	set.Arg("-prefix-import-qualifier", false, func(arg, val string) error { t.prefixImportQualifier = val; return nil })
 	set.Arg("-prefix-macro", false, func(arg, val string) error { t.prefixMacro = val; return nil })
+	set.Arg("-prefix-static-internal", false, func(arg, val string) error { t.prefixStaticInternal = val; return nil })
 	set.Arg("-prefix-static-none", false, func(arg, val string) error { t.prefixStaticNone = val; return nil })
 	set.Arg("-prefix-tagged-enum", false, func(arg, val string) error { t.prefixTaggedEnum = val; return nil })
 	set.Arg("-prefix-tagged-struct", false, func(arg, val string) error { t.prefixTaggedStruct = val; return nil })

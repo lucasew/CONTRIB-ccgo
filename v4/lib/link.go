@@ -27,7 +27,8 @@ import (
 )
 
 const (
-	objectFile = iota
+	ccgoUndefined = "__ccgo_undefined_"
+	objectFile    = iota
 	objectPkg
 )
 
@@ -954,6 +955,7 @@ func (l *linker) postProcess(b []byte) (r []byte) {
 	r = make([]byte, 0, len(b))
 	var inFunc bool
 	for _, v := range lines {
+
 		switch {
 		case bytes.HasPrefix(v, bfunc):
 			inFunc = true
@@ -1278,6 +1280,7 @@ func (l *linker) print0(w writer, fi *fnInfo, n interface{}) {
 
 			obj := fi.linker.externs[id]
 			if obj == nil {
+				w.w("%s%s", ccgoUndefined, nm)
 				l.err(errorf("%v: undefined: %s", x.Position(), id))
 				return
 			}

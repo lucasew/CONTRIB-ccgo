@@ -781,10 +781,29 @@ func nodeTokens(n cc.Node, a *[]cc.Token) {
 	}
 }
 
-func sep(n cc.Node) string {
+func sep(n cc.Node) (r string) {
 	var t cc.Token
 	firstToken(n, &t)
-	return strings.ReplaceAll(string(t.Sep()), "\f", "")
+	if r = strings.ReplaceAll(string(t.Sep()), "\f", ""); !strings.Contains(r, "\n") || t.Position().Column != 1 {
+		return r
+	}
+
+	a := strings.Split(r, "\n")
+	for i, v := range a {
+		if s := strings.TrimSpace(v); s != "" {
+			switch {
+			case strings.HasPrefix(s, "/*"):
+				a[i] = "//.\n//  " + strings.ReplaceAll(v, "*", "\u204e")
+			default:
+				a[i] = "//  " + strings.ReplaceAll(v, "*", "\u204e")
+			}
+		}
+	}
+	r = strings.Join(a, "\n")
+	if !strings.HasSuffix(r, "\n") {
+		r += "\n"
+	}
+	return r
 }
 
 func firstToken(n cc.Node, r *cc.Token) {

@@ -104,7 +104,7 @@ func (c *ctx) compoundStatement(w writer, n *cc.CompoundStatement, fnBlock bool,
 			break
 		}
 
-		w.w(" {")
+		w.w(" {\n")
 		switch {
 		case c.f.tlsAllocs+int64(c.f.maxValist) != 0:
 			c.f.tlsAllocs = roundup(c.f.tlsAllocs, 8)
@@ -126,7 +126,7 @@ func (c *ctx) compoundStatement(w writer, n *cc.CompoundStatement, fnBlock bool,
 		w.w("%s", c.f.declareLocals())
 	default:
 		if !flat {
-			w.w(" { %s%s", sep(n.Token), c.posComment(n))
+			w.w(" {\n %s%s", sep(n.Token), c.posComment(n))
 		}
 	}
 	var bi *cc.BlockItem
@@ -210,6 +210,10 @@ func (c *ctx) blockItem(w writer, n *cc.BlockItem) {
 	}
 }
 
+func (c *ctx) isEmptyStatment(n *cc.Statement) bool {
+	return n == nil || n.Case == cc.StatementExpr && n.ExpressionStatement.ExpressionList == nil
+}
+
 func (c *ctx) selectionStatement(w writer, n *cc.SelectionStatement) {
 	if _, ok := c.f.flatScopes[n.LexicalScope()]; ok {
 		c.selectionStatementFlat(w, n)
@@ -229,11 +233,18 @@ func (c *ctx) selectionStatement(w writer, n *cc.SelectionStatement) {
 		w.w("if %s", c.expr(w, n.ExpressionList, nil, exprBool))
 		c.bracedStatement(w, n.Statement)
 	case cc.SelectionStatementIfElse: // "if" '(' ExpressionList ')' Statement "else" Statement
-		w.w("if %s {", c.expr(w, n.ExpressionList, nil, exprBool))
-		c.unbracedStatement(w, n.Statement)
-		w.w("} else {")
-		c.unbracedStatement(w, n.Statement2)
-		w.w("};")
+		switch {
+		case c.isEmptyStatment(n.Statement):
+			w.w("if !(%s) {", c.expr(w, n.ExpressionList, nil, exprBool))
+			c.unbracedStatement(w, n.Statement2)
+			w.w("};")
+		default:
+			w.w("if %s {", c.expr(w, n.ExpressionList, nil, exprBool))
+			c.unbracedStatement(w, n.Statement)
+			w.w("} else {")
+			c.unbracedStatement(w, n.Statement2)
+			w.w("};")
+		}
 	case cc.SelectionStatementSwitch: // "switch" '(' ExpressionList ')' Statement
 		for _, v := range n.LabeledStatements() {
 			if v.Case == cc.LabeledStatementLabel {

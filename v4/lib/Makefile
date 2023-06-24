@@ -53,7 +53,8 @@ editor:
 	stringer -output stringer.go -type mode,name
 	gofmt -l -s -w *.go
 	go test -o /dev/null -c
-	go install -v -tags=ccgo.assert,ccgo.dmesg modernc.org/ccgo/v4 2>&1 | tee log-editor
+	# go install -v -tags=ccgo.assert,ccgo.dmesg modernc.org/ccgo/v4 2>&1 | tee log-editor
+	go install -v -tags=ccgo.assert modernc.org/ccgo/v4 2>&1 | tee log-editor
 	staticcheck
 
 tmp:
