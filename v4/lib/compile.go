@@ -328,7 +328,6 @@ func (c *ctx) compile(ifn, ofn string) (err error) {
 	c.prologue(c)
 	c.defines(c)
 	for n := c.ast.TranslationUnit; n != nil; n = n.TranslationUnit {
-		c.w("\n\n")
 		c.externalDeclaration(c, n.ExternalDeclaration)
 	}
 	for len(c.defineTaggedStructs) != 0 {

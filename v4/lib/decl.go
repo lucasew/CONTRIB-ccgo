@@ -263,21 +263,119 @@ func (c *ctx) functionDefinition0(w writer, sep string, pos cc.Node, d *cc.Decla
 	c.pass = 2
 	c.f.nextID = 0
 	isMain := d.Linkage() == cc.External && d.Name() == "main"
-	s := strings.TrimRight(sep, "\n\r\t ")
-	s += c.posComment(pos)
+	// trc("==== %v: sep `%s`", d.Position(), sep) //TODO-DBG
+	s := strings.TrimLeft(sep, " \t\f") + c.posComment(pos)
+	// trc("s `%s`", s) //TODO-DBG
 	if !strings.HasSuffix(s, "\n") {
 		s += "\n"
-		if s == "\n" {
-			s = "\n\n"
-		}
 	}
+	// trc("s `%s`", s) //TODO-DBG
+	s = c.cdoc(s, d)
 	switch {
 	case local:
+		// trc("s `%s`", s) //TODO-DBG
 		w.w("%s%s%s := func%s", s, c.declaratorTag(d), d.Name(), c.signature(ft, true, false, true))
 	default:
+		// trc("s `%s`", s) //TODO-DBG
 		w.w("%sfunc %s%s%s ", s, c.declaratorTag(d), d.Name(), c.signature(ft, true, isMain, true))
 	}
 	c.compoundStatement(w, cs, true, "")
+	w.w("\n\n")
+}
+
+func (c *ctx) cdoc(sep string, n cc.Node) string {
+	if sep == "" {
+		return ""
+	}
+
+	var b strings.Builder
+	// trc("%v: orig sep `%s`", s.Tok.Position(), sep)
+	comments := c.scanComments(sep, n)
+	if n := len(comments); n > 1 && comments[n-1] == "\n" && !strings.HasSuffix(comments[n-2], "\n") {
+		comments = comments[:n-1]
+	}
+	// for i, v := range comments {
+	// 	trc("%d: %q", i, v)
+	// }
+	var docComment string
+	for i := len(comments) - 1; i >= 0; i-- {
+		if !strings.HasPrefix(comments[i], "/") {
+			if comments[i] == "\n" && i > 1 && strings.HasPrefix(comments[i-1], "/*") {
+				continue
+			}
+
+			// trc("index %v", i)
+			docComment = strings.Join(comments[i+1:], "")
+			if strings.TrimSpace(docComment) == "" {
+				break
+			}
+			// trc("docComment %q", docComment)
+			//TODO- var xxx string
+			if pref := strings.Join(comments[:i+1], ""); pref != "" {
+				//TODO- xxx = pref
+				b.WriteString(pref)
+				if !strings.HasSuffix(pref, "\n") {
+					b.WriteByte('\n')
+					//TODO- xxx += "\n"
+				}
+			}
+			// trc("prefix `%s`", xxx)
+			b.WriteString("// C documentation")
+			// trc("inject `%s`", "// C documentation")
+			break
+		}
+	}
+	if strings.TrimSpace(docComment) != "" {
+		b.WriteString("\n//  ")
+		b.WriteString(strings.Join(strings.Split(docComment, "\n"), "\n//  "))
+		// trc("docComment `%s`", "\n//  "+strings.Join(strings.Split(docComment, "\n"), "\n//  "))
+	}
+	b.WriteByte('\n')
+	return b.String()
+}
+
+func (c *ctx) scanComments(s string, n cc.Node) (r []string) {
+	s0 := s
+	for s != "" {
+		switch s[0] {
+		case '/':
+			if len(s) == 1 {
+				return append(r, s)
+			}
+
+			switch s[1] {
+			case '/':
+				x := strings.IndexByte(s, '\n')
+				if x < 0 {
+					return append(r, s)
+				}
+
+				r = append(r, s[:x+1])
+				s = s[x+1:]
+			case '*':
+				x := strings.Index(s, "*/")
+				if x < 0 {
+					c.err(errorf("%v: scanComments: internal error", n.Position()))
+					return []string{s0}
+				}
+
+				r = append(r, s[:x+2])
+				s = s[x+2:]
+			default:
+				c.err(errorf("%v: scanComments: internal error", n.Position()))
+				return []string{s0}
+			}
+		default:
+			x := strings.IndexByte(s, '/')
+			if x < 0 || x == len(s)-1 {
+				return append(r, s)
+			}
+
+			r = append(r, s[:x])
+			s = s[x:]
+		}
+	}
+	return r
 }
 
 func (c *ctx) signature(f *cc.FunctionType, paramNames, isMain, useNames bool) string {

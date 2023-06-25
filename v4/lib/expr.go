@@ -472,6 +472,20 @@ out:
 	if t == nil {
 		t = n.Type()
 	}
+
+	//TODO if mod == exprDefault {
+	//TODO 	switch n.Value().(type) {
+	//TODO 	case cc.Int64Value:
+	//TODO 		if r, rt, rmode := c.int64Value(w, n, t); r != nil {
+	//TODO 			return r, rt, rmode
+	//TODO 		}
+	//TODO 	case *cc.UnknownValue:
+	//TODO 		// ok
+	//TODO 	default:
+	//TODO 		trc("VALUE.TYPE %T", n.Value())
+	//TODO 	}
+	//TODO }
+
 	switch x := n.(type) {
 	case *cc.AdditiveExpression:
 		return c.additiveExpression(w, x, t, mod)
@@ -513,6 +527,33 @@ out:
 		c.err(errorf("TODO %T", x))
 		return nil, nil, 0
 	}
+}
+
+func (c *ctx) int64Value(w writer, n cc.ExpressionNode, t cc.Type) (r *buf, rt cc.Type, rmode mode) {
+	var b buf
+	v := int64(n.Value().(cc.Int64Value))
+	switch {
+	case cc.IsIntegerType(t):
+		switch {
+		case cc.IsSignedInteger(t):
+			min, max, ok := intMinMax(t)
+			if !ok {
+				break
+			}
+
+			if v < min || v > max {
+				break //TODO
+			}
+
+			b.w("(%s(%v))", c.typ(n, t), v)
+			return &b, t, exprDefault
+		default:
+			//TODO
+		}
+	default:
+		trc("%v: VALUE.KIND %v", origin(1), t.Kind())
+	}
+	return nil, rt, rmode
 }
 
 func (c *ctx) andExpression(w writer, n *cc.AndExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
@@ -672,6 +713,21 @@ func (c *ctx) conditionalExpression(w writer, n *cc.ConditionalExpression, t cc.
 	case cc.ConditionalExpressionLOr: // LogicalOrExpression
 		c.err(errorf("TODO %v", n.Case))
 	case cc.ConditionalExpressionCond: // LogicalOrExpression '?' ExpressionList ':' ConditionalExpression
+		switch val := n.LogicalOrExpression.Value(); {
+		case c.isNonZero(val):
+			if mode == exprVoid {
+				mode = exprDefault
+			}
+			b.w("%s", c.expr(w, n.ExpressionList, t, mode))
+			return &b, t, mode
+		case c.isZero(val):
+			if mode == exprVoid {
+				mode = exprDefault
+			}
+			b.w("%s", c.expr(w, n.ConditionalExpression, t, mode))
+			return &b, t, mode
+		}
+
 		v := fmt.Sprintf("%sv%d", tag(ccgoAutomatic), c.id())
 		switch mode {
 		case exprCall:
@@ -731,6 +787,80 @@ func (c *ctx) conditionalExpression(w writer, n *cc.ConditionalExpression, t cc.
 		c.err(errorf("internal error %T %v", n, n.Case))
 	}
 	return &b, rt, rmode
+}
+
+func (c *ctx) isNonZero(v cc.Value) bool {
+	if v == nil || v == cc.Unknown {
+		return false
+	}
+
+	switch x := v.(type) {
+	case cc.Int64Value:
+		return x != 0
+	case cc.UInt64Value:
+		return x != 0
+	case cc.Float64Value:
+		return x != 0
+	case *cc.ZeroValue:
+		return false
+	case cc.Complex128Value:
+		return x != 0
+	case cc.Complex64Value:
+		return x != 0
+	case *cc.ComplexLongDoubleValue:
+		return !c.isZero(x.Re) || !c.isZero(x.Im)
+	case *cc.LongDoubleValue:
+		return !(*big.Float)(x).IsInf() && (*big.Float)(x).Sign() != 0
+	case *cc.UnknownValue:
+		return false
+	case cc.StringValue:
+		return true
+	case cc.UTF16StringValue:
+		return true
+	case cc.UTF32StringValue:
+		return true
+	case cc.VoidValue:
+		return false
+	default:
+		return false
+	}
+}
+
+func (c *ctx) isZero(v cc.Value) bool {
+	if v == nil || v == cc.Unknown {
+		return false
+	}
+
+	switch x := v.(type) {
+	case cc.Int64Value:
+		return x == 0
+	case cc.UInt64Value:
+		return x == 0
+	case cc.Float64Value:
+		return x == 0
+	case *cc.ZeroValue:
+		return true
+	case cc.Complex128Value:
+		return x == 0
+	case cc.Complex64Value:
+		return x == 0
+	case *cc.ComplexLongDoubleValue:
+		return c.isZero(x.Re) && c.isZero(x.Im)
+	case *cc.LongDoubleValue:
+		return !(*big.Float)(x).IsInf() && (*big.Float)(x).Sign() == 0
+	case *cc.UnknownValue:
+		return false
+	case cc.StringValue:
+		return false
+	case cc.UTF16StringValue:
+		return false
+	case cc.UTF32StringValue:
+		return false
+	case cc.VoidValue:
+		return false
+	default:
+		return false
+	}
 }
 
 func (c *ctx) castExpression(w writer, n *cc.CastExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
@@ -1220,10 +1350,12 @@ func (c *ctx) postfixExpressionIndex(w writer, p, index cc.ExpressionNode, pt *c
 			//  https://en.wikipedia.org/wiki/Flexible_array_member
 			switch mode {
 			case exprLvalue, exprDefault, exprSelect:
-				b.w("(*(*%s)(%sunsafe.%sPointer(%s + %[3]suintptr(%[5]s)%s)))", c.typ(p, elem), tag(importQualifier), tag(preserve), c.expr(w, p, nil, exprDefault), c.expr(w, index, nil, exprDefault), mul)
+				//TODO- b.w("(*(*%s)(%sunsafe.%sPointer(%s + %[3]suintptr(%[5]s)%s)))", c.typ(p, elem), tag(importQualifier), tag(preserve), c.expr(w, p, nil, exprDefault), c.expr(w, index, nil, exprDefault), mul)
+				b.w("(*(*%s)(%sunsafe.%sPointer(%s + (%[5]s)%s)))", c.typ(p, elem), tag(importQualifier), tag(preserve), c.expr(w, p, nil, exprDefault), c.expr(w, index, c.pvoid, exprDefault), mul)
 				return &b, nt, mode
 			case exprUintptr:
-				b.w("(%s+%suintptr(%s)%s)", c.expr(w, p, nil, exprDefault), tag(preserve), c.expr(w, index, nil, exprDefault), mul)
+				//TODO- b.w("(%s+%suintptr(%s)%s)", c.expr(w, p, nil, exprDefault), tag(preserve), c.expr(w, index, nil, exprDefault), mul)
+				b.w("(%s+(%s)%s)", c.expr(w, p, nil, exprDefault), c.expr(w, index, c.pvoid, exprDefault), mul)
 				return &b, nt.Pointer(), mode
 			default:
 				c.err(errorf("TODO %v", mode))
@@ -1244,9 +1376,11 @@ func (c *ctx) postfixExpressionIndex(w writer, p, index cc.ExpressionNode, pt *c
 				break
 			}
 
-			b.w("(*(*%s)(%sunsafe.%sPointer(%s + %[3]suintptr(%[5]s)%s)))", c.typ(p, elem), tag(importQualifier), tag(preserve), c.expr(w, p, nil, exprDefault), c.expr(w, index, nil, exprDefault), mul)
+			//TODO- b.w("(*(*%s)(%sunsafe.%sPointer(%s + %[3]suintptr(%[5]s)%s)))", c.typ(p, elem), tag(importQualifier), tag(preserve), c.expr(w, p, nil, exprDefault), c.expr(w, index, nil, exprDefault), mul)
+			b.w("(*(*%s)(%sunsafe.%sPointer(%s + (%[5]s)%s)))", c.typ(p, elem), tag(importQualifier), tag(preserve), c.expr(w, p, nil, exprDefault), c.expr(w, index, c.pvoid, exprDefault), mul)
 		case *cc.PointerType:
-			b.w("(*(*%s)(%sunsafe.%sPointer(%s + %[3]suintptr(%[5]s)%s)))", c.typ(p, elem), tag(importQualifier), tag(preserve), c.expr(w, p, nil, exprDefault), c.expr(w, index, nil, exprDefault), mul)
+			//TODO- b.w("(*(*%s)(%sunsafe.%sPointer(%s + %[3]suintptr(%[5]s)%s)))", c.typ(p, elem), tag(importQualifier), tag(preserve), c.expr(w, p, nil, exprDefault), c.expr(w, index, nil, exprDefault), mul)
+			b.w("(*(*%s)(%sunsafe.%sPointer(%s + (%[5]s)%s)))", c.typ(p, elem), tag(importQualifier), tag(preserve), c.expr(w, p, nil, exprDefault), c.expr(w, index, c.pvoid, exprDefault), mul)
 		default:
 			// trc("%v: %s[%s] %v %T", c.pos(p), cc.NodeSource(p), cc.NodeSource(index), mode, x)
 			c.err(errorf("TODO %T", x))
@@ -1260,9 +1394,11 @@ func (c *ctx) postfixExpressionIndex(w writer, p, index cc.ExpressionNode, pt *c
 				break
 			}
 
-			b.w("(*(*%s)(%sunsafe.%sPointer(%s + %[3]suintptr(%[5]s)%s)))", c.typ(p, elem), tag(importQualifier), tag(preserve), c.expr(w, p, nil, exprDefault), c.expr(w, index, nil, exprDefault), mul)
+			//TODO- b.w("(*(*%s)(%sunsafe.%sPointer(%s + %[3]suintptr(%[5]s)%s)))", c.typ(p, elem), tag(importQualifier), tag(preserve), c.expr(w, p, nil, exprDefault), c.expr(w, index, nil, exprDefault), mul)
+			b.w("(*(*%s)(%sunsafe.%sPointer(%s + (%[5]s)%s)))", c.typ(p, elem), tag(importQualifier), tag(preserve), c.expr(w, p, nil, exprDefault), c.expr(w, index, c.pvoid, exprDefault), mul)
 		case *cc.PointerType:
-			b.w("(*(*%s)(%sunsafe.%sPointer(%s + %[3]suintptr(%[5]s)%s)))", c.typ(p, elem), tag(importQualifier), tag(preserve), c.expr(w, p, nil, exprDefault), c.expr(w, index, nil, exprDefault), mul)
+			//TODO- b.w("(*(*%s)(%sunsafe.%sPointer(%s + %[3]suintptr(%[5]s)%s)))", c.typ(p, elem), tag(importQualifier), tag(preserve), c.expr(w, p, nil, exprDefault), c.expr(w, index, nil, exprDefault), mul)
+			b.w("(*(*%s)(%sunsafe.%sPointer(%s + (%[5]s)%s)))", c.typ(p, elem), tag(importQualifier), tag(preserve), c.expr(w, p, nil, exprDefault), c.expr(w, index, c.pvoid, exprDefault), mul)
 		default:
 			// trc("%v: %s[%s] %v %T", c.pos(p), cc.NodeSource(p), cc.NodeSource(index), mode, x)
 			c.err(errorf("TODO %T", x))
@@ -1276,7 +1412,8 @@ func (c *ctx) postfixExpressionIndex(w writer, p, index cc.ExpressionNode, pt *c
 			}
 		}
 
-		b.w("(%s + %suintptr(%[2]suintptr(%s)%s))", c.expr(w, p, nil, exprDefault), tag(preserve), c.expr(w, index, nil, exprDefault), mul)
+		//TODO- b.w("(%s + %suintptr(%[2]suintptr(%s)%s))", c.expr(w, p, nil, exprDefault), tag(preserve), c.expr(w, index, nil, exprDefault), mul)
+		b.w("(%s + ((%s)%s))", c.expr(w, p, nil, exprDefault), c.expr(w, index, c.pvoid, exprDefault), mul)
 	default:
 		// trc("%v: %s[%s] %v", c.pos(p), cc.NodeSource(p), cc.NodeSource(index), mode)
 		c.err(errorf("TODO %v", mode))

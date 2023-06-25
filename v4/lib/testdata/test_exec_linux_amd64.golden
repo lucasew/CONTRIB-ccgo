@@ -1273,6 +1273,7 @@ assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr43417.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr43614.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr43635.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr43636.c
+assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr43661.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr43679.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr43791.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr43845.c
@@ -4798,6 +4799,7 @@ assets/tcc-0.9.27/tests/tests2/82_attribs_position.c
 assets/tcc-0.9.27/tests/tests2/83_utf8_in_identifiers.c
 assets/tcc-0.9.27/tests/tests2/84_hex-float.c
 assets/tcc-0.9.27/tests/tests2/86_memory-model.c
+assets/tcc-0.9.27/tests/tests2/89_nocode_wanted.c
 assets/tcc-0.9.27/tests/tests2/90_struct-init.c
 assets/tcc-0.9.27/tests/tests2/91_ptr_longlong_arith32.c
 assets/tcc-0.9.27/tests/tests2/92_enum_bitfield.c

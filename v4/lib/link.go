@@ -871,6 +871,10 @@ var (
 					break
 				}
 
+				if strings.HasPrefix(nm, tag(define)) && l.task.prefixDefine == "" {
+					break
+				}
+
 				l.goSynthDeclsProduced.add(nm)
 				fi := l.newFnInfo(nil)
 				l.print(fi, n)
@@ -931,7 +935,7 @@ var (
 			break
 		}
 
-		b = l.postProcess(b)
+		b = l.postProcess(ofn, b)
 		if err := os.WriteFile(ofn, b, 0666); err != nil {
 			return errorf("%s", err)
 		}
@@ -950,7 +954,7 @@ var (
 )
 
 // Input must be formatted.
-func (l *linker) postProcess(b []byte) (r []byte) {
+func (l *linker) postProcess(fn string, b []byte) (r []byte) {
 	lines := bytes.Split(b, bnl)
 	r = make([]byte, 0, len(b))
 	var inFunc bool
@@ -972,7 +976,7 @@ func (l *linker) postProcess(b []byte) (r []byte) {
 		}
 		r = append(r, '\n')
 	}
-	return append(r, bnl...)
+	return r
 }
 
 func isJsonMeta(linkName string) bool {

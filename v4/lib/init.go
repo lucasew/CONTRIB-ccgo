@@ -8,7 +8,6 @@ package ccgo // import "modernc.org/ccgo/v4/lib"
 
 import (
 	"fmt"
-	"math/big"
 	"sort"
 
 	"modernc.org/cc/v4"
@@ -105,29 +104,6 @@ func (c *ctx) isZeroInitializerSlice(s []*cc.Initializer) bool {
 	}
 
 	return true
-}
-
-func (c *ctx) isZero(v cc.Value) bool {
-	switch x := v.(type) {
-	case cc.Int64Value:
-		return x == 0
-	case cc.UInt64Value:
-		return x == 0
-	case cc.Float64Value:
-		return x == 0
-	case *cc.ZeroValue:
-		return true
-	case cc.Complex128Value:
-		return x == 0
-	case cc.Complex64Value:
-		return x == 0
-	case *cc.ComplexLongDoubleValue:
-		return c.isZero(x.Re) && c.isZero(x.Im)
-	case *cc.LongDoubleValue:
-		return !(*big.Float)(x).IsInf() && (*big.Float)(x).Sign() == 0
-	default:
-		return false
-	}
 }
 
 func (c *ctx) initializerArray(w writer, n cc.Node, a []*cc.Initializer, t *cc.ArrayType, off0 int64) (r *buf) {

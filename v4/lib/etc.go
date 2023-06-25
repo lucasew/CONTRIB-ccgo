@@ -7,6 +7,7 @@ package ccgo // import "modernc.org/ccgo/v4/lib"
 import (
 	"fmt"
 	"go/token"
+	"math"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -784,26 +785,16 @@ func nodeTokens(n cc.Node, a *[]cc.Token) {
 func sep(n cc.Node) (r string) {
 	var t cc.Token
 	firstToken(n, &t)
-	if r = strings.ReplaceAll(string(t.Sep()), "\f", ""); !strings.Contains(r, "\n") || t.Position().Column != 1 {
-		return r
-	}
-
-	a := strings.Split(r, "\n")
-	for i, v := range a {
-		if s := strings.TrimSpace(v); s != "" {
-			switch {
-			case strings.HasPrefix(s, "/*"):
-				a[i] = "//.\n//  " + strings.ReplaceAll(v, "*", "\u204e")
-			default:
-				a[i] = "//  " + strings.ReplaceAll(v, "*", "\u204e")
-			}
+	r = string(t.Sep())
+	switch {
+	case strings.HasSuffix(t.Position().Filename, ".h"):
+		if r != "" {
+			r = " "
 		}
+	default:
+		r = string(t.Sep())
 	}
-	r = strings.Join(a, "\n")
-	if !strings.HasSuffix(r, "\n") {
-		r += "\n"
-	}
-	return r
+	return strings.ReplaceAll(r, "\f", "\n")
 }
 
 func firstToken(n cc.Node, r *cc.Token) {
@@ -989,43 +980,6 @@ func firstError(err error, short bool) error {
 	return err
 }
 
-func isZero(v cc.Value) bool {
-	if v == nil || v == cc.Unknown {
-		return false
-	}
-
-	switch x := v.(type) {
-	case *cc.ComplexLongDoubleValue:
-		return false //TODO
-	case *cc.LongDoubleValue:
-		return false //TODO
-	case *cc.UnknownValue:
-		return false
-	case *cc.ZeroValue:
-		return true
-	case cc.Complex128Value:
-		return x == 0
-	case cc.Complex64Value:
-		return x == 0
-	case cc.Float64Value:
-		return x == 0
-	case cc.Int64Value:
-		return x == 0
-	case cc.StringValue:
-		return false
-	case cc.UInt64Value:
-		return x == 0
-	case cc.UTF16StringValue:
-		return false
-	case cc.UTF32StringValue:
-		return false
-	case cc.VoidValue:
-		return false
-	default:
-		return false
-	}
-}
-
 func gcKind(k cc.Kind, cabi *cc.ABI) gc.Kind {
 	switch k {
 	case cc.Bool:
@@ -1089,4 +1043,34 @@ func gcKind(k cc.Kind, cabi *cc.ABI) gc.Kind {
 		panic(todo("", k))
 	}
 	return -1
+}
+
+func intMinMax(t cc.Type) (int64, int64, bool) {
+	switch t.Size() {
+	case 1:
+		return math.MinInt8, math.MaxInt8, true
+	case 2:
+		return math.MinInt16, math.MaxInt16, true
+	case 4:
+		return math.MinInt32, math.MaxInt32, true
+	case 8:
+		return math.MinInt64, math.MaxInt64, true
+	default:
+		return 0, 0, false
+	}
+}
+
+func uintMax(t cc.Type) (uint64, bool) {
+	switch t.Size() {
+	case 1:
+		return math.MaxUint8, true
+	case 2:
+		return math.MaxUint16, true
+	case 4:
+		return math.MaxUint32, true
+	case 8:
+		return math.MaxUint64, true
+	default:
+		return 0, false
+	}
 }
