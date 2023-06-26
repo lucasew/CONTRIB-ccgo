@@ -566,13 +566,13 @@ func (c *ctx) inclusiveOrExpression(w writer, n *cc.InclusiveOrExpression, t cc.
 
 func (c *ctx) value(w writer, n cc.ExpressionNode, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
 	if c.forceRunTimeConversion == 0 && mode == exprDefault && !c.task.opt0 && n.Pure() {
-		switch n.Value().(type) {
+		switch x := n.Value().(type) {
 		case cc.Int64Value:
-			if r, rt, rmode := c.int64Value(w, n, t); r != nil {
+			if r, rt, rmode := c.int64(w, n, int64(x), t); r != nil {
 				return r, rt, rmode
 			}
 		case cc.UInt64Value:
-			if r, rt, rmode := c.uint64Value(w, n, t); r != nil {
+			if r, rt, rmode := c.uint64(w, n, uint64(x), t); r != nil {
 				return r, rt, rmode
 			}
 		case *cc.UnknownValue:
@@ -584,9 +584,8 @@ func (c *ctx) value(w writer, n cc.ExpressionNode, t cc.Type, mode mode) (r *buf
 	return nil, rt, rmode
 }
 
-func (c *ctx) int64Value(w writer, n cc.ExpressionNode, t cc.Type) (r *buf, rt cc.Type, rmode mode) {
+func (c *ctx) int64(w writer, n cc.ExpressionNode, v int64, t cc.Type) (r *buf, rt cc.Type, rmode mode) {
 	var b buf
-	v := int64(n.Value().(cc.Int64Value))
 	switch {
 	case cc.IsIntegerType(t):
 		switch {
@@ -603,20 +602,8 @@ func (c *ctx) int64Value(w writer, n cc.ExpressionNode, t cc.Type) (r *buf, rt c
 
 			b.w("(%s(%v))", c.typ(n, t), v)
 			return &b, t, exprDefault
-			//TODO default:
-			//TODO 	v := uint64(v)
-			//TODO 	max, ok := uintMax(t)
-			//TODO 	if !ok {
-			//TODO 		break
-			//TODO 	}
-
-			//TODO 	if v > max {
-			//TODO 		// trc("%v: VALUE %v out of range for %s (%v:)", n.Position(), v, t, origin(1))
-			//TODO 		break //TODO
-			//TODO 	}
-
-			//TODO 	b.w("(%s(%v))", c.typ(n, t), v)
-			//TODO 	return &b, t, exprDefault
+		default:
+			return c.uint64(w, n, uint64(v), t)
 		}
 	default:
 		// trc("%v: VALUE.KIND %v", origin(1), t.Kind())
@@ -624,39 +611,26 @@ func (c *ctx) int64Value(w writer, n cc.ExpressionNode, t cc.Type) (r *buf, rt c
 	return nil, rt, rmode
 }
 
-func (c *ctx) uint64Value(w writer, n cc.ExpressionNode, t cc.Type) (r *buf, rt cc.Type, rmode mode) {
+func (c *ctx) uint64(w writer, n cc.ExpressionNode, v uint64, t cc.Type) (r *buf, rt cc.Type, rmode mode) {
 	var b buf
-	v := uint64(n.Value().(cc.UInt64Value))
 	switch {
 	case cc.IsIntegerType(t):
 		switch {
 		case cc.IsSignedInteger(t):
-			v := int64(v)
-			min, max, ok := intMinMax(t)
+			return c.int64(w, n, int64(v), t)
+		default:
+			max, ok := uintMax(t)
 			if !ok {
 				break
 			}
 
-			if v < min || v > max {
-				// trc("%v: VALUE %v out of range for %s", n.Position(), v, t)
+			if v > max {
+				// trc("%v: VALUE %v out of range for %s (%v:)", n.Position(), v, t, origin(1))
 				break //TODO
 			}
 
 			b.w("(%s(%v))", c.typ(n, t), v)
 			return &b, t, exprDefault
-			//TODO default:
-			//TODO 	max, ok := uintMax(t)
-			//TODO 	if !ok {
-			//TODO 		break
-			//TODO 	}
-
-			//TODO 	if v > max {
-			//TODO 		// trc("%v: VALUE %v out of range for %s (%v:)", n.Position(), v, t, origin(1))
-			//TODO 		break //TODO
-			//TODO 	}
-
-			//TODO 	b.w("(%s(%v))", c.typ(n, t), v)
-			//TODO 	return &b, t, exprDefault
 		}
 	default:
 		// trc("%v: VALUE.KIND %v (%v:)", n.Position(), t.Kind(), origin(1))

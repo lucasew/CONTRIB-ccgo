@@ -4513,6 +4513,8 @@ assets/github.com/vnmakarov/mir/c-tests/andrewchambers_c/0028-inits13.c
 assets/github.com/vnmakarov/mir/c-tests/andrewchambers_c/0029-ptrarith1.c
 assets/github.com/vnmakarov/mir/c-tests/andrewchambers_c/0029-ptrarith2.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/address-deref-offset.c
+assets/github.com/vnmakarov/mir/c-tests/lacc/anonymous-members.c
+assets/github.com/vnmakarov/mir/c-tests/lacc/anonymous-struct.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/array-nested-init.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/array-param.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/array-registers.c

@@ -179,12 +179,14 @@ type ctx struct {
 	maxAlign      int
 	out           io.Writer
 	pvoid         cc.Type
+	signedInts    [9]cc.Type
 	switchCtx     map[*cc.LabeledStatement]string
 	taggedEnums   nameSet
 	taggedStructs nameSet
 	taggedUnions  nameSet
 	task          *Task
 	typenames     nameSet
+	unsignedInts  [9]cc.Type
 	verify        map[cc.Type]struct{}
 	void          cc.Type
 
@@ -309,6 +311,37 @@ func (c *ctx) compile(ifn, ofn string) (err error) {
 
 	if c.ast, err = cc.Translate(c.cfg, sourcesFor(c.cfg, ifn, c.task.defs)); err != nil {
 		return err
+	}
+
+	for _, v := range []cc.Type{
+		c.ast.Char,
+		c.ast.Int,
+		c.ast.Long,
+		c.ast.LongLong,
+		c.ast.SChar,
+		c.ast.Short,
+		c.ast.UChar,
+		c.ast.UInt,
+		c.ast.ULong,
+		c.ast.ULongLong,
+		c.ast.UShort,
+	} {
+		sz := v.Size()
+		switch {
+		case cc.IsSignedInteger(v):
+			if c.signedInts[sz] == nil {
+				c.signedInts[sz] = v
+			}
+		default:
+			if c.unsignedInts[sz] == nil {
+				c.unsignedInts[sz] = v
+			}
+		}
+	}
+	for _, v := range []int{1, 2, 4, 8} {
+		if c.signedInts[v] == nil || c.unsignedInts[v] == nil {
+			return errorf("cannot determine all required C integer types")
+		}
 	}
 
 	for _, v := range c.ast.Scope.Nodes["main"] {
