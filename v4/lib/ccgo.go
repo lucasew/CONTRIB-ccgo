@@ -5,6 +5,7 @@
 // Package ccgo implements the ccgo command.
 package ccgo // import "modernc.org/ccgo/v4/lib"
 
+//TODO do not initialize zero-valued elements
 //TODO SYS_getsid macro missing
 //TODO Do not use XFromY
 //TODO support hidden
@@ -99,6 +100,7 @@ type Task struct {
 	positions                 bool // -positions
 	pthread                   bool // -pthread
 	strictISOMode             bool // -ansi or stc=c90
+	opt0                      bool // -O0
 	verifyTypes               bool // -verify-types
 }
 
@@ -180,7 +182,7 @@ func (t *Task) main() (err error) {
 	//TODO set.Arg("-prefix-unpinned", false, func(arg, val string) error { t.prefixUnpinned = val; return nil })
 	set.Arg("D", true, func(arg, val string) error { t.D = append(t.D, fmt.Sprintf("%s%s", arg, val)); return nil })
 	set.Arg("I", true, func(arg, val string) error { t.I = append(t.I, val); return nil })
-	set.Arg("O", true, func(arg, val string) error { t.O = fmt.Sprintf("%s%s", arg, val); return nil })
+	set.Arg("O", true, func(arg, val string) error { t.O = fmt.Sprintf("%s%s", arg, val); t.opt0 = val == "0"; return nil })
 	set.Arg("U", true, func(arg, val string) error { t.U = append(t.U, fmt.Sprintf("%s%s", arg, val)); return nil })
 	set.Arg("exec-cc", false, func(arg, val string) error { t.execCC = val; return nil })
 	set.Arg("l", true, func(arg, val string) error {

@@ -156,24 +156,25 @@ type jsonMeta struct {
 }
 
 type ctx struct {
-	ast                 *cc.AST
-	breakCtx            string
-	cfg                 *cc.Config
-	compoundStmtValue   string
-	continueCtx         string
-	defineTaggedStructs map[string]*cc.StructType
-	defineTaggedUnions  map[string]*cc.UnionType
-	eh                  errHandler
-	enumerators         nameSet
-	externsDeclared     map[string]*cc.Declarator
-	externsDefined      map[string]struct{}
-	externsMentioned    map[string]struct{}
-	f                   *fnCtx
-	fields              map[fielder]*nameSpace
-	fn                  *cc.Declarator
-	ifn                 string
-	imports             map[string]string // import path: qualifier
-	initPatch           func(int64, *buf)
+	ast                    *cc.AST
+	breakCtx               string
+	cfg                    *cc.Config
+	compoundStmtValue      string
+	continueCtx            string
+	defineTaggedStructs    map[string]*cc.StructType
+	defineTaggedUnions     map[string]*cc.UnionType
+	eh                     errHandler
+	enumerators            nameSet
+	externsDeclared        map[string]*cc.Declarator
+	externsDefined         map[string]struct{}
+	externsMentioned       map[string]struct{}
+	f                      *fnCtx
+	fields                 map[fielder]*nameSpace
+	fn                     *cc.Declarator
+	forceRunTimeConversion int
+	ifn                    string
+	imports                map[string]string // import path: qualifier
+	initPatch              func(int64, *buf)
 	jsonMeta
 	maxAlign      int
 	out           io.Writer

@@ -291,7 +291,7 @@ func (c *ctx) initializerStruct(w writer, n cc.Node, a []*cc.Initializer, t *cc.
 				}
 				f = in.Field()
 				sh := f.OffsetBits() + 8*int(f.Offset()-ogo)
-				b.w("(((%suint%d(%s))&%#0x)<<%d)", tag(preserve), gsz, c.expr(w, in.AssignmentExpression, nil, exprDefault), uint(1)<<f.ValueBits()-1, sh)
+				b.w("(((%suint%d(%s))&%#0x)<<%d)", tag(preserve), gsz, c.expr(w, in.AssignmentExpression, c.ast.ULongLong, exprDefault), uint(1)<<f.ValueBits()-1, sh)
 			}
 			b.w(", ")
 			continue
@@ -535,7 +535,7 @@ func (c *ctx) initializerUnionOne(w writer, n cc.Node, a []*cc.Initializer, t *c
 	b.w("}{%sf: ", tag(preserve))
 	switch f := in.Field(); {
 	case f != nil && f.IsBitfield():
-		b.w("(((%suint%d(%s))&%#0x)<<%d)", tag(preserve), f.AccessBytes()*8, c.expr(w, in.AssignmentExpression, nil, exprDefault), uint(1)<<f.ValueBits()-1, f.OffsetBits())
+		b.w("(((%suint%d(%s))&%#0x)<<%d)", tag(preserve), f.AccessBytes()*8, c.expr(w, in.AssignmentExpression, c.ast.ULongLong, exprDefault), uint(1)<<f.ValueBits()-1, f.OffsetBits())
 	default:
 		b.w("%s", c.expr(w, in.AssignmentExpression, in.Type(), exprDefault))
 	}

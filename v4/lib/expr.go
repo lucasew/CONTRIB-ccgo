@@ -473,18 +473,11 @@ out:
 		t = n.Type()
 	}
 
-	//TODO if mod == exprDefault {
-	//TODO 	switch n.Value().(type) {
-	//TODO 	case cc.Int64Value:
-	//TODO 		if r, rt, rmode := c.int64Value(w, n, t); r != nil {
-	//TODO 			return r, rt, rmode
-	//TODO 		}
-	//TODO 	case *cc.UnknownValue:
-	//TODO 		// ok
-	//TODO 	default:
-	//TODO 		trc("VALUE.TYPE %T", n.Value())
-	//TODO 	}
-	//TODO }
+	if mod == exprDefault && !c.task.opt0 && n.Pure() { //TODO-?
+		if r, rt, rmode := c.value(w, n, t, mod); r != nil {
+			return r, rt, rmode
+		}
+	}
 
 	switch x := n.(type) {
 	case *cc.AdditiveExpression:
@@ -529,33 +522,6 @@ out:
 	}
 }
 
-func (c *ctx) int64Value(w writer, n cc.ExpressionNode, t cc.Type) (r *buf, rt cc.Type, rmode mode) {
-	var b buf
-	v := int64(n.Value().(cc.Int64Value))
-	switch {
-	case cc.IsIntegerType(t):
-		switch {
-		case cc.IsSignedInteger(t):
-			min, max, ok := intMinMax(t)
-			if !ok {
-				break
-			}
-
-			if v < min || v > max {
-				break //TODO
-			}
-
-			b.w("(%s(%v))", c.typ(n, t), v)
-			return &b, t, exprDefault
-		default:
-			//TODO
-		}
-	default:
-		trc("%v: VALUE.KIND %v", origin(1), t.Kind())
-	}
-	return nil, rt, rmode
-}
-
 func (c *ctx) andExpression(w writer, n *cc.AndExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
 	var b buf
 	switch n.Case {
@@ -598,21 +564,144 @@ func (c *ctx) inclusiveOrExpression(w writer, n *cc.InclusiveOrExpression, t cc.
 	return &b, rt, rmode
 }
 
+func (c *ctx) value(w writer, n cc.ExpressionNode, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
+	if c.forceRunTimeConversion == 0 && mode == exprDefault && !c.task.opt0 && n.Pure() {
+		switch n.Value().(type) {
+		case cc.Int64Value:
+			if r, rt, rmode := c.int64Value(w, n, t); r != nil {
+				return r, rt, rmode
+			}
+		case cc.UInt64Value:
+			if r, rt, rmode := c.uint64Value(w, n, t); r != nil {
+				return r, rt, rmode
+			}
+		case *cc.UnknownValue:
+			// ok
+		default:
+			// trc("VALUE.TYPE %T", n.Value())
+		}
+	}
+	return nil, rt, rmode
+}
+
+func (c *ctx) int64Value(w writer, n cc.ExpressionNode, t cc.Type) (r *buf, rt cc.Type, rmode mode) {
+	var b buf
+	v := int64(n.Value().(cc.Int64Value))
+	switch {
+	case cc.IsIntegerType(t):
+		switch {
+		case cc.IsSignedInteger(t):
+			min, max, ok := intMinMax(t)
+			if !ok {
+				break
+			}
+
+			if v < min || v > max {
+				// trc("%v: VALUE %v out of range for %s", n.Position(), v, t)
+				break //TODO
+			}
+
+			b.w("(%s(%v))", c.typ(n, t), v)
+			return &b, t, exprDefault
+			//TODO default:
+			//TODO 	v := uint64(v)
+			//TODO 	max, ok := uintMax(t)
+			//TODO 	if !ok {
+			//TODO 		break
+			//TODO 	}
+
+			//TODO 	if v > max {
+			//TODO 		// trc("%v: VALUE %v out of range for %s (%v:)", n.Position(), v, t, origin(1))
+			//TODO 		break //TODO
+			//TODO 	}
+
+			//TODO 	b.w("(%s(%v))", c.typ(n, t), v)
+			//TODO 	return &b, t, exprDefault
+		}
+	default:
+		// trc("%v: VALUE.KIND %v", origin(1), t.Kind())
+	}
+	return nil, rt, rmode
+}
+
+func (c *ctx) uint64Value(w writer, n cc.ExpressionNode, t cc.Type) (r *buf, rt cc.Type, rmode mode) {
+	var b buf
+	v := uint64(n.Value().(cc.UInt64Value))
+	switch {
+	case cc.IsIntegerType(t):
+		switch {
+		case cc.IsSignedInteger(t):
+			v := int64(v)
+			min, max, ok := intMinMax(t)
+			if !ok {
+				break
+			}
+
+			if v < min || v > max {
+				// trc("%v: VALUE %v out of range for %s", n.Position(), v, t)
+				break //TODO
+			}
+
+			b.w("(%s(%v))", c.typ(n, t), v)
+			return &b, t, exprDefault
+			//TODO default:
+			//TODO 	max, ok := uintMax(t)
+			//TODO 	if !ok {
+			//TODO 		break
+			//TODO 	}
+
+			//TODO 	if v > max {
+			//TODO 		// trc("%v: VALUE %v out of range for %s (%v:)", n.Position(), v, t, origin(1))
+			//TODO 		break //TODO
+			//TODO 	}
+
+			//TODO 	b.w("(%s(%v))", c.typ(n, t), v)
+			//TODO 	return &b, t, exprDefault
+		}
+	default:
+		// trc("%v: VALUE.KIND %v (%v:)", n.Position(), t.Kind(), origin(1))
+	}
+	return nil, rt, rmode
+}
+
 func (c *ctx) shiftExpression(w writer, n *cc.ShiftExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
+	if r, rt, rmode = c.value(w, n, t, mode); r != nil {
+		return r, rt, mode
+	}
+
 	var b buf
 	switch n.Case {
 	case cc.ShiftExpressionAdd: // AdditiveExpression
 		c.err(errorf("TODO %v", n.Case))
 	case cc.ShiftExpressionLsh: // ShiftExpression "<<" AdditiveExpression
-		b.w("(%s << %s)", c.expr(w, n.ShiftExpression, n.Type(), exprDefault), c.expr(w, n.AdditiveExpression, nil, exprDefault))
+		b.w("(%s << %s)", c.expr(w, n.ShiftExpression, n.Type(), exprDefault), c.shiftCountValue(w, n.AdditiveExpression, nil, exprDefault))
 		rt, rmode = n.Type(), exprDefault
 	case cc.ShiftExpressionRsh: // ShiftExpression ">>" AdditiveExpression
-		b.w("(%s >> %s)", c.expr(w, n.ShiftExpression, n.Type(), exprDefault), c.expr(w, n.AdditiveExpression, nil, exprDefault))
+		b.w("(%s >> %s)", c.expr(w, n.ShiftExpression, n.Type(), exprDefault), c.shiftCountValue(w, n.AdditiveExpression, nil, exprDefault))
 		rt, rmode = n.Type(), exprDefault
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
 	}
 	return &b, rt, rmode
+}
+
+func (c *ctx) isNegIntValue(v cc.Value) bool {
+	switch x := v.(type) {
+	case cc.Int64Value:
+		return x < 0
+	default:
+		return false
+	}
+}
+
+func (c *ctx) shiftCountValue(w writer, n cc.ExpressionNode, t cc.Type, mode mode) (r *buf) {
+	if n.Pure() && c.isNegIntValue(n.Value()) {
+		c.forceRunTimeConversion++
+
+		defer func() { c.forceRunTimeConversion-- }()
+	}
+
+	return c.expr(w, n, nil, exprDefault)
 }
 
 func (c *ctx) logicalAndExpression(w writer, n *cc.LogicalAndExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
