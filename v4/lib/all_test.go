@@ -751,7 +751,14 @@ func TestCSmith(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer os.RemoveAll(temp)
+	defer func() {
+		switch {
+		case *oKeep:
+			fmt.Printf("%s kept\n", temp)
+		default:
+			os.RemoveAll(temp)
+		}
+	}()
 
 	if err := os.Chdir(temp); err != nil {
 		t.Fatal(err)

@@ -7,7 +7,6 @@ package ccgo // import "modernc.org/ccgo/v4/lib"
 import (
 	"fmt"
 	"go/token"
-	"math"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -1043,34 +1042,4 @@ func gcKind(k cc.Kind, cabi *cc.ABI) gc.Kind {
 		panic(todo("", k))
 	}
 	return -1
-}
-
-func intMinMax(t cc.Type) (int64, int64, bool) {
-	switch t.Size() {
-	case 1:
-		return math.MinInt8, math.MaxInt8, true
-	case 2:
-		return math.MinInt16, math.MaxInt16, true
-	case 4:
-		return math.MinInt32, math.MaxInt32, true
-	case 8:
-		return math.MinInt64, math.MaxInt64, true
-	default:
-		return 0, 0, false
-	}
-}
-
-func uintMax(t cc.Type) (uint64, bool) {
-	switch t.Size() {
-	case 1:
-		return math.MaxUint8, true
-	case 2:
-		return math.MaxUint16, true
-	case 4:
-		return math.MaxUint32, true
-	case 8:
-		return math.MaxUint64, true
-	default:
-		return 0, false
-	}
 }
