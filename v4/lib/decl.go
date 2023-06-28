@@ -472,6 +472,14 @@ func (c *ctx) declaration(w writer, n *cc.Declaration, external bool) {
 	}
 }
 
+func (c *ctx) aliasAttrDecl(t cc.Type) (r *cc.Declarator) {
+	if a := t.Attributes(); a != nil {
+		return a.AliasDecl()
+	}
+
+	return nil
+}
+
 func (c *ctx) aliasAttr(t cc.Type) (r string) {
 	if a := t.Attributes(); a != nil {
 		return a.Alias()
@@ -504,7 +512,11 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 	}
 
 	if t := d.Type(); c.weakAttr(t) && c.aliasAttr(t) != "" {
-		c.WeakAliases[tag(external)+d.Name()] = c.aliasAttr(t)
+		toLinkName := tag(external) + c.aliasAttr(t)
+		if to := c.aliasAttrDecl(t); to != nil {
+			toLinkName = c.declaratorTag(to) + to.Name()
+		}
+		c.WeakAliases[c.declaratorTag(d)+d.Name()] = toLinkName
 		return
 	}
 

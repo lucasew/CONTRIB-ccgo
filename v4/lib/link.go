@@ -478,6 +478,7 @@ type linker struct {
 	errors                errors
 	externVars            map[string]*externVar // key: linkname
 	externs               map[string]*object
+	weakAliases           map[string]string // redirect what link name: redirect to link name
 	fileLinkNames2GoNames dict
 	fileLinkNames2IDs     dict
 	forceExternalPrefix   nameSet
@@ -563,6 +564,7 @@ func newLinker(task *Task, libc *object) (*linker, error) {
 		stringLiterals: map[string]int64{},
 		synthDecls:     map[string][]byte{},
 		task:           task,
+		weakAliases:    map[string]string{},
 	}, nil
 }
 
@@ -610,10 +612,11 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 	// Then try weak aliases
 	for _, linkFile := range linkFiles {
 		object := objects[linkFile]
-		for nm := range object.meta.WeakAliases { // object defines a weak alias for nm
+		for nm, to := range object.meta.WeakAliases { // object defines a weak alias for nm
 			if _, ok := l.externs[nm]; !ok { // extern is still unresolved
 				if _, hidden := hide[nm]; !hidden {
 					l.externs[nm] = object
+					l.weakAliases[nm] = to
 					if dmesgs {
 						dmesg("extern %s weak resolved in %s", nm, object.id)
 					}
@@ -1203,6 +1206,9 @@ func (fi *fnInfo) name(linkName string) string {
 		if goName := fi.linker.tld.dict[linkName]; goName != "" {
 			return goName
 		}
+
+		fi.linker.err(errorf("undefined %q %v", linkName, symKind(linkName)))
+		return ccgoUndefined + linkName
 	case preserve, field:
 		return fi.linker.goName(linkName)
 	case automatic, ccgoAutomatic, ccgo:
@@ -1289,6 +1295,15 @@ func (l *linker) print0(w writer, fi *fnInfo, n interface{}) {
 				return
 			}
 
+			if to := l.weakAliases[id]; to != "" {
+				if dmesgs {
+					dmesg("redirect id %q nm %q to %q", id, nm, to)
+				}
+				nm = fi.name(to)
+				if dmesgs {
+					dmesg("new nm %q", nm)
+				}
+			}
 			if obj.kind == objectPkg {
 				w.w("%s.%s", obj.qualifier, nm)
 				return

@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
-.PHONY:	build_all_targets clean edit editor tmp x csmith fftest shorttest sqlitetest debug install
+.PHONY:	build_all_targets clean edit editor tmp x csmith fftest shorttest sqlitetest debug install wotk
 
 build_all_targets:
 	GOOS=darwin GOARCH=amd64 go build -v ./...
@@ -94,3 +94,8 @@ debug:
 
 install:
 	go install -v -tags=ccgo.assert modernc.org/ccgo/v4 2>&1 | tee log-install
+
+work:
+	go work init
+	go work use ..
+	go work use ../../../cc/v4

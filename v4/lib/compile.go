@@ -152,7 +152,7 @@ func tag(nm name) string {
 type errHandler func(msg string, args ...interface{})
 
 type jsonMeta struct {
-	WeakAliases map[string]string
+	WeakAliases map[string]string // redirect what link name: redirect to link name
 }
 
 type ctx struct {
