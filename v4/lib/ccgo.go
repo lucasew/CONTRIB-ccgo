@@ -68,8 +68,9 @@ type Task struct {
 	prefixStaticNone      string // --prefix-static-none <string>
 	prefixTaggedEnum      string // --prefix-tagfed-enum <string>
 	prefixTaggedStruct    string // --prefix-tagged-struct <string>
-	prefixTypename        string // --prefix-typename <string>
 	prefixTaggedUnion     string // --prefix-taged-union <string>
+	prefixTypename        string // --prefix-typename <string>
+	prefixUndefined       string // --prefix-undefined <string>
 	std                   string // -std
 	stderr                io.Writer
 	stdout                io.Writer
@@ -177,6 +178,7 @@ func (t *Task) main() (err error) {
 	set.Arg("-prefix-tagged-struct", false, func(arg, val string) error { t.prefixTaggedStruct = val; return nil })
 	set.Arg("-prefix-tagged-union", false, func(arg, val string) error { t.prefixTaggedUnion = val; return nil })
 	set.Arg("-prefix-typename", false, func(arg, val string) error { t.prefixTypename = val; return nil })
+	set.Arg("-prefix-undefined", false, func(arg, val string) error { t.prefixUndefined = val; return nil })
 	//TODO set.Arg("-prefix-unpinned", false, func(arg, val string) error { t.prefixUnpinned = val; return nil })
 	set.Arg("D", true, func(arg, val string) error { t.D = append(t.D, fmt.Sprintf("%s%s", arg, val)); return nil })
 	set.Arg("I", true, func(arg, val string) error { t.I = append(t.I, val); return nil })

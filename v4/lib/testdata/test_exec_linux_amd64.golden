@@ -2919,6 +2919,7 @@ assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scope-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/shiftdi.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/shiftopt-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ssad-run.c
+assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/stdarg-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/stdarg-2.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/stdarg-4.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/strcmp-1.c
@@ -2951,9 +2952,11 @@ assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/unroll-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/usad-run.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/usmul.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/va-arg-1.c
+assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/va-arg-10.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/va-arg-11.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/va-arg-12.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/va-arg-13.c
+assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/va-arg-14.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/va-arg-15.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/va-arg-16.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/va-arg-17.c
@@ -4365,6 +4368,7 @@ assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/shiftdi-2.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/shiftdi.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/shiftopt-1.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/ssad-run.c
+assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/stdarg-1.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/stdarg-2.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/stdarg-4.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/strcmp-1.c
@@ -4397,9 +4401,11 @@ assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/unroll-1.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/usad-run.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/usmul.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/va-arg-1.c
+assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/va-arg-10.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/va-arg-11.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/va-arg-12.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/va-arg-13.c
+assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/va-arg-14.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/va-arg-15.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/va-arg-16.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/va-arg-17.c

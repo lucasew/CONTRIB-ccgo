@@ -27,8 +27,7 @@ import (
 )
 
 const (
-	ccgoUndefined = "__ccgo_undefined_"
-	objectFile    = iota
+	objectFile = iota
 	objectPkg
 )
 
@@ -1208,7 +1207,7 @@ func (fi *fnInfo) name(linkName string) string {
 		}
 
 		fi.linker.err(errorf("undefined %q %v", linkName, symKind(linkName)))
-		return ccgoUndefined + linkName
+		return fi.linker.task.prefixUndefined + fi.linker.rawName(linkName)
 	case preserve, field:
 		return fi.linker.goName(linkName)
 	case automatic, ccgoAutomatic, ccgo:
@@ -1290,7 +1289,7 @@ func (l *linker) print0(w writer, fi *fnInfo, n interface{}) {
 
 			obj := fi.linker.externs[id]
 			if obj == nil {
-				w.w("%s%s", ccgoUndefined, nm)
+				w.w("%s%s", l.task.prefixUndefined, l.rawName(nm))
 				l.err(errorf("%v: undefined: %s", x.Position(), id))
 				return
 			}
