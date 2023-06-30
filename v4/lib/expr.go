@@ -166,32 +166,12 @@ func (c *ctx) convertToPointer(n cc.ExpressionNode, s *buf, from cc.Type, to *cc
 func (c *ctx) pin(n cc.Node, b *buf) *buf {
 	switch x := b.n.(type) {
 	case *cc.Declarator:
-		switch c.pass {
-		case 0:
-			// ok
-		case 1:
-			switch symKind(string(b.bytes())) {
-			case automatic, ccgoAutomatic:
-				c.f.declInfos.takeAddress(x)
-				// trc("%v: PIN %v at %v (%v: %v: %v:)", c.pos(n), x.Name(), c.pos(x), origin(4), origin(3), origin(2))
-				// trc("%s", debug.Stack())
-			}
-		case 2:
-			// ok
-		default:
-			c.err(errorf("%v: internal error: %d", n.Position(), c.pass))
+		if x.StorageDuration() == cc.Automatic {
+			c.f.declInfos.takeAddress(x)
 		}
 	case *cc.PostfixExpression:
-		if y := c.declaratorOf(x.PostfixExpression); y != nil {
-			s := strings.Trim(string(b.bytes()), "()")
-			s = s[:strings.IndexByte(s, '.')]
-			switch symKind(s) {
-			case automatic, ccgoAutomatic:
-				c.f.declInfos.takeAddress(y)
-				// trc("%v: PIN %v at %v (%v: %v:)", c.pos(n), y.Name(), c.pos(y), origin(3), origin(2))
-				// trc("%s", debug.Stack())
-			}
-			return b
+		if d := c.declaratorOf(x.PostfixExpression); d != nil && d.StorageDuration() == cc.Automatic {
+			c.f.declInfos.takeAddress(d)
 		}
 	}
 	return b
@@ -241,20 +221,6 @@ func (c *ctx) convertMode(n cc.ExpressionNode, w writer, s *buf, from, to cc.Typ
 			b.w("(%s != 0)", s)
 			return &b
 		case exprCall:
-			// v := fmt.Sprintf("%sf%d", tag(ccgo), c.id())
-			// ft := from.(*cc.PointerType).Elem().(*cc.FunctionType)
-			// vs := fmt.Sprintf("var %s func%s;", v, c.signature(ft, false, false, true))
-			// switch {
-			// case c.f != nil:
-			// 	c.f.registerAutoVar(vs)
-			// default:
-			// 	w.w("%s", vs)
-			// }
-			// w.w("\n*(*%suintptr)(%s) = %s;", tag(preserve), unsafeAddr(v), s) // Free pass from .pin
-			// var b buf
-			// b.w("%s", v)
-			// return &b
-
 			var b buf
 			ft := from.(*cc.PointerType).Elem().(*cc.FunctionType)
 			b.w("(*(*func%s)(%sunsafe.%sPointer(&struct{%[3]suintptr}{%s})))", c.signature(ft, false, false, true), tag(importQualifier), tag(preserve), s)
@@ -1909,9 +1875,19 @@ func (c *ctx) postfixExpressionSelect(w writer, n *cc.PostfixExpression, t cc.Ty
 			rt, rmode = n.Type().Pointer(), mode
 			switch {
 			case f.Offset() != 0:
+				if d := c.declaratorOf(n.PostfixExpression); d != nil {
+					b.w("(%s+%d)", c.pin(n, c.expr(w, n.PostfixExpression, n.PostfixExpression.Type().Pointer(), exprUintptr)), f.Offset())
+					break
+				}
+
 				b.w("%suintptr(%sunsafe.%[1]sAdd(%[3]s, %d))", tag(preserve), tag(importQualifier), unsafeAddr(c.expr(w, n.PostfixExpression, nil, exprSelect)), f.Offset())
 			default:
-				b.w("%suintptr(%s)", tag(preserve), unsafeAddr(c.expr(w, n.PostfixExpression, nil, exprSelect)))
+				if d := c.declaratorOf(n.PostfixExpression); d != nil {
+					b.w("%s", c.pin(n, c.expr(w, n.PostfixExpression, n.PostfixExpression.Type().Pointer(), exprUintptr)))
+					break
+				}
+
+				b.w("%suintptr(%s)", tag(preserve), unsafeAddr(c.pin(n, c.expr(w, n.PostfixExpression, nil, exprSelect))))
 			}
 		case exprIndex:
 			switch x := n.Type().Undecay().(type) {
