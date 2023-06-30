@@ -7,6 +7,8 @@ package ccgo // import "modernc.org/ccgo/v4/lib"
 
 //TODO SYS_getsid macro missing
 //TODO support hidden
+//TODO else { if ... } -> else if
+//TODO TNucontext_t - TNucontext_t5
 
 //  [0]: http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf
 

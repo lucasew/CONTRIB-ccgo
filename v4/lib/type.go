@@ -565,11 +565,9 @@ func (c *ctx) defineStructType(w writer, sep string, n cc.Node, t *cc.StructType
 
 	nmt := t.Tag()
 	if nm := nmt.SrcStr(); nm != "" && t.LexicalScope().Parent == nil {
-		if c.pass != 0 || !c.taggedStructs.add(nm) {
-			return
+		if c.pass == 0 && c.taggedStructs.add(nm) {
+			w.w("\n\n%s%stype %s%s = %s;", sep, c.posComment(n), tag(taggedStruct), nm, c.structLiteral(n, t))
 		}
-
-		w.w("\n\n%s%stype %s%s = %s;", sep, c.posComment(n), tag(taggedStruct), nm, c.structLiteral(n, t))
 	}
 	for _, v := range c.structEnums(t) {
 		c.defineEnumType(w, "\n", n, v)
@@ -672,8 +670,12 @@ func typeID(in map[string]gc.Node, out map[string]string, typ gc.Node) (r string
 		return "", err
 	}
 
-	// trc("`%s` -> type ID: `%s`", typ.Source(false), b.String())
-	return b.String(), nil
+	r = b.String()
+	// trc("`%s` -> type ID: `%s`", typ.Source(false), r)
+	if dmesgs && strings.Contains(string(typ.Source(false)), "ipc_perm") { //TODO-DBG
+		dmesg("DBG GOTYPEID: `%s` -> type ID: `%s`, %v", typ.Source(false), r, typ.Position())
+	}
+	return r, nil
 }
 
 func typeID0(b *strings.Builder, in map[string]gc.Node, out map[string]string, typ gc.Node, m map[string]struct{}) (err error) {

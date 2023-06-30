@@ -498,6 +498,7 @@ type linker struct {
 	textSegmentNameP      string
 	textSegmentOff        int64
 	tld                   nameSpace
+	tldTypes              map[string]struct{ linkName, goName string } // TLD type ID -> info
 	unsafeName            string
 
 	closed bool
@@ -563,6 +564,7 @@ func newLinker(task *Task, libc *object) (*linker, error) {
 		stringLiterals: map[string]int64{},
 		synthDecls:     map[string][]byte{},
 		task:           task,
+		tldTypes:       map[string]struct{ linkName, goName string }{},
 		weakAliases:    map[string]string{},
 	}, nil
 }
@@ -781,6 +783,13 @@ var (
 		l.fileLinkNames2GoNames = dict{}
 		for _, linkName := range linkNames {
 			typeID := fileLinkNames2IDs[linkName]
+			if strings.HasPrefix(typeID, "struct") || strings.HasPrefix(typeID, "[") { // aggregate types
+				if nfo, ok := l.tldTypes[typeID]; ok && nfo.linkName == linkName {
+					l.fileLinkNames2GoNames[linkName] = nfo.goName
+					continue
+				}
+			}
+
 			associatedTypeID, ok := l.fileLinkNames2IDs[linkName]
 			switch {
 			case ok && associatedTypeID == typeID:
@@ -788,6 +797,7 @@ var (
 			default:
 				l.fileLinkNames2IDs.put(linkName, typeID)
 				goName := l.tld.registerName(l, linkName)
+				l.tldTypes[typeID] = struct{ linkName, goName string }{linkName, goName}
 				l.fileLinkNames2GoNames[linkName] = goName
 			}
 		}
@@ -896,16 +906,17 @@ var (
 
 				spec := x.TypeSpecs[0]
 				nm := spec.(*gc.AliasDecl).Ident.Src()
-				if _, ok := l.goSynthDeclsProduced[nm]; ok {
+				nm2 := l.fileLinkNames2GoNames[nm]
+				if _, ok := l.goSynthDeclsProduced[nm2]; ok {
 					break
 				}
 
-				l.goSynthDeclsProduced.add(nm)
+				l.goSynthDeclsProduced.add(nm2)
 				fi := l.newFnInfo(nil)
 				l.print(fi, n)
 				var b buf
 				l.print0(&b, fi, n)
-				l.synthDecls[nm] = b.bytes()
+				l.synthDecls[nm2] = b.bytes()
 			case *gc.FunctionDecl:
 				if ln := x.FunctionName.Src(); l.isMeta(x, ln) || l.task.header {
 					break
