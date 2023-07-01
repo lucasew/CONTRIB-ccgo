@@ -24,7 +24,7 @@ func (c *ctx) statement(w writer, n *cc.Statement) {
 		c.compoundStatement(w, n.CompoundStatement, false, "")
 	case cc.StatementExpr: // ExpressionStatement
 		var a buf
-		b := c.expr(&a, n.ExpressionStatement.ExpressionList, nil, exprVoid)
+		b := c.topExpr(&a, n.ExpressionStatement.ExpressionList, nil, exprVoid)
 		if a.len() == 0 && b.len() == 0 {
 			return
 		}
@@ -70,7 +70,7 @@ func (c *ctx) labeledStatement(w writer, n *cc.LabeledStatement) {
 			if n.CaseOrdinal() != 0 {
 				w.w("fallthrough;")
 			}
-			w.w("case %s:", c.expr(nil, n.ConstantExpression, cc.IntegerPromotion(n.Switch().ExpressionList.Type()), exprDefault))
+			w.w("case %s:", c.topExpr(nil, n.ConstantExpression, cc.IntegerPromotion(n.Switch().ExpressionList.Type()), exprDefault))
 		}
 		c.unbracedStatement(w, n.Statement)
 	case cc.LabeledStatementRange: // "case" ConstantExpression "..." ConstantExpression ':' Statement
@@ -352,7 +352,7 @@ func (c *ctx) selectionStatementFlat(w writer, n *cc.SelectionStatement) {
 			case cc.LabeledStatementCaseLabel: // "case" ConstantExpression ':' Statement
 				label := c.label()
 				labels[v] = label
-				w.w("case %s: goto %s;", c.expr(nil, v.ConstantExpression, t, exprDefault), label)
+				w.w("case %s: goto %s;", c.topExpr(nil, v.ConstantExpression, t, exprDefault), label)
 			case cc.LabeledStatementRange: // "case" ConstantExpression "..." ConstantExpression ':' Statement
 				c.err(errorf("TODO %v", n.Case))
 			case cc.LabeledStatementDefault: // "default" ':' Statement

@@ -34,6 +34,15 @@ const (
 	ccgoFP = "__ccgo_fp"
 )
 
+func (c *ctx) topExpr(w writer, n cc.ExpressionNode, to cc.Type, toMode mode) *buf {
+	sv := c.exprNestLevel
+
+	defer func() { c.exprNestLevel = sv }()
+
+	c.exprNestLevel = 0
+	return c.expr(w, n, to, toMode)
+}
+
 func (c *ctx) expr(w writer, n cc.ExpressionNode, to cc.Type, toMode mode) *buf {
 	if toMode == 0 {
 		c.err(errorf("internal error"))
@@ -269,7 +278,12 @@ func (c *ctx) convertType(n cc.ExpressionNode, s *buf, from, to cc.Type, fromMod
 		case to.Kind() == cc.UInt128:
 			//TODO
 		default:
-			b.w("(%s%s%sFrom%s(%s))", c.task.tlsQualifier, tag(preserve), c.helper(n, to), c.helper(n, from), s)
+			switch {
+			case !cc.IsComplexType(from) && !cc.IsComplexType(to):
+				b.w("(%s(%s))", c.verifyTyp(n, to), s)
+			default:
+				b.w("(%s%s%sFrom%s(%s))", c.task.tlsQualifier, tag(preserve), c.helper(n, to), c.helper(n, from), s)
+			}
 			return &b
 		}
 	}
@@ -345,7 +359,10 @@ func (c *ctx) expr0(w writer, n cc.ExpressionNode, t cc.Type, mod mode) (r *buf,
 	// 	trc("%v: %T (%q), %v, %v (RET)", n.Position(), n, cc.NodeSource(n), t, mod)
 	// }()
 
+	c.exprNestLevel++
+
 	defer func(mod mode) {
+		c.exprNestLevel--
 		if r == nil || rt == nil || !cc.IsIntegerType(rt) {
 			return
 		}
@@ -449,6 +466,12 @@ out:
 	case *cc.CastExpression:
 		return c.castExpression(w, x, t, mod)
 	case *cc.ConstantExpression:
+		if c.exprNestLevel == 1 {
+			c.exprNestLevel--
+
+			defer func() { c.exprNestLevel++ }()
+		}
+
 		return c.expr0(w, x.ConditionalExpression, t, mod)
 	case *cc.ConditionalExpression:
 		return c.conditionalExpression(w, x, t, mod)
@@ -483,6 +506,12 @@ out:
 }
 
 func (c *ctx) andExpression(w writer, n *cc.AndExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
+	if n.AndExpression != nil && n.EqualityExpression != nil && (n.AndExpression.Value() == cc.Unknown || n.EqualityExpression.Value() == cc.Unknown) {
+		c.exprNestLevel--
+
+		defer func() { c.exprNestLevel++ }()
+	}
+
 	var b buf
 	switch n.Case {
 	case cc.AndExpressionEq: // EqualityExpression
@@ -497,6 +526,12 @@ func (c *ctx) andExpression(w writer, n *cc.AndExpression, t cc.Type, mode mode)
 }
 
 func (c *ctx) exclusiveOrExpression(w writer, n *cc.ExclusiveOrExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
+	if n.ExclusiveOrExpression != nil && n.AndExpression != nil && (n.ExclusiveOrExpression.Value() == cc.Unknown || n.AndExpression.Value() == cc.Unknown) {
+		c.exprNestLevel--
+
+		defer func() { c.exprNestLevel++ }()
+	}
+
 	var b buf
 	switch n.Case {
 	case cc.ExclusiveOrExpressionAnd: // AndExpression
@@ -511,6 +546,12 @@ func (c *ctx) exclusiveOrExpression(w writer, n *cc.ExclusiveOrExpression, t cc.
 }
 
 func (c *ctx) inclusiveOrExpression(w writer, n *cc.InclusiveOrExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
+	if n.InclusiveOrExpression != nil && n.ExclusiveOrExpression != nil && (n.InclusiveOrExpression.Value() == cc.Unknown || n.ExclusiveOrExpression.Value() == cc.Unknown) {
+		c.exprNestLevel--
+
+		defer func() { c.exprNestLevel++ }()
+	}
+
 	var b buf
 	switch n.Case {
 	case cc.InclusiveOrExpressionXor: // ExclusiveOrExpression
@@ -525,6 +566,13 @@ func (c *ctx) inclusiveOrExpression(w writer, n *cc.InclusiveOrExpression, t cc.
 }
 
 func (c *ctx) shiftExpression(w writer, n *cc.ShiftExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
+	if n.ShiftExpression != nil && n.ShiftExpression.Value() == cc.Unknown ||
+		n.AdditiveExpression.Value() == cc.Unknown ||
+		n.ShiftExpression != nil && n.ShiftExpression.Value() == cc.Unknown && !c.isNegative(n.AdditiveExpression.Value()) {
+		c.exprNestLevel--
+
+		defer func() { c.exprNestLevel++ }()
+	}
 	var b buf
 	switch n.Case {
 	case cc.ShiftExpressionAdd: // AdditiveExpression
@@ -542,6 +590,12 @@ func (c *ctx) shiftExpression(w writer, n *cc.ShiftExpression, t cc.Type, mode m
 }
 
 func (c *ctx) logicalAndExpression(w writer, n *cc.LogicalAndExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
+	if n.LogicalAndExpression != nil && n.InclusiveOrExpression != nil && (n.LogicalAndExpression.Value() == cc.Unknown || n.InclusiveOrExpression.Value() == cc.Unknown) {
+		c.exprNestLevel--
+
+		defer func() { c.exprNestLevel++ }()
+	}
+
 	var b buf
 	switch n.Case {
 	case cc.LogicalAndExpressionOr: // InclusiveOrExpression
@@ -588,6 +642,12 @@ func (c *ctx) logicalAndExpression(w writer, n *cc.LogicalAndExpression, t cc.Ty
 }
 
 func (c *ctx) logicalOrExpression(w writer, n *cc.LogicalOrExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
+	if n.LogicalOrExpression != nil && n.LogicalAndExpression != nil && (n.LogicalOrExpression.Value() == cc.Unknown || n.LogicalAndExpression.Value() == cc.Unknown) {
+		c.exprNestLevel--
+
+		defer func() { c.exprNestLevel++ }()
+	}
+
 	var b buf
 	switch n.Case {
 	case cc.LogicalOrExpressionLAnd: // LogicalAndExpression
@@ -634,11 +694,16 @@ func (c *ctx) logicalOrExpression(w writer, n *cc.LogicalOrExpression, t cc.Type
 }
 
 func (c *ctx) conditionalExpression(w writer, n *cc.ConditionalExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
+	c.exprNestLevel--
+
+	defer func() { c.exprNestLevel++ }()
+
 	var b buf
 	switch n.Case {
 	case cc.ConditionalExpressionLOr: // LogicalOrExpression
 		c.err(errorf("TODO %v", n.Case))
 	case cc.ConditionalExpressionCond: // LogicalOrExpression '?' ExpressionList ':' ConditionalExpression
+		//TODO-
 		switch val := n.LogicalOrExpression.Value(); {
 		case c.isNonZero(val):
 			if mode == exprVoid {
@@ -665,10 +730,10 @@ func (c *ctx) conditionalExpression(w writer, n *cc.ConditionalExpression, t cc.
 			default:
 				w.w("%s", vs)
 			}
-			w.w("if %s {", c.expr(w, n.LogicalOrExpression, nil, exprBool))
-			w.w("%s = %s;", v, c.expr(w, n.ExpressionList, n.Type(), mode))
+			w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
+			w.w("%s = %s;", v, c.topExpr(w, n.ExpressionList, n.Type(), mode))
 			w.w("} else {")
-			w.w("%s = %s;", v, c.expr(w, n.ConditionalExpression, n.Type(), mode))
+			w.w("%s = %s;", v, c.topExpr(w, n.ConditionalExpression, n.Type(), mode))
 			w.w("};")
 			b.w("%s", v)
 		case exprIndex:
@@ -680,18 +745,18 @@ func (c *ctx) conditionalExpression(w writer, n *cc.ConditionalExpression, t cc.
 			default:
 				w.w("%s", vs)
 			}
-			w.w("if %s {", c.expr(w, n.LogicalOrExpression, nil, exprBool))
-			w.w("%s = %s;", v, c.pin(n, c.expr(w, n.ExpressionList, n.Type(), exprUintptr)))
+			w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
+			w.w("%s = %s;", v, c.pin(n, c.topExpr(w, n.ExpressionList, n.Type(), exprUintptr)))
 			w.w("} else {")
-			w.w("%s = %s;", v, c.pin(n, c.expr(w, n.ConditionalExpression, n.Type(), exprUintptr)))
+			w.w("%s = %s;", v, c.pin(n, c.topExpr(w, n.ConditionalExpression, n.Type(), exprUintptr)))
 			w.w("};")
 			b.w("%s", v)
 		case exprVoid:
 			rt, rmode = n.Type(), mode
-			w.w("if %s {", c.expr(w, n.LogicalOrExpression, nil, exprBool))
-			w.w("%s;", c.expr(w, n.ExpressionList, n.Type(), exprVoid))
+			w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
+			w.w("%s;", c.topExpr(w, n.ExpressionList, n.Type(), exprVoid))
 			w.w("} else {")
-			w.w("%s;", c.expr(w, n.ConditionalExpression, n.Type(), exprVoid))
+			w.w("%s;", c.topExpr(w, n.ConditionalExpression, n.Type(), exprVoid))
 			w.w("};")
 		default:
 			rt, rmode = n.Type(), mode
@@ -702,10 +767,10 @@ func (c *ctx) conditionalExpression(w writer, n *cc.ConditionalExpression, t cc.
 			default:
 				w.w("%s", vs)
 			}
-			w.w("if %s {", c.expr(w, n.LogicalOrExpression, nil, exprBool))
-			w.w("%s = %s;", v, c.expr(w, n.ExpressionList, n.Type(), exprDefault))
+			w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
+			w.w("%s = %s;", v, c.topExpr(w, n.ExpressionList, n.Type(), exprDefault))
 			w.w("} else {")
-			w.w("%s = %s;", v, c.expr(w, n.ConditionalExpression, n.Type(), exprDefault))
+			w.w("%s = %s;", v, c.topExpr(w, n.ConditionalExpression, n.Type(), exprDefault))
 			w.w("};")
 			b.w("%s", v)
 		}
@@ -789,6 +854,43 @@ func (c *ctx) isZero(v cc.Value) bool {
 	}
 }
 
+func (c *ctx) isNegative(v cc.Value) bool {
+	if v == nil || v == cc.Unknown {
+		return false
+	}
+
+	switch x := v.(type) {
+	case cc.Int64Value:
+		return x < 0
+	case cc.UInt64Value:
+		return false
+	case cc.Float64Value:
+		return x < 0
+	case *cc.ZeroValue:
+		return false
+	case cc.Complex128Value:
+		return false
+	case cc.Complex64Value:
+		return false
+	case *cc.ComplexLongDoubleValue:
+		return false
+	case *cc.LongDoubleValue:
+		return !(*big.Float)(x).IsInf() && (*big.Float)(x).Sign() < 0
+	case *cc.UnknownValue:
+		return false
+	case cc.StringValue:
+		return false
+	case cc.UTF16StringValue:
+		return false
+	case cc.UTF32StringValue:
+		return false
+	case cc.VoidValue:
+		return false
+	default:
+		return false
+	}
+}
+
 func (c *ctx) castExpression(w writer, n *cc.CastExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
 	var b buf
 	switch n.Case {
@@ -816,6 +918,12 @@ func (c *ctx) castExpression(w writer, n *cc.CastExpression, t cc.Type, mode mod
 }
 
 func (c *ctx) multiplicativeExpression(w writer, n *cc.MultiplicativeExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
+	if n.MultiplicativeExpression != nil && n.CastExpression != nil && (n.MultiplicativeExpression.Value() == cc.Unknown || n.CastExpression.Value() == cc.Unknown) {
+		c.exprNestLevel--
+
+		defer func() { c.exprNestLevel++ }()
+	}
+
 	rt, rmode = n.Type(), exprDefault
 	var b buf
 	switch n.Case {
@@ -837,6 +945,12 @@ func (c *ctx) multiplicativeExpression(w writer, n *cc.MultiplicativeExpression,
 }
 
 func (c *ctx) additiveExpression(w writer, n *cc.AdditiveExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
+	if n.AdditiveExpression != nil && n.MultiplicativeExpression != nil && (n.AdditiveExpression.Value() == cc.Unknown || n.MultiplicativeExpression.Value() == cc.Unknown) {
+		c.exprNestLevel--
+
+		defer func() { c.exprNestLevel++ }()
+	}
+
 	rt, rmode = n.Type(), exprDefault
 	var b buf
 	switch n.Case {
@@ -893,6 +1007,10 @@ func (c *ctx) binopArgs(w writer, a, b cc.ExpressionNode, t cc.Type) (x, y *buf)
 }
 
 func (c *ctx) equalityExpression(w writer, n *cc.EqualityExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
+	c.exprNestLevel--
+
+	defer func() { c.exprNestLevel++ }()
+
 	var b buf
 	if n.Case == cc.EqualityExpressionRel { // RelationalExpression
 		c.err(errorf("TODO %v", n.Case))
@@ -914,6 +1032,10 @@ func (c *ctx) equalityExpression(w writer, n *cc.EqualityExpression, t cc.Type, 
 }
 
 func (c *ctx) relationExpression(w writer, n *cc.RelationalExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
+	c.exprNestLevel--
+
+	defer func() { c.exprNestLevel++ }()
+
 	var b buf
 	if n.Case == cc.RelationalExpressionShift { // ShiftExpression
 		c.err(errorf("TODO %v", n.Case))
@@ -1220,7 +1342,12 @@ out:
 		}
 		rt, rmode = t, exprDefault
 		if c.isValidType(n.UnaryExpression, n.UnaryExpression.Type(), true) {
-			b.w("(%s%s%sFromInt64(%d))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), n.Value())
+			switch {
+			case c.exprNestLevel == 1 && cc.IsScalarType(t) && !cc.IsComplexType(t):
+				b.w("(%s(%v))", c.verifyTyp(n, t), n.Value())
+			default:
+				b.w("(%s%s%sFromInt64(%d))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), n.Value())
+			}
 		}
 	case cc.UnaryExpressionSizeofType: // "sizeof" '(' TypeName ')'
 		if t.Kind() == cc.Void {
@@ -1228,7 +1355,12 @@ out:
 		}
 		rt, rmode = t, exprDefault
 		if c.isValidType(n.TypeName, n.TypeName.Type(), true) {
-			b.w("(%s%s%sFromInt64(%d))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), n.Value())
+			switch {
+			case c.exprNestLevel == 1 && cc.IsScalarType(t) && !cc.IsComplexType(t):
+				b.w("(%s(%v))", c.verifyTyp(n, t), n.Value())
+			default:
+				b.w("(%s%s%sFromInt64(%d))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), n.Value())
+			}
 		}
 	case cc.UnaryExpressionLabelAddr: // "&&" IDENTIFIER
 		c.err(errorf("TODO %v", n.Case))
@@ -1237,13 +1369,23 @@ out:
 			t = n.Type()
 		}
 		rt, rmode = t, exprDefault
-		b.w("(%s%s%sFromInt32(%d))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), n.UnaryExpression.Type().Align())
+		switch {
+		case c.exprNestLevel == 1 && cc.IsScalarType(t) && !cc.IsComplexType(t):
+			b.w("(%s(%v))", c.verifyTyp(n, t), n.Value())
+		default:
+			b.w("(%s%s%sFromInt32(%d))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), n.UnaryExpression.Type().Align())
+		}
 	case cc.UnaryExpressionAlignofType: // "_Alignof" '(' TypeName ')'
 		if t.Kind() == cc.Void {
 			t = n.Type()
 		}
 		rt, rmode = t, exprDefault
-		b.w("(%s%s%sFromInt32(%d))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), n.TypeName.Type().Align())
+		switch {
+		case c.exprNestLevel == 1 && cc.IsScalarType(t) && !cc.IsComplexType(t):
+			b.w("(%s(%v))", c.verifyTyp(n, t), n.Value())
+		default:
+			b.w("(%s%s%sFromInt32(%d))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), n.TypeName.Type().Align())
+		}
 	case cc.UnaryExpressionImag: // "__imag__" UnaryExpression
 		c.err(errorf("TODO %v", n.Case))
 	case cc.UnaryExpressionReal: // "__real__" UnaryExpression
@@ -2135,7 +2277,7 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression) (r *buf, 
 		case cc.Function:
 			mode = exprUintptr
 		}
-		xargs = append(xargs, c.expr(w, v, t, mode))
+		xargs = append(xargs, c.topExpr(w, v, t, mode))
 	}
 	switch {
 	case c.f == nil:
@@ -2231,7 +2373,13 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 			w.w("%s = %s;", c.expr(w, n.UnaryExpression, nil, exprDefault), v)
 			b.w("%s", v)
 		case exprVoid:
-			b.w("%s = %s", c.expr(w, n.UnaryExpression, nil, exprLvalue), c.expr(w, n.AssignmentExpression, n.UnaryExpression.Type(), exprDefault))
+			//TODO- b.w("%s = %s", c.expr(w, n.UnaryExpression, nil, exprLvalue), c.expr(w, n.AssignmentExpression, n.UnaryExpression.Type(), exprDefault))
+			b.w("%s = ", c.expr(w, n.UnaryExpression, nil, exprLvalue))
+			c.exprNestLevel--
+
+			defer func() { c.exprNestLevel++ }()
+
+			b.w("%s", c.expr(w, n.AssignmentExpression, n.UnaryExpression.Type(), exprDefault))
 			rt, rmode = n.Type(), exprVoid
 		default:
 			c.err(errorf("TODO %v", mode))
@@ -2749,13 +2897,17 @@ func (c *ctx) primaryExpressionCharConst(w writer, n *cc.PrimaryExpression, t cc
 }
 
 func (c *ctx) primaryExpressionIntConst(w writer, n *cc.PrimaryExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
+	// trc("%v: %s %T %T %s", n.Position(), t, n.Value(), n.Value().Convert(t), cc.NodeSource(n)) //TODO-DBG
 	rt, rmode = t, exprDefault
 	var b buf
 	src := n.Token.SrcStr()
 	lit := strings.TrimRight(src, "uUlL")
+	isPositive := true
+	v := n.Value()
 	var want uint64
-	switch x := n.Value().(type) {
+	switch x := v.(type) {
 	case cc.Int64Value:
+		isPositive = x >= 0
 		want = uint64(x)
 	case cc.UInt64Value:
 		want = uint64(x)
@@ -2780,7 +2932,28 @@ func (c *ctx) primaryExpressionIntConst(w writer, n *cc.PrimaryExpression, t cc.
 		return &b, rt, rmode
 	}
 
-	b.w("(%s%s%sFrom%s(%s))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), c.helper(n, n.Type()), lit)
+	switch {
+	case c.exprNestLevel == 1:
+		cv := v.Convert(t)
+		if cv == v {
+			b.w("(%s(%s))", c.verifyTyp(n, t), lit)
+			break
+		}
+
+		if i, ok := v.(cc.Int64Value); ok && !cc.IsSignedInteger(t) && i >= 0 && cv == cc.UInt64Value(want) {
+			b.w("(%s(%s))", c.verifyTyp(n, t), lit)
+			break
+		}
+
+		if t.Kind() == cc.Ptr && isPositive && cv == cc.UInt64Value(want) {
+			b.w("(%s(%s))", c.verifyTyp(n, t), lit)
+			break
+		}
+
+		fallthrough
+	default:
+		b.w("(%s%s%sFrom%s(%s))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), c.helper(n, n.Type()), lit)
+	}
 	return &b, rt, rmode
 }
 

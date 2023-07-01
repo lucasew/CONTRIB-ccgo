@@ -165,6 +165,7 @@ type ctx struct {
 	defineTaggedUnions  map[string]*cc.UnionType
 	eh                  errHandler
 	enumerators         nameSet
+	exprNestLevel       int
 	externsDeclared     map[string]*cc.Declarator
 	externsDefined      map[string]struct{}
 	externsMentioned    map[string]struct{}
