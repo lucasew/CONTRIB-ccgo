@@ -59,7 +59,7 @@ func (c *ctx) initializer(w writer, n cc.Node, a []*cc.Initializer, t cc.Type, o
 			return nil
 		}
 
-		r = c.expr(w, a[0].AssignmentExpression, t, exprDefault)
+		r = c.topExpr(w, a[0].AssignmentExpression, t, exprDefault)
 		if t.Kind() == cc.Ptr && t.(*cc.PointerType).Elem().Kind() == cc.Function && c.initPatch != nil {
 			c.initPatch(off0, r)
 			var b buf

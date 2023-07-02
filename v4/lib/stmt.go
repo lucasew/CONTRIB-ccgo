@@ -641,7 +641,7 @@ func (c *ctx) jumpStatement(w writer, n *cc.JumpStatement) {
 			case c.f.t.Result().Kind() == cc.Void:
 				w.w("%s; return;", c.expr(w, n.ExpressionList, nil, exprVoid))
 			default:
-				w.w("return %s;", c.expr(w, n.ExpressionList, c.f.t.Result(), exprDefault))
+				w.w("return %s;", c.topExpr(w, n.ExpressionList, c.f.t.Result(), exprDefault))
 			}
 		default:
 			w.w("return;")

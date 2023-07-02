@@ -566,9 +566,14 @@ func (c *ctx) inclusiveOrExpression(w writer, n *cc.InclusiveOrExpression, t cc.
 }
 
 func (c *ctx) shiftExpression(w writer, n *cc.ShiftExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
-	if n.ShiftExpression != nil && n.ShiftExpression.Value() == cc.Unknown ||
+	switch {
+	case c.isNegative(n.AdditiveExpression.Value()):
+		c.exprNestLevel++
+
+		defer func() { c.exprNestLevel-- }()
+	case n.ShiftExpression != nil && n.ShiftExpression.Value() == cc.Unknown ||
 		n.AdditiveExpression.Value() == cc.Unknown ||
-		n.ShiftExpression != nil && n.ShiftExpression.Value() == cc.Unknown && !c.isNegative(n.AdditiveExpression.Value()) {
+		n.ShiftExpression != nil && n.ShiftExpression.Value() == cc.Unknown:
 		c.exprNestLevel--
 
 		defer func() { c.exprNestLevel++ }()
@@ -603,8 +608,8 @@ func (c *ctx) logicalAndExpression(w writer, n *cc.LogicalAndExpression, t cc.Ty
 	case cc.LogicalAndExpressionLAnd: // LogicalAndExpression "&&" InclusiveOrExpression
 		_, rmode = n.Type(), exprBool
 		var al, ar buf
-		bl := c.expr(&al, n.LogicalAndExpression, nil, exprBool)
-		br := c.expr(&ar, n.InclusiveOrExpression, nil, exprBool)
+		bl := c.topExpr(&al, n.LogicalAndExpression, nil, exprBool)
+		br := c.topExpr(&ar, n.InclusiveOrExpression, nil, exprBool)
 		switch {
 		default:
 			// case al.len() == 0 || ar.len() == 0:
@@ -655,8 +660,8 @@ func (c *ctx) logicalOrExpression(w writer, n *cc.LogicalOrExpression, t cc.Type
 	case cc.LogicalOrExpressionLOr: // LogicalOrExpression "||" LogicalAndExpression
 		_, rmode = n.Type(), exprBool
 		var al, ar buf
-		bl := c.expr(&al, n.LogicalOrExpression, nil, exprBool)
-		br := c.expr(&ar, n.LogicalAndExpression, nil, exprBool)
+		bl := c.topExpr(&al, n.LogicalOrExpression, nil, exprBool)
+		br := c.topExpr(&ar, n.LogicalAndExpression, nil, exprBool)
 		switch {
 		default:
 			// case al.len() == 0 || ar.len() == 0:
@@ -703,20 +708,21 @@ func (c *ctx) conditionalExpression(w writer, n *cc.ConditionalExpression, t cc.
 	case cc.ConditionalExpressionLOr: // LogicalOrExpression
 		c.err(errorf("TODO %v", n.Case))
 	case cc.ConditionalExpressionCond: // LogicalOrExpression '?' ExpressionList ':' ConditionalExpression
-		//TODO-
-		switch val := n.LogicalOrExpression.Value(); {
-		case c.isNonZero(val):
-			if mode == exprVoid {
-				mode = exprDefault
+		if n.LogicalOrExpression.Pure() {
+			switch val := n.LogicalOrExpression.Value(); {
+			case c.isNonZero(val):
+				if mode == exprVoid {
+					mode = exprDefault
+				}
+				b.w("%s", c.expr(w, n.ExpressionList, t, mode))
+				return &b, t, mode
+			case c.isZero(val):
+				if mode == exprVoid {
+					mode = exprDefault
+				}
+				b.w("%s", c.expr(w, n.ConditionalExpression, t, mode))
+				return &b, t, mode
 			}
-			b.w("%s", c.expr(w, n.ExpressionList, t, mode))
-			return &b, t, mode
-		case c.isZero(val):
-			if mode == exprVoid {
-				mode = exprDefault
-			}
-			b.w("%s", c.expr(w, n.ConditionalExpression, t, mode))
-			return &b, t, mode
 		}
 
 		v := fmt.Sprintf("%sv%d", tag(ccgoAutomatic), c.id())
@@ -1329,6 +1335,12 @@ out:
 		b.w("(+(%s))", c.expr(w, n.CastExpression, n.Type(), exprDefault))
 	case cc.UnaryExpressionMinus: // '-' CastExpression
 		rt, rmode = n.Type(), exprDefault
+		if c.exprNestLevel == 1 && cc.IsSignedInteger(n.CastExpression.Type()) && cc.IsSignedInteger(t) {
+			c.exprNestLevel--
+
+			defer func() { c.exprNestLevel++ }()
+		}
+
 		b.w("(-(%s))", c.expr(w, n.CastExpression, n.Type(), exprDefault))
 	case cc.UnaryExpressionCpl: // '~' CastExpression
 		rt, rmode = n.Type(), exprDefault
@@ -2507,7 +2519,7 @@ func (c *ctx) expressionList(w writer, n *cc.ExpressionList, t cc.Type, mode mod
 		case n.ExpressionList == nil:
 			return c.expr0(w, n.AssignmentExpression, t, mode)
 		default:
-			w.w("%s%s;", sep(n.AssignmentExpression), c.expr(w, n.AssignmentExpression, nil, exprVoid))
+			w.w("%s%s;", sep(n.AssignmentExpression), c.topExpr(w, n.AssignmentExpression, nil, exprVoid))
 		}
 	}
 	c.err(errorf("TODO internal error", n))
@@ -2683,6 +2695,12 @@ out:
 	case cc.PrimaryExpressionLString: // LONGSTRINGLITERAL
 		return c.primaryExpressionLStringConst(w, n, t, mode)
 	case cc.PrimaryExpressionExpr: // '(' ExpressionList ')'
+		if c.exprNestLevel == 1 && n.Type() == t {
+			c.exprNestLevel--
+
+			defer func() { c.exprNestLevel++ }()
+		}
+
 		return c.expr0(w, n.ExpressionList, nil, mode)
 	case cc.PrimaryExpressionStmt: // '(' CompoundStatement ')'
 		// trc("%v: %v %s", n.Position(), n.Type(), cc.NodeSource(n))
@@ -2851,7 +2869,42 @@ func (c *ctx) primaryExpressionLCharConst(w writer, n *cc.PrimaryExpression, t c
 		}
 	}
 
-	b.w("(%s%s%sFromInt32(%s))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), lit)
+	isPositive := true
+	v := n.Value()
+	var want uint64
+	switch x := v.(type) {
+	case cc.Int64Value:
+		isPositive = x >= 0
+		want = uint64(x)
+	case cc.UInt64Value:
+		want = uint64(x)
+	default:
+		c.err(errorf("TODO %T", x))
+		return &b, rt, rmode
+	}
+
+	switch {
+	case c.exprNestLevel == 1:
+		cv := v.Convert(t)
+		if cv == v {
+			b.w("(%s(%s))", c.verifyTyp(n, t), lit)
+			break
+		}
+
+		if i, ok := v.(cc.Int64Value); ok && !cc.IsSignedInteger(t) && i >= 0 && cv == cc.UInt64Value(want) {
+			b.w("(%s(%s))", c.verifyTyp(n, t), lit)
+			break
+		}
+
+		if t.Kind() == cc.Ptr && isPositive && cv == cc.UInt64Value(want) {
+			b.w("(%s(%s))", c.verifyTyp(n, t), lit)
+			break
+		}
+
+		fallthrough
+	default:
+		b.w("(%s%s%sFromInt32(%s))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), lit)
+	}
 	return &b, rt, rmode
 }
 
@@ -2892,12 +2945,47 @@ func (c *ctx) primaryExpressionCharConst(w writer, n *cc.PrimaryExpression, t cc
 		}
 	}
 
-	b.w("(%s%s%sFromUint8(%s))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), lit)
+	isPositive := true
+	v := n.Value()
+	var want uint64
+	switch x := v.(type) {
+	case cc.Int64Value:
+		isPositive = x >= 0
+		want = uint64(x)
+	case cc.UInt64Value:
+		want = uint64(x)
+	default:
+		c.err(errorf("TODO %T", x))
+		return &b, rt, rmode
+	}
+
+	switch {
+	case c.exprNestLevel == 1:
+		cv := v.Convert(t)
+		if cv == v {
+			b.w("(%s(%s))", c.verifyTyp(n, t), lit)
+			break
+		}
+
+		if i, ok := v.(cc.Int64Value); ok && !cc.IsSignedInteger(t) && i >= 0 && cv == cc.UInt64Value(want) {
+			b.w("(%s(%s))", c.verifyTyp(n, t), lit)
+			break
+		}
+
+		if t.Kind() == cc.Ptr && isPositive && cv == cc.UInt64Value(want) {
+			b.w("(%s(%s))", c.verifyTyp(n, t), lit)
+			break
+		}
+
+		fallthrough
+	default:
+		b.w("(%s%s%sFromUint8(%s))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), lit)
+	}
 	return &b, rt, rmode
 }
 
 func (c *ctx) primaryExpressionIntConst(w writer, n *cc.PrimaryExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
-	// trc("%v: %s %T %T %s", n.Position(), t, n.Value(), n.Value().Convert(t), cc.NodeSource(n)) //TODO-DBG
+	// trc("%v: %s %T %T %s c.exprNestLevel %v", n.Position(), t, n.Value(), n.Value().Convert(t), cc.NodeSource(n), c.exprNestLevel) //TODO-DBG
 	rt, rmode = t, exprDefault
 	var b buf
 	src := n.Token.SrcStr()
@@ -2960,11 +3048,20 @@ func (c *ctx) primaryExpressionIntConst(w writer, n *cc.PrimaryExpression, t cc.
 func (c *ctx) primaryExpressionFloatConst(w writer, n *cc.PrimaryExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
 	var b buf
 	rt, rmode = t, exprDefault
+out:
 	switch x := n.Value().(type) {
 	case *cc.LongDoubleValue:
-		// b.w("(%s%s%sFrom%s(%v))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), c.helper(n, n.Type()), (*big.Float)(x))
 		b.w("(%s%s%sFrom%s(%v))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), c.helper(n, c.ast.Double), (*big.Float)(x))
 	case cc.Float64Value:
+		lit := string(n.Token.Src())
+		if c.exprNestLevel == 1 && !strings.HasSuffix(strings.ToLower(lit), "f") {
+			switch t.Kind() {
+			case cc.Double, cc.Float:
+				b.w("(%s(%v))", c.verifyTyp(n, t), x)
+				break out
+			}
+		}
+
 		b.w("(%s%s%sFrom%s(%v))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), c.helper(n, n.Type()), x)
 	default:
 		c.err(errorf("TODO %T", x))
