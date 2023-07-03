@@ -24,7 +24,8 @@ func (c *ctx) statement(w writer, n *cc.Statement) {
 		c.compoundStatement(w, n.CompoundStatement, false, "")
 	case cc.StatementExpr: // ExpressionStatement
 		var a buf
-		b := c.topExpr(&a, n.ExpressionStatement.ExpressionList, nil, exprVoid)
+		e := n.ExpressionStatement.ExpressionList
+		b := c.topExpr(&a, e, nil, exprVoid)
 		if a.len() == 0 && b.len() == 0 {
 			return
 		}
@@ -32,6 +33,10 @@ func (c *ctx) statement(w writer, n *cc.Statement) {
 		w.w("%s%s", sep, c.posComment(n))
 		if a.len() != 0 {
 			w.w("%s;", a.bytes())
+		}
+		if len(b.bytes()) != 0 && c.mustConsume(e) {
+			// w.w("/* %v: %T %v %s %q */", pos(n), e, e.Type().Kind(), cc.NodeSource(e), b.bytes())
+			w.w("%s_ = ", tag(preserve))
 		}
 		w.w("%s;", b.bytes())
 	case cc.StatementSelection: // SelectionStatement
@@ -54,6 +59,87 @@ func (c *ctx) statement(w writer, n *cc.Statement) {
 		}
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
+	}
+}
+
+func (c *ctx) mustConsume(n cc.ExpressionNode) (r bool) {
+	// defer func() { trc("%v: %T %v %s: %v", n.Position(), n, n.Type().Kind(), cc.NodeSource(n), r) }()
+	switch x := n.(type) {
+	case *cc.AdditiveExpression:
+		return true
+	case *cc.AndExpression:
+		return true
+	case *cc.AssignmentExpression:
+		switch x.Case {
+		case cc.AssignmentExpressionCond:
+			return c.mustConsume(x.ConditionalExpression)
+		default:
+			return false
+		}
+	case *cc.CastExpression:
+		switch x.Case {
+		case cc.CastExpressionUnary:
+			return c.mustConsume(x.UnaryExpression)
+		default:
+			return c.mustConsume(x.CastExpression)
+		}
+	case *cc.ConditionalExpression:
+		switch x.Case {
+		case cc.ConditionalExpressionCond:
+			return x.Type().Kind() != cc.Void
+		default:
+			return true
+		}
+	case *cc.EqualityExpression:
+		return true
+	case *cc.ExclusiveOrExpression:
+		return true
+	case *cc.ExpressionList:
+		for ; ; x = x.ExpressionList {
+			if x.ExpressionList == nil {
+				return c.mustConsume(x.AssignmentExpression)
+			}
+		}
+	case *cc.InclusiveOrExpression:
+		return true
+	case *cc.LogicalAndExpression:
+		return true
+	case *cc.LogicalOrExpression:
+		return true
+	case *cc.MultiplicativeExpression:
+		return true
+	case *cc.PostfixExpression:
+		switch x.Case {
+		case cc.PostfixExpressionCall, cc.PostfixExpressionDec, cc.PostfixExpressionInc:
+			return false
+		default:
+			return true
+		}
+	case *cc.PrimaryExpression:
+		switch x.Case {
+		case cc.PrimaryExpressionExpr:
+			return c.mustConsume(x.ExpressionList)
+		case cc.PrimaryExpressionStmt:
+			return n.Type().Kind() != cc.Void
+		default:
+			return true
+		}
+	case *cc.RelationalExpression:
+		return true
+	case *cc.ShiftExpression:
+		return true
+	case *cc.UnaryExpression:
+		switch x.Case {
+		case cc.UnaryExpressionDec, cc.UnaryExpressionInc:
+			return false
+		default:
+			return true
+		}
+	case nil:
+		return false
+	default:
+		trc("%v: %T %v, %s: %v", n.Position(), n, n.Type().Kind(), cc.NodeSource(n), r) //TODO-DBG
+		panic(todo("%T", x))
 	}
 }
 

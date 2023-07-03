@@ -9,6 +9,9 @@ package ccgo // import "modernc.org/ccgo/v4/lib"
 //TODO support hidden
 //TODO else { if ... } -> else if
 //TODO TNucontext_t - TNucontext_t5
+//TODO s/break; fallthrough//
+//TODO s/goto <label>; fallthrough/goto <label>/
+//TODO use macros names
 
 //  [0]: http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf
 
@@ -97,11 +100,12 @@ type Task struct {
 	noObjFmt                  bool // -no-object-file-format
 	nostdinc                  bool // -nostdinc
 	nostdlib                  bool // -nostdlib
+	opt0                      bool // -O0
 	packageNameSet            bool
 	positions                 bool // -positions
+	prefixDefineSet           bool // --prefix-define <string>
 	pthread                   bool // -pthread
 	strictISOMode             bool // -ansi or stc=c90
-	opt0                      bool // -O0
 	verifyTypes               bool // -verify-types
 }
 
@@ -168,7 +172,7 @@ func (t *Task) main() (err error) {
 	set := opt.NewSet()
 	set.Arg("-package-name", false, func(arg, val string) error { t.packageName = val; t.packageNameSet = true; return nil })
 	set.Arg("-prefix-automatic", false, func(arg, val string) error { t.prefixAutomatic = val; return nil })
-	set.Arg("-prefix-define", false, func(arg, val string) error { t.prefixDefine = val; return nil })
+	set.Arg("-prefix-define", false, func(arg, val string) error { t.prefixDefine = val; t.prefixDefineSet = true; return nil })
 	set.Arg("-prefix-enumerator", false, func(arg, val string) error { t.prefixEnumerator = val; return nil })
 	set.Arg("-prefix-external", false, func(arg, val string) error { t.prefixExternal = val; return nil })
 	set.Arg("-prefix-field", false, func(arg, val string) error { t.prefixField = val; return nil })

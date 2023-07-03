@@ -166,6 +166,7 @@ type ctx struct {
 	eh                  errHandler
 	enumerators         nameSet
 	exprNestLevel       int
+	exprStmtLevel       int
 	externsDeclared     map[string]*cc.Declarator
 	externsDefined      map[string]struct{}
 	externsMentioned    map[string]struct{}
@@ -531,7 +532,7 @@ func (c *ctx) defines(w writer) {
 			continue
 		}
 
-		if !c.task.header {
+		if !c.task.header && c.task.prefixDefineSet {
 			w.w("%s%sconst %s%s = %q;", sep(m.Name), c.posComment(m), tag(define), m.Name.Src(), r)
 		}
 		if c.task.header && r != "INFINITY" {

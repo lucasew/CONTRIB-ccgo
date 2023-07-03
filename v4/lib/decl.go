@@ -102,6 +102,7 @@ next:
 }
 
 func (f *fnCtx) newAutovarName() (nm string) {
+	// trc("%v: %v: %v:", origin(4), origin(3), origin(2))
 	return fmt.Sprintf("%sv%d", tag(ccgoAutomatic), f.c.id())
 }
 

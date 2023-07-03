@@ -221,6 +221,10 @@ func (c *ctx) convertMode(n cc.ExpressionNode, w writer, s *buf, from, to cc.Typ
 			}
 		case exprSelect:
 			return s
+		case exprUintptr:
+			if from.Kind() == cc.Ptr {
+				return s
+			}
 		}
 	case exprUintptr:
 		switch toMode {
@@ -396,7 +400,6 @@ func (c *ctx) expr0(w writer, n cc.ExpressionNode, t cc.Type, mod mode) (r *buf,
 		}
 	}(mod)
 
-	blank := false
 out:
 	switch {
 	case mod == exprBool:
@@ -407,16 +410,6 @@ out:
 		}
 	case mod == exprVoid:
 		if _, ok := n.(*cc.ExpressionList); ok {
-			break out
-		}
-
-		if n.Type().Kind() == cc.Void {
-			switch x := n.(type) {
-			case *cc.CastExpression:
-				if x.Case == cc.CastExpressionCast && x.CastExpression.Type().Kind() != cc.Void {
-					blank = true
-				}
-			}
 			break out
 		}
 
@@ -440,17 +433,6 @@ out:
 			}
 		}
 
-		blank = true
-
-	}
-	if blank {
-		defer func() {
-			if len(r.bytes()) != 0 {
-				var b buf
-				b.w("%s_ = %s", tag(preserve), r.bytes())
-				r.b = b.b
-			}
-		}()
 	}
 	if t == nil {
 		t = n.Type()
@@ -760,9 +742,9 @@ func (c *ctx) conditionalExpression(w writer, n *cc.ConditionalExpression, t cc.
 		case exprVoid:
 			rt, rmode = n.Type(), mode
 			w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
-			w.w("%s;", c.topExpr(w, n.ExpressionList, n.Type(), exprVoid))
+			w.w("%s%s;", c.discardStr(n.ExpressionList), c.topExpr(w, n.ExpressionList, n.Type(), exprVoid))
 			w.w("} else {")
-			w.w("%s;", c.topExpr(w, n.ConditionalExpression, n.Type(), exprVoid))
+			w.w("%s%s;", c.discardStr(n.ConditionalExpression), c.topExpr(w, n.ConditionalExpression, n.Type(), exprVoid))
 			w.w("};")
 		default:
 			rt, rmode = n.Type(), mode
@@ -784,6 +766,14 @@ func (c *ctx) conditionalExpression(w writer, n *cc.ConditionalExpression, t cc.
 		c.err(errorf("internal error %T %v", n, n.Case))
 	}
 	return &b, rt, rmode
+}
+
+func (c *ctx) discardStr(n cc.ExpressionNode) string {
+	if n == nil || !c.mustConsume(n) {
+		return ""
+	}
+
+	return fmt.Sprintf("%s_ = ", tag(preserve))
 }
 
 func (c *ctx) isNonZero(v cc.Value) bool {
@@ -1556,7 +1546,6 @@ out:
 		//TODO __builtin_object_size 28_strings.c on darwin/amd64
 		switch c.declaratorOf(n.PostfixExpression).Name() {
 		case "__builtin_constant_p":
-			w.w("%s_ = %s;", tag(preserve), c.expr(w, n.ArgumentExpressionList.AssignmentExpression, nil, exprDefault))
 			switch mode {
 			case exprBool:
 				rt, rmode = n.Type(), mode
@@ -2268,7 +2257,6 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression) (r *buf, 
 		}
 		args = args[:max]
 	}
-
 	params := ft.Parameters()
 	var xargs []*buf
 	for i, v := range args {
@@ -2517,9 +2505,10 @@ func (c *ctx) expressionList(w writer, n *cc.ExpressionList, t cc.Type, mode mod
 	for ; n != nil; n = n.ExpressionList {
 		switch {
 		case n.ExpressionList == nil:
+			// trc("%v: %T", n.AssignmentExpression.Position(), n.AssignmentExpression)
 			return c.expr0(w, n.AssignmentExpression, t, mode)
 		default:
-			w.w("%s%s;", sep(n.AssignmentExpression), c.topExpr(w, n.AssignmentExpression, nil, exprVoid))
+			w.w("%s%s%s;", sep(n.AssignmentExpression), c.discardStr(n.AssignmentExpression), c.topExpr(w, n.AssignmentExpression, nil, exprVoid))
 		}
 	}
 	c.err(errorf("TODO internal error", n))
@@ -2703,6 +2692,10 @@ out:
 
 		return c.expr0(w, n.ExpressionList, nil, mode)
 	case cc.PrimaryExpressionStmt: // '(' CompoundStatement ')'
+		c.exprStmtLevel++
+
+		defer func() { c.exprStmtLevel-- }()
+
 		// trc("%v: %v %s", n.Position(), n.Type(), cc.NodeSource(n))
 		switch n.Type().Kind() {
 		case cc.Void:
@@ -2713,7 +2706,9 @@ out:
 			v := fmt.Sprintf("%sv%d", tag(ccgo), c.id())
 			w.w("var %s %s;", v, c.typ(n, n.Type()))
 			c.compoundStatement(w, n.CompoundStatement, false, v)
-			b.w("%s", v)
+			if c.exprStmtLevel == 1 {
+				b.w("%s", v)
+			}
 		}
 	case cc.PrimaryExpressionGeneric: // GenericSelection
 		c.err(errorf("TODO %v", n.Case))

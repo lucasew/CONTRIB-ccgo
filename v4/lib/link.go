@@ -883,7 +883,7 @@ var (
 					break
 				}
 
-				if strings.HasPrefix(nm, tag(define)) && l.task.prefixDefine == "_ignore_" {
+				if strings.HasPrefix(nm, tag(define)) && !l.task.prefixDefineSet {
 					break
 				}
 
