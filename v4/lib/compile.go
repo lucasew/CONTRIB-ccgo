@@ -177,6 +177,7 @@ type ctx struct {
 	imports             map[string]string // import path: qualifier
 	initPatch           func(int64, *buf)
 	jsonMeta
+	macrosEmited  nameSet
 	maxAlign      int
 	out           io.Writer
 	pvoid         cc.Type
@@ -538,16 +539,19 @@ func (c *ctx) defines(w writer) {
 		if c.task.header && r != "INFINITY" {
 			if _, err := strconv.ParseUint(r, 0, 64); err == nil {
 				w.w("%s%sconst %s%s = %s;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), r)
+				c.macrosEmited.add(m.Name.SrcStr())
 				continue
 			}
 
 			if _, err := strconv.ParseFloat(r, 64); err == nil {
 				w.w("%s%sconst %s%s = %s;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), r)
+				c.macrosEmited.add(m.Name.SrcStr())
 				continue
 			}
 
 			if _, err := strconv.Unquote(r); err == nil {
 				w.w("%s%sconst %s%s = %s;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), r)
+				c.macrosEmited.add(m.Name.SrcStr())
 				continue
 			}
 		}
@@ -555,14 +559,18 @@ func (c *ctx) defines(w writer) {
 		switch x := m.Value().(type) {
 		case cc.Int64Value:
 			w.w("%s%sconst %s%s = %v;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), x)
+			c.macrosEmited.add(m.Name.SrcStr())
 		case cc.UInt64Value:
 			w.w("%s%sconst %s%s = %v;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), x)
+			c.macrosEmited.add(m.Name.SrcStr())
 		case cc.Float64Value:
 			if s := fmt.Sprint(x); s == r {
 				w.w("%s%sconst %s%s = %s;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), s)
+				c.macrosEmited.add(m.Name.SrcStr())
 			}
 		case cc.StringValue:
 			w.w("%s%sconst %s%s = %q;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), x[:len(x)-1])
+			c.macrosEmited.add(m.Name.SrcStr())
 		}
 	}
 }

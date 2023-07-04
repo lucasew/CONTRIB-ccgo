@@ -330,6 +330,10 @@ func (c *ctx) convertFromPointer(n cc.ExpressionNode, s *buf, from *cc.PointerTy
 		}
 	}
 
+	if toMode == exprVoid {
+		return s
+	}
+
 	c.err(errorf("TODO %q %s %s, %s -> %s %s, %s", s, from, from.Kind(), fromMode, to, to.Kind(), toMode))
 	// trc("%v: TODO %q %s %s, %s -> %s %s, %s", cpos(n), s, from, from.Kind(), fromMode, to, to.Kind(), toMode)
 	return s //TODO
@@ -906,7 +910,7 @@ func (c *ctx) castExpression(w writer, n *cc.CastExpression, t cc.Type, mode mod
 		}
 
 		rt, rmode = n.Type(), mode
-		b.w("%s", c.expr(w, n.CastExpression, n.Type(), exprDefault))
+		b.w("%s", c.expr(w, n.CastExpression, n.Type(), mode))
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
 	}
@@ -2979,6 +2983,26 @@ func (c *ctx) primaryExpressionCharConst(w writer, n *cc.PrimaryExpression, t cc
 	return &b, rt, rmode
 }
 
+func (c *ctx) macro(n *cc.PrimaryExpression) (nm, lit string) {
+	m := n.Macro()
+	if m == nil {
+		return "", ""
+	}
+
+	nm = m.Name.SrcStr()
+	if !c.macrosEmited.has(nm) {
+		return "", ""
+	}
+
+	switch rl := m.ReplacementList(); len(rl) {
+	case 1:
+		return nm, rl[0].SrcStr()
+	case 3:
+		return nm, rl[1].SrcStr()
+	}
+	return "", ""
+}
+
 func (c *ctx) primaryExpressionIntConst(w writer, n *cc.PrimaryExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
 	// trc("%v: %s %T %T %s c.exprNestLevel %v", n.Position(), t, n.Value(), n.Value().Convert(t), cc.NodeSource(n), c.exprNestLevel) //TODO-DBG
 	rt, rmode = t, exprDefault
@@ -3010,6 +3034,9 @@ func (c *ctx) primaryExpressionIntConst(w writer, n *cc.PrimaryExpression, t cc.
 		return &b, rt, rmode
 	}
 
+	if nm, s := c.macro(n); s == lit {
+		lit = fmt.Sprintf("%s%s", tag(macro), nm)
+	}
 	if t.Kind() == cc.Void {
 		b.w("(%s)", lit)
 		return &b, rt, rmode
@@ -3052,12 +3079,22 @@ out:
 		if c.exprNestLevel == 1 && !strings.HasSuffix(strings.ToLower(lit), "f") {
 			switch t.Kind() {
 			case cc.Double, cc.Float:
-				b.w("(%s(%v))", c.verifyTyp(n, t), x)
+				switch nm, s := c.macro(n); {
+				case s == n.Token.SrcStr():
+					b.w("(%s(%s%s))", c.verifyTyp(n, t), tag(macro), nm)
+				default:
+					b.w("(%s(%v))", c.verifyTyp(n, t), x)
+				}
 				break out
 			}
 		}
 
-		b.w("(%s%s%sFrom%s(%v))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), c.helper(n, n.Type()), x)
+		switch nm, s := c.macro(n); {
+		case s == n.Token.SrcStr():
+			b.w("(%s%s%sFrom%s(%s%s))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), c.helper(n, n.Type()), tag(macro), nm)
+		default:
+			b.w("(%s%s%sFrom%s(%v))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), c.helper(n, n.Type()), x)
+		}
 	default:
 		c.err(errorf("TODO %T", x))
 	}

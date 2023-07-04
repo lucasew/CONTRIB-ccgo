@@ -529,6 +529,11 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 		return
 	}
 
+	if x, ok := d.Type().Undecay().(*cc.ArrayType); ok && x.IsVLA() {
+		c.err(errorf("%v: variable length arrays are not supported", pos(n)))
+		return
+	}
+
 	if n.Asm != nil {
 		w.w("//TODO %s %s // %v:", cc.NodeSource(d), cc.NodeSource(n.Asm), c.pos(n))
 		if d.LexicalScope().Parent == nil {

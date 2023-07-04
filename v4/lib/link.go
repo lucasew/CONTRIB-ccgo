@@ -144,7 +144,6 @@ func (o *object) collectConsts(file *gc.SourceFile) (consts map[string]string, e
 					}
 
 					var b strings.Builder
-					b.WriteByte('C') //TODO ?
 					if assert && len(spec.ExprList) == 0 {
 						panic(todo("%q", x.Source(false)))
 					}
@@ -159,6 +158,7 @@ func (o *object) collectConsts(file *gc.SourceFile) (consts map[string]string, e
 	sort.Strings(a)
 	consts = map[string]string{}
 	for _, linkName := range a {
+		// trc("%s: consts[%q] = %q", o.id, linkName, in[linkName]) //TODO-DBG
 		consts[linkName] = in[linkName]
 	}
 	return consts, nil
@@ -879,6 +879,7 @@ var (
 
 				spec := x.ConstSpecs[0]
 				nm := spec.IdentifierList[0].Ident.Src()
+				nm = l.fileLinkNames2GoNames[nm]
 				if _, ok := l.goSynthDeclsProduced[nm]; ok {
 					break
 				}
@@ -1189,7 +1190,7 @@ func (l *linker) newFnInfo(n gc.Node) (r *fnInfo) {
 			switch tok.Ch {
 			case gc.IDENTIFIER:
 				switch nm := tok.Src(); symKind(nm) {
-				case field, preserve, staticInternal:
+				case field, preserve, staticInternal, macro:
 					// nop
 				default:
 					r.linkNames.add(nm)
