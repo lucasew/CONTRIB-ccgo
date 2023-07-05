@@ -11,7 +11,6 @@ package ccgo // import "modernc.org/ccgo/v4/lib"
 //TODO TNucontext_t - TNucontext_t5
 //TODO s/break; fallthrough//
 //TODO s/goto <label>; fallthrough/goto <label>/
-//TODO use macros names
 
 //  [0]: http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf
 

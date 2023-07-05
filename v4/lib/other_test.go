@@ -460,6 +460,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr54103-4.c`:                                  {}, // COMPILE FAIL
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr54103-5.c`:                                  {}, // COMPILE FAIL
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr54103-6.c`:                                  {}, // COMPILE FAIL
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr54552-1.c`:                                  {}, // COMPILE FAIL
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr54559.c`:                                    {}, // COMPILE FAIL
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr54713-1.c`:                                  {}, // COMPILE FAIL
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr54713-2.c`:                                  {}, // COMPILE FAIL

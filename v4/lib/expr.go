@@ -66,9 +66,9 @@ func (c *ctx) expr(w writer, n cc.ExpressionNode, to cc.Type, toMode mode) *buf 
 	if to == nil {
 		to = n.Type()
 	}
-	// trc("%v: EXPR  pre call EXPR1 -> %s %s (%s) %T", c.pos(n), to, toMode, cc.NodeSource(n), n)
+	// trc("%d: %v: EXPR  pre call EXPR1 -> %s %s (%s) %T", cnt.Add(1), c.pos(n), to, toMode, cc.NodeSource(n), n)
 	r, from, fromMode := c.expr0(w, n, to, toMode)
-	// trc("%v: EXPR post call EXPR0 %v %v -> %v %v (%s) %T", c.pos(n), from, fromMode, to, toMode, cc.NodeSource(n), n)
+	// trc("%d: %v: EXPR post call EXPR0 from %v %v -> to %v %v (%s) %T", cnt.Add(1), c.pos(n), from, fromMode, to, toMode, cc.NodeSource(n), n)
 	if from == nil || fromMode == 0 {
 		// trc("IN %v: from %v, %v to %v %v, src '%s', buf '%s'", c.pos(n), from, fromMode, to, toMode, cc.NodeSource(n), r.bytes())
 		c.err(errorf("TODO %T %v %v -> %v %v", n, from, fromMode, to, toMode))
@@ -116,7 +116,7 @@ func (c *ctx) convert(n cc.ExpressionNode, w writer, s *buf, from, to cc.Type, f
 		}
 
 		if from == c.ast.SizeT || to == c.ast.SizeT {
-			if toMode != exprVoid {
+			if fromMode == toMode && toMode != exprVoid {
 				return c.convertType(n, s, from, to, fromMode, toMode)
 			}
 		}
@@ -264,6 +264,10 @@ func (c *ctx) convertMode(n cc.ExpressionNode, w writer, s *buf, from, to cc.Typ
 
 // mode unchanged
 func (c *ctx) convertType(n cc.ExpressionNode, s *buf, from, to cc.Type, fromMode, toMode mode) (r *buf) {
+	if fromMode != toMode {
+		panic(todo("%v: internal error, %s, %s, %v %v -> %v %v", n.Position(), cc.NodeSource(n), s.bytes(), from, fromMode, to, toMode))
+	}
+
 	// defer func() { trc("%v: from %v: %v, to %v: %v %q -> %q", c.pos(n), from, fromMode, to, toMode, s, r) }()
 	if from.Kind() == cc.Ptr && to.Kind() == cc.Ptr || to.Kind() == cc.Void {
 		return s
@@ -330,7 +334,7 @@ func (c *ctx) convertFromPointer(n cc.ExpressionNode, s *buf, from *cc.PointerTy
 		}
 	}
 
-	if toMode == exprVoid {
+	if toMode == exprVoid || toMode == exprDefault {
 		return s
 	}
 
@@ -780,6 +784,14 @@ func (c *ctx) discardStr(n cc.ExpressionNode) string {
 	return fmt.Sprintf("%s_ = ", tag(preserve))
 }
 
+func (c *ctx) discardStr2(n cc.ExpressionNode, b *buf) string {
+	if s := strings.TrimSpace(string(b.bytes())); s == "" {
+		return ""
+	}
+
+	return fmt.Sprintf("%s%s", c.discardStr(n), b)
+}
+
 func (c *ctx) isNonZero(v cc.Value) bool {
 	if v == nil || v == cc.Unknown {
 		return false
@@ -910,7 +922,7 @@ func (c *ctx) castExpression(w writer, n *cc.CastExpression, t cc.Type, mode mod
 		}
 
 		rt, rmode = n.Type(), mode
-		b.w("%s", c.expr(w, n.CastExpression, n.Type(), mode))
+		b.w("%s", c.expr(w, n.CastExpression, rt, rmode))
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
 	}
@@ -1958,6 +1970,9 @@ func (c *ctx) postfixExpressionPSelect(w writer, n *cc.PostfixExpression, t cc.T
 		return &b, rt, rmode
 	}
 
+	if mode == exprVoid {
+		mode = exprDefault
+	}
 	switch mode {
 	case exprDefault, exprLvalue, exprIndex, exprSelect:
 		rt, rmode = n.Type(), mode
@@ -2512,7 +2527,7 @@ func (c *ctx) expressionList(w writer, n *cc.ExpressionList, t cc.Type, mode mod
 			// trc("%v: %T", n.AssignmentExpression.Position(), n.AssignmentExpression)
 			return c.expr0(w, n.AssignmentExpression, t, mode)
 		default:
-			w.w("%s%s%s;", sep(n.AssignmentExpression), c.discardStr(n.AssignmentExpression), c.topExpr(w, n.AssignmentExpression, nil, exprVoid))
+			w.w("%s%s;", sep(n.AssignmentExpression), c.discardStr2(n.AssignmentExpression, c.topExpr(w, n.AssignmentExpression, nil, exprVoid)))
 		}
 	}
 	c.err(errorf("TODO internal error", n))
@@ -2584,19 +2599,15 @@ out:
 						p.w("%s", linkName)
 						b.w("%suintptr(%s)", tag(preserve), unsafeAddr(c.pin(n, p)))
 					case cc.Function:
-						// v := fmt.Sprintf("%sf%d", tag(ccgo), c.id())
-						// switch {
-						// case c.f != nil:
-						// 	w.w("%s := %s;", v, linkName)
-						// default:
-						// 	w.w("var %s = %s;", v, linkName)
-						// }
-						// b.w("(*(*%suintptr)(%s))", tag(preserve), unsafeAddr(v))
-
-						// b.w("(*(*%suintptr)(%sunsafe.%[2]sPointer(&struct{f func%[3]s}{%s})))", tag(preserve), tag(importQualifier), c.signature(x.Type().(*cc.FunctionType), false, false, true), linkName)
 						b.w("%s%s(%s)", tag(preserve), ccgoFP, linkName)
 					default:
-						b.w("%s", linkName)
+						switch {
+						case n.Type().Kind() != t.Kind() && t.Kind() != cc.Void && t.Kind() != cc.Ptr:
+							b.w("(%s(%s))", c.verifyTyp(n, t), linkName)
+							rt = t
+						default:
+							b.w("(%s)", linkName)
+						}
 					}
 				case exprLvalue, exprSelect:
 					b.w("%s", linkName)
@@ -2657,8 +2668,9 @@ out:
 		case *cc.Enumerator:
 			switch {
 			case x.ResolvedIn().Parent == nil:
-				rt, rmode = n.Type(), exprDefault
-				b.w("(%s%s%sFrom%s(%s%s))", c.task.tlsQualifier, tag(preserve), c.helper(n, n.Type()), c.helper(n, n.Type()), tag(enumConst), x.Token.Src())
+				rt, rmode = t, exprDefault
+				// b.w("(%s%s%sFrom%s(%s%s))", c.task.tlsQualifier, tag(preserve), c.helper(n, n.Type()), c.helper(n, n.Type()), tag(enumConst), x.Token.Src())
+				b.w("(%s(%s%s))", c.verifyTyp(n, t), tag(enumConst), x.Token.Src())
 			default:
 				rt, rmode = n.Type(), exprDefault
 				b.w("%v", n.Value())

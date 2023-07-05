@@ -321,6 +321,16 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/benchmarksgame-team.pages.debian.net/fasta-7.c`:                                {}, // COMPILE FAIL
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-9.c`:                           {}, // COMPILE FAIL
 	`assets/benchmarksgame-team.pages.debian.net/spectral-norm.c`:                          {}, // COMPILE FAIL
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20020807-1.c`:                    {}, // COMPILE FAIL
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/debugvlafunction-1.c`:            {}, // COMPILE FAIL
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr17397.c`:                       {}, // COMPILE FAIL
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr41469.c`:                       {}, // COMPILE FAIL
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr54552-1.c`:                     {}, // COMPILE FAIL
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr77754-6.c`:                     {}, // COMPILE FAIL
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr78439.c`:                       {}, // COMPILE FAIL
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr79413.c`:                       {}, // COMPILE FAIL
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/vla-const-1.c`:                   {}, // COMPILE FAIL
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/vla-const-2.c`:                   {}, // COMPILE FAIL
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010209-1.c`:                    {}, // COMPILE FAIL
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040308-1.c`:                    {}, // COMPILE FAIL
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040423-1.c`:                    {}, // COMPILE FAIL

@@ -25,7 +25,11 @@ func (c *ctx) statement(w writer, n *cc.Statement) {
 	case cc.StatementExpr: // ExpressionStatement
 		var a buf
 		e := n.ExpressionStatement.ExpressionList
-		b := c.topExpr(&a, e, nil, exprVoid)
+		if e == nil {
+			break
+		}
+
+		b := c.topExpr(&a, e, e.Type(), exprVoid)
 		if a.len() == 0 && b.len() == 0 {
 			return
 		}
