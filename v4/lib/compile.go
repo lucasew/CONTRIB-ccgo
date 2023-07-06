@@ -73,8 +73,10 @@ var (
 	// keyword, neither it can be a prefix of a Go predefined/protected identifier,
 	// see reservedNames.
 	tags = [...]string{
+		// none of the strings literals/prefixes below should be a prefix of any value
+		// listed in reservedNames.
 		meta:            "_",
-		ccgo:            "aa",
+		ccgo:            "cg",
 		ccgoAutomatic:   "cc",
 		define:          "df", // #define
 		enumConst:       "ec", // enumerator constant
@@ -82,7 +84,7 @@ var (
 		field:           "fd", // struct field
 		importQualifier: "iq",
 		macro:           "mv", // macro value
-		automatic:       "an", // storage class automatic, linkage none
+		automatic:       "aa", // storage class automatic, linkage none
 		staticInternal:  "si", // storage class static, linkage internal
 		staticNone:      "sn", // storage class static, linkage none
 		preserve:        "pp", // eg. TLS in iqlibc.ppTLS -> libc.TLS
@@ -175,6 +177,7 @@ type ctx struct {
 	fn                  *cc.Declarator
 	ifn                 string
 	imports             map[string]string // import path: qualifier
+	initLevel           int
 	initPatch           func(int64, *buf)
 	jsonMeta
 	macrosEmited  nameSet

@@ -990,7 +990,7 @@ func (l *linker) postProcess(fn string, b []byte) (r []byte) {
 		}
 		r = append(r, '\n')
 	}
-	return r
+	return append(bytes.TrimSpace(r), '\n')
 }
 
 func isJsonMeta(linkName string) bool {

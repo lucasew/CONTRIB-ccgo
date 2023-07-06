@@ -143,6 +143,7 @@ func (t *Task) execed(realCC string, cflags []string) (err error) {
 	set.Opt("nostdlib", func(arg string) error { args.add(arg); return nil })
 	set.Opt("pipe", func(arg string) error { return nil })
 	set.Opt("shared", func(arg string) error { args.add(arg); return nil })
+	files := 0
 	if err := set.Parse(t.args[1:], func(arg string) error {
 		if strings.HasPrefix(arg, "-f") {
 			return nil
@@ -159,6 +160,7 @@ func (t *Task) execed(realCC string, cflags []string) (err error) {
 		switch filepath.Ext(arg) {
 		case ".c", ".h":
 			args.add(arg)
+			files++
 			return nil
 		case ".s":
 			return nil
@@ -175,6 +177,7 @@ func (t *Task) execed(realCC string, cflags []string) (err error) {
 				}
 			}
 			args.add(nm)
+			files++
 			return nil
 		}
 
@@ -185,6 +188,10 @@ func (t *Task) execed(realCC string, cflags []string) (err error) {
 		}
 
 		return err
+	}
+
+	if files == 0 {
+		return nil
 	}
 
 	t = NewTask(t.goos, t.goarch, args, t.stdout, t.stderr, t.fs)

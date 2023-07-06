@@ -22,6 +22,11 @@ type initPatch struct {
 func (c *ctx) initializerOuter(w writer, n *cc.Initializer, t cc.Type) (r *buf) {
 	a := c.initalizerFlatten(n, nil)
 	// dumpInitializer(a, "")
+	sv := c.initLevel
+	c.initLevel = 0
+
+	defer func() { c.initLevel = sv }()
+
 	return c.initializer(w, n, a, t, 0, false)
 }
 
@@ -48,6 +53,10 @@ func (c *ctx) initializer(w writer, n cc.Node, a []*cc.Initializer, t cc.Type, o
 	// trc("==== (init A) typ %s off0 %#0x (%v:) (from %v: %v: %v:)", t, off0, p, origin(4), origin(3), origin(2))
 	// dumpInitializer(a, "")
 	// defer trc("---- (init Z) typ %s off0 %#0x (%v:)", t, off0, p)
+	c.initLevel++
+
+	defer func() { c.initLevel-- }()
+
 	if cc.IsScalarType(t) {
 		if len(a) == 0 {
 			c.err(errorf("TODO"))
@@ -60,11 +69,13 @@ func (c *ctx) initializer(w writer, n cc.Node, a []*cc.Initializer, t cc.Type, o
 		}
 
 		r = c.topExpr(w, a[0].AssignmentExpression, t, exprDefault)
-		if t.Kind() == cc.Ptr && t.(*cc.PointerType).Elem().Kind() == cc.Function && c.initPatch != nil {
-			c.initPatch(off0, r)
-			var b buf
-			b.w("(%suintptr(0))", tag(preserve))
-			return &b
+		if t.Kind() == cc.Ptr && c.initPatch != nil {
+			if t.(*cc.PointerType).Elem().Kind() == cc.Function {
+				c.initPatch(off0, r)
+				var b buf
+				b.w("(%suintptr(0))", tag(preserve))
+				return &b
+			}
 		}
 
 		return r

@@ -1458,7 +1458,7 @@ func (c *ctx) postfixExpressionIndex(w writer, p, index cc.ExpressionNode, pt *c
 		switch x := pt.Undecay().(type) {
 		case *cc.ArrayType:
 			if d := c.declaratorOf(p); d != nil && !d.IsParam() {
-				b.w("%s[%s]", c.expr(w, p, nil, exprIndex), c.expr(w, index, nil, exprDefault))
+				b.w("%s[%s]", c.expr(w, p, nil, exprIndex), c.topExpr(w, index, nil, exprDefault))
 				break
 			}
 

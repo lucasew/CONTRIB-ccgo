@@ -151,6 +151,10 @@ func (f *fnCtx) renameLocals() {
 func (f *fnCtx) declareLocals() string {
 	var a []string
 	for k, v := range f.locals {
+		if k.IsParam() {
+			continue
+		}
+
 		if info := f.declInfos[k]; info != nil && info.pinned() {
 			a = append(a, fmt.Sprintf("\nvar %s_ /* %s at bp%+d */ %s;", tag(preserve), k.Name(), info.bpOff, f.c.typ(k, k.Type())))
 			continue
@@ -243,6 +247,11 @@ func (c *ctx) functionDefinition0(w writer, sep string, pos cc.Node, d *cc.Decla
 	c.f = c.newFnCtx(ft, cs)
 	defer func() { c.f = f0; c.pass = pass }()
 	c.pass = 1
+	for _, v := range ft.Parameters() {
+		if v.Declarator != nil {
+			c.f.registerLocal(v.Declarator)
+		}
+	}
 	c.compoundStatement(discard{}, cs, true, "")
 	c.f.renameLocals()
 	var a []*cc.Declarator
@@ -403,7 +412,7 @@ func (c *ctx) signature(f *cc.FunctionType, paramNames, isMain, useNames bool) s
 					case info.pinned():
 						fmt.Fprintf(&b, "%s_%s ", tag(ccgo), nm)
 					default:
-						fmt.Fprintf(&b, "%s%s ", tag(automatic), nm)
+						fmt.Fprintf(&b, "%s ", c.f.locals[v.Declarator])
 					}
 				}
 			}
