@@ -2669,8 +2669,12 @@ out:
 			switch {
 			case x.ResolvedIn().Parent == nil:
 				rt, rmode = t, exprDefault
-				// b.w("(%s%s%sFrom%s(%s%s))", c.task.tlsQualifier, tag(preserve), c.helper(n, n.Type()), c.helper(n, n.Type()), tag(enumConst), x.Token.Src())
-				b.w("(%s(%s%s))", c.verifyTyp(n, t), tag(enumConst), x.Token.Src())
+				switch {
+				case !cc.IsSignedInteger(t) && c.isNegative(n.Value()):
+					b.w("(%s%s%sFrom%s(%s%s))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), c.helper(n, n.Type()), tag(enumConst), x.Token.Src())
+				default:
+					b.w("(%s(%s%s))", c.verifyTyp(n, t), tag(enumConst), x.Token.Src())
+				}
 			default:
 				rt, rmode = n.Type(), exprDefault
 				b.w("%v", n.Value())

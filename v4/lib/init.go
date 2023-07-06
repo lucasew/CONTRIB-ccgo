@@ -8,6 +8,7 @@ package ccgo // import "modernc.org/ccgo/v4/lib"
 
 import (
 	"fmt"
+	"reflect"
 	"sort"
 
 	"modernc.org/cc/v4"
@@ -22,11 +23,6 @@ type initPatch struct {
 func (c *ctx) initializerOuter(w writer, n *cc.Initializer, t cc.Type) (r *buf) {
 	a := c.initalizerFlatten(n, nil)
 	// dumpInitializer(a, "")
-	sv := c.initLevel
-	c.initLevel = 0
-
-	defer func() { c.initLevel = sv }()
-
 	return c.initializer(w, n, a, t, 0, false)
 }
 
@@ -53,29 +49,24 @@ func (c *ctx) initializer(w writer, n cc.Node, a []*cc.Initializer, t cc.Type, o
 	// trc("==== (init A) typ %s off0 %#0x (%v:) (from %v: %v: %v:)", t, off0, p, origin(4), origin(3), origin(2))
 	// dumpInitializer(a, "")
 	// defer trc("---- (init Z) typ %s off0 %#0x (%v:)", t, off0, p)
-	c.initLevel++
-
-	defer func() { c.initLevel-- }()
-
 	if cc.IsScalarType(t) {
 		if len(a) == 0 {
 			c.err(errorf("TODO"))
 			return nil
 		}
 
-		if a[0].Offset()-off0 != 0 && a[0].Len() == 1 {
+		in := a[0]
+		if in.Offset()-off0 != 0 && in.Len() == 1 {
 			c.err(errorf("TODO"))
 			return nil
 		}
 
-		r = c.topExpr(w, a[0].AssignmentExpression, t, exprDefault)
-		if t.Kind() == cc.Ptr && c.initPatch != nil {
-			if t.(*cc.PointerType).Elem().Kind() == cc.Function {
-				c.initPatch(off0, r)
-				var b buf
-				b.w("(%suintptr(0))", tag(preserve))
-				return &b
-			}
+		r = c.topExpr(w, in.AssignmentExpression, t, exprDefault)
+		if t.Kind() == cc.Ptr && c.initPatch != nil && (t.Kind() == cc.Ptr && t.(*cc.PointerType).Elem().Kind() == cc.Function || c.mentionsFunc(in.AssignmentExpression)) {
+			c.initPatch(off0, r)
+			var b buf
+			b.w("(%suintptr(0))", tag(preserve))
+			return &b
 		}
 
 		return r
@@ -101,10 +92,52 @@ func (c *ctx) initializer(w writer, n cc.Node, a []*cc.Initializer, t cc.Type, o
 
 		return c.initializerUnion(w, n, a, x, off0, arrayElem)
 	default:
-		// trc("%v: in type %v, in expr type %v, t %v", a[0].Position(), a[0].Type(), a[0].AssignmentExpression.Type(), t)
+		// trc("%v: in type %v, a[0] expr type %v, t %v", a[0].Position(), a[0].Type(), a[0].AssignmentExpression.Type(), t)
 		c.err(errorf("TODO %T", x))
 		return nil
 	}
+}
+
+func (c *ctx) mentionsFunc(n cc.ExpressionNode) bool {
+	if n == nil {
+		return false
+	}
+
+	if n.Type().Kind() == cc.Function || n.Type().Kind() == cc.Ptr && n.Type().(*cc.PointerType).Elem().Kind() == cc.Function {
+		return true
+	}
+
+	t := reflect.TypeOf(n)
+	v := reflect.ValueOf(n)
+	var zero reflect.Value
+	if t.Kind() == reflect.Pointer {
+		t = t.Elem()
+		v = v.Elem()
+		if v == zero {
+			return false
+		}
+	}
+
+	if t.Kind() != reflect.Struct {
+		return false
+	}
+
+	nf := t.NumField()
+	for i := 0; i < nf; i++ {
+		f := t.Field(i)
+		if !f.IsExported() {
+			continue
+		}
+
+		if v == zero || v.IsZero() {
+			continue
+		}
+
+		if m, ok := v.Field(i).Interface().(cc.ExpressionNode); ok && c.mentionsFunc(m) {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *ctx) isZeroInitializerSlice(s []*cc.Initializer) bool {

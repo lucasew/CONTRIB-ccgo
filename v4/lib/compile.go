@@ -177,7 +177,6 @@ type ctx struct {
 	fn                  *cc.Declarator
 	ifn                 string
 	imports             map[string]string // import path: qualifier
-	initLevel           int
 	initPatch           func(int64, *buf)
 	jsonMeta
 	macrosEmited  nameSet
