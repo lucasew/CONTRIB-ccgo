@@ -1737,7 +1737,31 @@ out:
 			a = append(a, c.initalizerFlatten(l.Initializer, nil)...)
 		}
 		t := n.TypeName.Type()
-		return c.initializer(w, n, a, t, 0, t.Kind() == cc.Array), t, exprDefault
+		switch {
+		case cc.IsScalarType(t) && mode == exprUintptr:
+			if c.f == nil || len(a) != 1 {
+				c.err(errorf("%v: invalid initializer", pos(n), t, t.Kind()))
+				break
+			}
+
+			if c.f.compoundLiterals == nil {
+				c.f.compoundLiterals = map[cc.ExpressionNode]int64{}
+			}
+			var bp int64
+			switch c.pass {
+			case 1:
+				bp = roundup(c.f.tlsAllocs, int64(t.Align()))
+				c.f.compoundLiterals[n] = bp
+				c.f.tlsAllocs += t.Size()
+			case 2:
+				bp = c.f.compoundLiterals[n]
+			}
+			w.w("*(*%s)(unsafe.Pointer(%s)) = %s;", c.typ(n, t), bpOff(bp), c.topExpr(w, a[0].AssignmentExpression, t, exprDefault))
+			b.w("(%s)", bpOff(bp))
+			return &b, t.Pointer(), mode
+		default:
+			return c.initializer(w, n, a, t, 0, t.Kind() == cc.Array), t, exprDefault
+		}
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
 	}

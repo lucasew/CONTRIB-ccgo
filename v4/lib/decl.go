@@ -44,13 +44,14 @@ func (n *declInfos) info(d *cc.Declarator) (r *declInfo) {
 func (n *declInfos) takeAddress(d *cc.Declarator) { n.info(d).addressTaken = true }
 
 type fnCtx struct {
-	autovars   []string
-	c          *ctx
-	declInfos  declInfos
-	flatScopes map[*cc.Scope]struct{}
-	locals     map[*cc.Declarator]string // storage: static or automatic, linkage: none -> C renamed
-	t          *cc.FunctionType
-	tlsAllocs  int64
+	autovars         []string
+	c                *ctx
+	compoundLiterals map[cc.ExpressionNode]int64
+	declInfos        declInfos
+	flatScopes       map[*cc.Scope]struct{}
+	locals           map[*cc.Declarator]string // storage: static or automatic, linkage: none -> C renamed
+	t                *cc.FunctionType
+	tlsAllocs        int64
 
 	maxValist int
 	nextID    int
@@ -236,6 +237,10 @@ func (c *ctx) functionDefinition0(w writer, sep string, pos cc.Node, d *cc.Decla
 	ft, ok := d.Type().(*cc.FunctionType)
 	if !ok {
 		c.err(errorf("%v: internal error %v", d.Position(), d.Type()))
+		return
+	}
+
+	if d.Linkage() == cc.External && c.task.hidden.has(d.Name()) {
 		return
 	}
 

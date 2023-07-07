@@ -499,6 +499,7 @@ type linker struct {
 	textSegmentOff        int64
 	tld                   nameSpace
 	tldTypes              map[string]struct{ linkName, goName string } // TLD type ID -> info
+	undefsReported        nameSet
 	unsafeName            string
 
 	closed bool
@@ -587,8 +588,6 @@ func (l *linker) w(s string, args ...interface{}) {
 	}
 }
 
-var hide = map[string]struct{}{}
-
 func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object) (err error) {
 	if dmesgs {
 		dmesg("link(%q, %q)", ofn, linkFiles)
@@ -600,11 +599,9 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 		object := objects[linkFile]
 		for nm := range object.externs { // object defines nm
 			if _, ok := l.externs[nm]; !ok { // extern is unresolved
-				if _, hidden := hide[nm]; !hidden {
-					l.externs[nm] = object
-					if dmesgs {
-						dmesg("extern %s resolved in %s", nm, object.id)
-					}
+				l.externs[nm] = object
+				if dmesgs {
+					dmesg("extern %s resolved in %s", nm, object.id)
 				}
 			}
 			tld.add(nm)
@@ -615,12 +612,10 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 		object := objects[linkFile]
 		for nm, to := range object.meta.WeakAliases { // object defines a weak alias for nm
 			if _, ok := l.externs[nm]; !ok { // extern is still unresolved
-				if _, hidden := hide[nm]; !hidden {
-					l.externs[nm] = object
-					l.weakAliases[nm] = to
-					if dmesgs {
-						dmesg("extern %s weak resolved in %s", nm, object.id)
-					}
+				l.externs[nm] = object
+				l.weakAliases[nm] = to
+				if dmesgs {
+					dmesg("extern %s weak resolved in %s", nm, object.id)
 				}
 			}
 			tld.add(nm)
@@ -698,7 +693,10 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 		})
 		var a []string
 		for _, v := range undefs {
-			a = append(a, errorf("%v: undefined reference to '%s'", v.pos, l.rawName(v.nm)).Error())
+			r := l.rawName(v.nm)
+			if l.undefsReported.add(r) {
+				a = append(a, errorf("%v: undefined: %q %v", v.pos, r, symKind(v.nm)).Error())
+			}
 		}
 		err := errorf("%s", strings.Join(a, "\n"))
 		if !l.task.isExeced {
@@ -962,9 +960,10 @@ var (
 }
 
 var (
-	bfunc   = []byte("func ")
-	bnl     = []byte("\n")
-	brbrace = []byte("}")
+	bfallthrough = []byte("fallthroug")
+	bfunc        = []byte("func ")
+	bnl          = []byte("\n")
+	brbrace      = []byte("}")
 )
 
 // Input must be formatted.
@@ -972,8 +971,11 @@ func (l *linker) postProcess(fn string, b []byte) (r []byte) {
 	lines := bytes.Split(b, bnl)
 	r = make([]byte, 0, len(b))
 	var inFunc bool
+	var n0, n1 int
+	_ = n0
 	for _, v := range lines {
-
+		n0 = n1
+		n1 = len(r)
 		switch {
 		case bytes.HasPrefix(v, bfunc):
 			inFunc = true
@@ -985,6 +987,17 @@ func (l *linker) postProcess(fn string, b []byte) (r []byte) {
 		case bytes.HasPrefix(v, brbrace):
 			inFunc = false
 			r = append(r, v...)
+		case bytes.Contains(v, bfallthrough) && strings.TrimSpace(string(v)) == "fallthrough":
+			switch s := strings.TrimSpace(string(r[n0:n1])); {
+			case strings.HasPrefix(s, "break"):
+				r = r[:n0]
+				continue
+			case strings.HasPrefix(s, "return"), strings.HasPrefix(s, "goto"):
+				continue
+			default:
+				_ = s
+				r = append(r, v...)
+			}
 		default:
 			r = append(r, v...)
 		}
@@ -1081,6 +1094,8 @@ func (l *linker) stmtPrune(n gc.Node, info *fnInfo, static *[]gc.Node) gc.Node {
 		x.Block = l.stmtPrune(x.Block, info, static).(*gc.Block)
 		switch y := x.ElsePart.(type) {
 		case *gc.Block:
+			x.ElsePart = l.stmtPrune(y, info, static)
+		case *gc.IfStmt:
 			x.ElsePart = l.stmtPrune(y, info, static)
 		case nil:
 			// nop
@@ -1218,8 +1233,11 @@ func (fi *fnInfo) name(linkName string) string {
 			return goName
 		}
 
-		fi.linker.err(errorf("undefined %q %v", linkName, symKind(linkName)))
-		return fi.linker.task.prefixUndefined + fi.linker.rawName(linkName)
+		r := fi.linker.rawName(linkName)
+		if fi.linker.undefsReported.add(r) {
+			fi.linker.err(errorf("undefined: %q %v", r, symKind(linkName)))
+		}
+		return fi.linker.task.prefixUndefined + r
 	case preserve, field:
 		return fi.linker.goName(linkName)
 	case automatic, ccgoAutomatic, ccgo:
@@ -1301,8 +1319,11 @@ func (l *linker) print0(w writer, fi *fnInfo, n interface{}) {
 
 			obj := fi.linker.externs[id]
 			if obj == nil {
-				w.w("%s%s", l.task.prefixUndefined, l.rawName(nm))
-				l.err(errorf("%v: undefined: %s", x.Position(), id))
+				r := l.rawName(nm)
+				w.w("%s%s", l.task.prefixUndefined, r)
+				if l.undefsReported.add(r) {
+					l.err(errorf("%v: undefined: %q %v", x.Position(), r, symKind(nm)))
+				}
 				return
 			}
 

@@ -7,10 +7,8 @@ package ccgo // import "modernc.org/ccgo/v4/lib"
 
 //TODO SYS_getsid macro missing
 //TODO support hidden
-//TODO else { if ... } -> else if
 //TODO TNucontext_t - TNucontext_t5
-//TODO s/break; fallthrough//
-//TODO s/goto <label>; fallthrough/goto <label>/
+//TODO name anonymous types
 
 //  [0]: http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf
 
@@ -49,17 +47,18 @@ type Task struct {
 	cfgArgs        []string
 	compiledfFiles map[string]string // *.c -> *.c.go
 	defs           string
-	execCC         string // -exec-cc
-	fs             fs.FS
-	goABI          *gc.ABI
-	goarch         string
-	goos           string
-	inputFiles     []string
-	l              []string // -l
-	linkFiles      []string
-	o              string // -o
-	packageName    string // --package-name
 	//TODO prefixUnpinned        string // --prefix-unpinned <string>
+	execCC                string // -exec-cc
+	fs                    fs.FS
+	goABI                 *gc.ABI
+	goarch                string
+	goos                  string
+	hidden                nameSet // -hide <string>
+	inputFiles            []string
+	l                     []string // -l
+	linkFiles             []string
+	o                     string // -o
+	packageName           string // --package-name
 	prefixAutomatic       string // --prefix-automatic <string>
 	prefixCcgoAutomatic   string
 	prefixDefine          string // --prefix-define <string>
@@ -190,6 +189,12 @@ func (t *Task) main() (err error) {
 	set.Arg("O", true, func(arg, val string) error { t.O = fmt.Sprintf("%s%s", arg, val); t.opt0 = val == "0"; return nil })
 	set.Arg("U", true, func(arg, val string) error { t.U = append(t.U, fmt.Sprintf("%s%s", arg, val)); return nil })
 	set.Arg("exec-cc", false, func(arg, val string) error { t.execCC = val; return nil })
+	set.Arg("hide", false, func(arg, val string) error {
+		for _, v := range strings.Split(val, ",") {
+			t.hidden.add(v)
+		}
+		return nil
+	})
 	set.Arg("l", true, func(arg, val string) error {
 		t.l = append(t.l, val)
 		t.linkFiles = append(t.linkFiles, arg+"="+val)
