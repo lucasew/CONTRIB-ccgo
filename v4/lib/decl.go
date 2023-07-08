@@ -679,6 +679,15 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 					u := c.unbracedInitilizer(n.Initializer)
 					w.w("%s%s*(*%s)(%s) = %s;", sep, c.posComment(n), c.typ(d, u.Type()), unsafePointer(bpOff(info.bpOff)), c.initializerOuter(w, u, u.Type()))
 				default:
+					if b := c.initCode(w,
+						func(off int64) string {
+							return unsafePointer(bpOff(info.bpOff + off))
+						},
+						n.Initializer, t); b != nil {
+						w.w("%s%s%s;", sep, c.posComment(n), b)
+						break
+					}
+
 					w.w("%s%s*(*%s)(%s) = %s;", sep, c.posComment(n), c.typ(d, t), unsafePointer(bpOff(info.bpOff)), c.initializerOuter(w, n.Initializer, t))
 				}
 			default:
@@ -686,6 +695,17 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 				case d.LexicalScope().Parent == nil:
 					w.w("%s%svar %s = %s;", sep, c.posComment(n), linkName, c.initializerOuter(w, n.Initializer, t))
 				default:
+					if c.unbracedInitilizer(n.Initializer).Case != cc.InitializerExpr {
+						if b := c.initCode(w,
+							func(off int64) string {
+								return unsafe("Add", fmt.Sprintf("%s, %d", unsafePointer(fmt.Sprintf("&%s", linkName)), off))
+							},
+							n.Initializer, t); b != nil {
+							w.w("%s%s%s;", sep, c.posComment(n), b)
+							break
+						}
+					}
+
 					w.w("%s%s%s = %s;", sep, c.posComment(n), linkName, c.initializerOuter(w, n.Initializer, t))
 				}
 			}
@@ -699,6 +719,41 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 			w.w("\n%s_ = %s;", tag(preserve), linkName)
 		}
 	}
+}
+
+func (c *ctx) initCode(w writer, ref func(int64) string, n *cc.Initializer, t cc.Type) *buf {
+	var b buf
+	switch t.Kind() {
+	case cc.Struct:
+		var st *cc.StructType
+		switch x := t.(type) {
+		case *cc.StructType:
+			st = x
+		default:
+			return nil
+		}
+
+		ok := true
+	loop:
+		for i := 0; i < st.NumFields(); i++ {
+			switch f := st.FieldByIndex(i); {
+			case f.Type().Kind() == cc.Union:
+				ok = false
+				break loop
+			}
+		}
+		if ok {
+			return nil
+		}
+
+		a := c.initalizerFlatten(n, nil)
+		for _, v := range a {
+			e := v.AssignmentExpression
+			b.w("*(*%s)(%s) = %s;", c.typ(e, v.Type()), ref(v.Offset()), c.topExpr(w, e, v.Type(), exprDefault))
+		}
+		return &b
+	}
+	return nil
 }
 
 func (c *ctx) unbracedInitilizer(n *cc.Initializer) *cc.Initializer {

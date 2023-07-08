@@ -2051,6 +2051,49 @@ func (c *ctx) postfixExpressionSelect(w writer, n *cc.PostfixExpression, t cc.Ty
 		}
 	}
 
+	// d := c.declaratorOf(n.PostfixExpression)
+	// if d != nil && c.f != nil {
+	// 	if info := c.f.declInfos[d]; info != nil {
+	// 	out:
+	// 		switch n.PostfixExpression.Type().Kind() {
+	// 		case cc.Struct:
+	// 			var st *cc.StructType
+	// 			switch x := n.PostfixExpression.Type().(type) {
+	// 			case *cc.StructType:
+	// 				st = x
+	// 			default:
+	// 				break out
+	// 			}
+
+	// 			ok := true
+	// 		loop:
+	// 			for i := 0; i < st.NumFields(); i++ {
+	// 				switch f := st.FieldByIndex(i); {
+	// 				case f.Type().Kind() == cc.Union:
+	// 					ok = false
+	// 					break loop
+	// 				}
+	// 			}
+	// 			if ok {
+	// 				break out
+	// 			}
+
+	// 			switch mode {
+	// 			case exprLvalue, exprDefault, exprSelect:
+	// 				switch {
+	// 				case info.pinned():
+	// 					b.w("(*(*%s)(%s))", c.typ(n, f.Type()), unsafePointer(bpOff(info.bpOff+f.Offset())))
+	// 					return &b, n.Type(), mode
+	// 				default:
+	// 					nm := c.f.locals[d]
+	// 					b.w("(*(*%s)(%s))", c.typ(n, f.Type()), unsafe("Add", fmt.Sprintf("%s, %d", unsafePointer(fmt.Sprintf("&%s", nm)), f.Offset())))
+	// 					return &b, n.Type(), mode
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// }
+
 	if u, ok := n.PostfixExpression.Type().(*cc.UnionType); ok && f != firstPositiveSizedField(u) {
 		switch mode {
 		case exprLvalue, exprDefault, exprSelect:
