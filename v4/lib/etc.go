@@ -1043,28 +1043,3 @@ func gcKind(k cc.Kind, cabi *cc.ABI) gc.Kind {
 	}
 	return -1
 }
-
-//TODO- func differsOnlyInNumericSuffix(a, b string) bool {
-//TODO- 	for a != "" && b != "" {
-//TODO- 		if a[0] != b[0] {
-//TODO- 			return isNumeric(a) && isNumeric(b)
-//TODO- 		}
-//TODO-
-//TODO- 		a = a[1:]
-//TODO- 		b = b[1:]
-//TODO- 	}
-//TODO- 	return false
-//TODO- }
-//TODO-
-//TODO- func isNumeric(s string) bool {
-//TODO- 	if s == "" {
-//TODO- 		return false
-//TODO- 	}
-//TODO-
-//TODO- 	for i := 0; i < len(s); i++ {
-//TODO- 		if c := s[i]; c < '0' || c > '9' {
-//TODO- 			return false
-//TODO- 		}
-//TODO- 	}
-//TODO- 	return true
-//TODO- }

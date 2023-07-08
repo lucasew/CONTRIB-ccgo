@@ -158,6 +158,7 @@ type jsonMeta struct {
 }
 
 type ctx struct {
+	anonTypes           map[cc.Type]string // C type: tXXX
 	ast                 *cc.AST
 	breakCtx            string
 	cfg                 *cc.Config
@@ -210,6 +211,7 @@ func newCtx(task *Task, eh errHandler) *ctx {
 		maxAlign = 4
 	}
 	return &ctx{
+		anonTypes:           map[cc.Type]string{},
 		cfg:                 task.cfg,
 		defineTaggedStructs: map[string]*cc.StructType{},
 		defineTaggedUnions:  map[string]*cc.UnionType{},
@@ -365,6 +367,7 @@ func (c *ctx) compile(ifn, ofn string) (err error) {
 	c.ifn = ifn
 	c.prologue(c)
 	c.defines(c)
+
 	for n := c.ast.TranslationUnit; n != nil; n = n.TranslationUnit {
 		c.externalDeclaration(c, n.ExternalDeclaration)
 	}

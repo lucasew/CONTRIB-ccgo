@@ -2039,6 +2039,18 @@ func (c *ctx) postfixExpressionSelect(w writer, n *cc.PostfixExpression, t cc.Ty
 	if mode == exprVoid {
 		mode = exprDefault
 	}
+	var isCall bool
+	if x, ok := n.PostfixExpression.(*cc.PostfixExpression); ok {
+		isCall = x.Case == cc.PostfixExpressionCall
+	}
+	if u, ok := n.PostfixExpression.Type().(*cc.UnionType); !isCall && ok && u.Size() == f.Type().Size() {
+		switch mode {
+		case exprLvalue, exprDefault, exprSelect:
+			b.w("(*(*%s)(%s))", c.typ(n, f.Type()), unsafePointer(c.expr(w, n.PostfixExpression, n.PostfixExpression.Type().Pointer(), exprUintptr)))
+			return &b, n.Type(), mode
+		}
+	}
+
 	if u, ok := n.PostfixExpression.Type().(*cc.UnionType); ok && f != firstPositiveSizedField(u) {
 		switch mode {
 		case exprLvalue, exprDefault, exprSelect:

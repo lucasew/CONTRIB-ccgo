@@ -674,7 +674,13 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 		default:
 			switch {
 			case info != nil && info.pinned():
-				w.w("%s%s*(*%s)(%s) = %s;", sep, c.posComment(n), c.typ(d, t), unsafePointer(bpOff(info.bpOff)), c.initializerOuter(w, n.Initializer, t))
+				switch {
+				case t.Kind() == cc.Union && n.Initializer.Type().Size() == t.Size():
+					u := c.unbracedInitilizer(n.Initializer)
+					w.w("%s%s*(*%s)(%s) = %s;", sep, c.posComment(n), c.typ(d, u.Type()), unsafePointer(bpOff(info.bpOff)), c.initializerOuter(w, u, u.Type()))
+				default:
+					w.w("%s%s*(*%s)(%s) = %s;", sep, c.posComment(n), c.typ(d, t), unsafePointer(bpOff(info.bpOff)), c.initializerOuter(w, n.Initializer, t))
+				}
 			default:
 				switch {
 				case d.LexicalScope().Parent == nil:
@@ -692,5 +698,24 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 		if d.StorageDuration() == cc.Automatic && d.ReadCount() == d.SizeofCount() && !info.pinned() {
 			w.w("\n%s_ = %s;", tag(preserve), linkName)
 		}
+	}
+}
+
+func (c *ctx) unbracedInitilizer(n *cc.Initializer) *cc.Initializer {
+	switch n.Case {
+	case cc.InitializerExpr:
+		return n
+	case cc.InitializerInitList:
+		switch {
+		case n.InitializerList == nil:
+			return n
+		case n.InitializerList.Initializer.Case == cc.InitializerExpr && n.InitializerList.InitializerList == nil:
+			return n.InitializerList.Initializer
+		default:
+			return n
+		}
+	default:
+		c.err(errorf("internal error %T %v", n, n.Case))
+		return n
 	}
 }

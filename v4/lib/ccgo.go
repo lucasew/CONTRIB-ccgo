@@ -59,6 +59,7 @@ type Task struct {
 	linkFiles             []string
 	o                     string // -o
 	packageName           string // --package-name
+	prefixAnonType        string
 	prefixAutomatic       string // --prefix-automatic <string>
 	prefixCcgoAutomatic   string
 	prefixDefine          string // --prefix-define <string>
@@ -129,6 +130,7 @@ func NewTask(goos, goarch string, args []string, stdout, stderr io.Writer, fs fs
 		goarch:         goarch,
 		goos:           goos,
 		intSize:        intSize,
+		prefixAnonType: "_",
 		stderr:         stderr,
 		stdout:         stdout,
 		tlsQualifier:   tag(importQualifier) + "libc.",

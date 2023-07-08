@@ -8,7 +8,7 @@ require (
 	golang.org/x/mod v0.11.0
 	golang.org/x/sys v0.9.0
 	golang.org/x/tools v0.10.0
-	modernc.org/cc/v4 v4.8.2
+	modernc.org/cc/v4 v4.9.0
 	modernc.org/ccgo/v3 v3.16.14
 	modernc.org/ccorpus2 v1.4.0
 	modernc.org/fileutil v1.1.2

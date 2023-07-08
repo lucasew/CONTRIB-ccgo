@@ -233,7 +233,12 @@ func (c *ctx) initializerStruct(w writer, n cc.Node, a []*cc.Initializer, t *cc.
 	// dumpInitializer(a, "")
 	// defer trc("---- %v: (struct Z, size %v) %s off0 %#0x", n.Position(), t.Size(), t, off0)
 	var b buf
-	b.w("%s{", c.initTyp(n, t))
+	switch {
+	case t.HasFlexibleArrayMember():
+		b.w("%s{", c.initTyp(n, t))
+	default:
+		b.w("%s{", c.typ(n, t))
+	}
 	if c.isZeroInitializerSlice(a) {
 		b.w("}")
 		return &b
@@ -372,9 +377,14 @@ func (c *ctx) initializerUnion(w writer, n cc.Node, a []*cc.Initializer, t *cc.U
 
 	switch len(a) {
 	case 1:
-		b.w("(*(*%s)(%sunsafe.%sPointer(&struct{ ", c.typ(n, t), tag(importQualifier), tag(preserve))
-		b.w("%s", c.initializerUnionOne(w, n, a, t, off0))
-		b.w(")))")
+		switch f := a[0].Field(); {
+		case f != nil && f.Index() == 0:
+			b.w("(%s{%s%s: %s})", c.typ(n, t), tag(field), f.Name(), c.topExpr(w, a[0].AssignmentExpression, f.Type(), exprDefault))
+		default:
+			b.w("(*(*%s)(%sunsafe.%sPointer(&struct{ ", c.typ(n, t), tag(importQualifier), tag(preserve))
+			b.w("%s", c.initializerUnionOne(w, n, a, t, off0))
+			b.w(")))")
+		}
 	default:
 		b.w("(*(*%s)(%sunsafe.%sPointer(&", c.typ(n, t), tag(importQualifier), tag(preserve))
 		b.w("%s", c.initializerUnionMany(w, n, a, t, off0, arrayElem))
