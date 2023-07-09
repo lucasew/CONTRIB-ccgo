@@ -721,6 +721,14 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 	}
 }
 
+func (c *ctx) isVLA(t cc.Type) (cc.ExpressionNode, bool) {
+	if x, ok := t.Undecay().(*cc.ArrayType); ok && x.IsVLA() {
+		return x.SizeExpression(), true
+	}
+
+	return nil, false
+}
+
 func (c *ctx) initCode(w writer, ref func(int64) string, n *cc.Initializer, t cc.Type) *buf {
 	var b buf
 	switch t.Kind() {

@@ -342,7 +342,13 @@ func (c *ctx) typ0(b *strings.Builder, n cc.Node, t cc.Type, useTypenames, useTa
 			b.WriteString("\n}")
 		}
 	case *cc.ArrayType:
-		fmt.Fprintf(b, "[%d]", x.Len())
+		switch {
+		case x.IsVLA():
+			fmt.Fprintf(b, "%suintptr", tag(preserve))
+			return
+		default:
+			fmt.Fprintf(b, "[%d]", x.Len())
+		}
 		c.typ0(b, n, x.Elem(), true, true, true)
 	default:
 		b.WriteString("int")
