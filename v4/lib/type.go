@@ -458,13 +458,13 @@ func (c *ctx) isValidType1(n cc.Node, t cc.Type, report bool) bool {
 	}
 
 	switch x := t.Undecay().(type) {
-	case *cc.ArrayType:
-		if x.IsVLA() {
-			if report {
-				c.err(errorf("%v: variable length arrays are not supported", pos(n)))
-			}
-			return false
-		}
+	//TODO- case *cc.ArrayType:
+	//TODO- 	if x.IsVLA() {
+	//TODO- 		if report {
+	//TODO- 			c.err(errorf("%v: variable length arrays are not supported", pos(n)))
+	//TODO- 		}
+	//TODO- 		return false
+	//TODO- 	}
 	case *cc.FunctionType:
 		if !c.isValidType(n, x.Result(), report) {
 			return false

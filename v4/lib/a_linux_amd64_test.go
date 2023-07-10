@@ -315,29 +315,24 @@ var testExecKnownFails = map[string]struct{}{
 
 	// VLA
 	`assets/benchmarksgame-team.pages.debian.net/fannkuchredux-5.c`:                        {}, // COMPILE FAIL
-	`assets/benchmarksgame-team.pages.debian.net/fannkuchredux.c`:                          {}, // COMPILE FAIL
 	`assets/benchmarksgame-team.pages.debian.net/fasta-2.c`:                                {}, // COMPILE FAIL
 	`assets/benchmarksgame-team.pages.debian.net/fasta-5.c`:                                {}, // COMPILE FAIL
 	`assets/benchmarksgame-team.pages.debian.net/fasta-7.c`:                                {}, // COMPILE FAIL
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-9.c`:                           {}, // COMPILE FAIL
 	`assets/benchmarksgame-team.pages.debian.net/spectral-norm.c`:                          {}, // COMPILE FAIL
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20020807-1.c`:                    {}, // COMPILE FAIL
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/debugvlafunction-1.c`:            {}, // COMPILE FAIL
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr17397.c`:                       {}, // COMPILE FAIL
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr41469.c`:                       {}, // COMPILE FAIL
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr54552-1.c`:                     {}, // COMPILE FAIL
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr77754-6.c`:                     {}, // COMPILE FAIL
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr78439.c`:                       {}, // COMPILE FAIL
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr79413.c`:                       {}, // COMPILE FAIL
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/vla-const-1.c`:                   {}, // COMPILE FAIL
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/vla-const-2.c`:                   {}, // COMPILE FAIL
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20010202-1.c`:                    {}, // COMPILE FAIL
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20030716-1.c`:                    {}, // COMPILE FAIL
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/950610-1.c`:                      {}, // COMPILE FAIL
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr77754-1.c`:                     {}, // COMPILE FAIL
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr77754-2.c`:                     {}, // COMPILE FAIL
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr77754-3.c`:                     {}, // COMPILE FAIL
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr77754-4.c`:                     {}, // COMPILE FAIL
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr77754-5.c`:                     {}, // COMPILE FAIL
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010209-1.c`:                    {}, // COMPILE FAIL
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040308-1.c`:                    {}, // COMPILE FAIL
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040423-1.c`:                    {}, // COMPILE FAIL
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040811-1.c`:                    {}, // COMPILE FAIL
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20041218-2.c`:                    {}, // COMPILE FAIL
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920721-2.c`:                      {}, // COMPILE FAIL
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920929-1.c`:                      {}, // COMPILE FAIL
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/921017-1.c`:                      {}, // COMPILE FAIL
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/970217-1.c`:                      {}, // COMPILE FAIL
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/align-nest.c`:                    {}, // COMPILE FAIL
@@ -351,8 +346,6 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/20040423-1.c`:    {}, // COMPILE FAIL
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/20040811-1.c`:    {}, // COMPILE FAIL
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/20041218-2.c`:    {}, // COMPILE FAIL
-	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/920721-2.c`:      {}, // COMPILE FAIL
-	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/920929-1.c`:      {}, // COMPILE FAIL
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/921017-1.c`:      {}, // COMPILE FAIL
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/970217-1.c`:      {}, // COMPILE FAIL
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/align-nest.c`:    {}, // COMPILE FAIL
@@ -361,8 +354,6 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr43220.c`:       {}, // COMPILE FAIL
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr77767.c`:       {}, // COMPILE FAIL
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/vla-dealloc-1.c`: {}, // COMPILE FAIL
-	`assets/tcc-0.9.27/tests/tests2/78_vla_label.c`:                                        {}, // COMPILE FAIL
-	`assets/tcc-0.9.27/tests/tests2/79_vla_continue.c`:                                     {}, // COMPILE FAIL
 
 	// vector
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-4.c`:                            {}, // COMPILE FAIL
@@ -472,13 +463,11 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20000518-1.c`:                                 {}, // COMPILE FAIL: TODO BlockItemLabel (decl.go:207:functionDefinition0: stmt.go:176:compoundStatement: stmt.go:205:blockItem)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20000804-1.c`:                                 {}, // COMPILE FAIL: TODO *cc.PredefinedType _Complex long long _Complex long long (expr.go:2188:assignmentExpression: type.go:35:typ: type.go:141:typ0)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20000827-1.c`:                                 {}, // COMPILE FAIL: 20000827-1.c:13:7: assembler statements not supported (stmt.go:176:compoundStatement: stmt.go:207:blockItem: stmt.go:51:statement)
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20000923-1.c`:                                 {}, // COMPILE FAIL: 20000923-1.c:8:3: assembler statements not supported (stmt.go:176:compoundStatement: stmt.go:207:blockItem: stmt.go:51:statement)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20001121-1.c`:                                 {}, // COMPILE FAIL: 20001121-1.c: gofmt: exit status 2 (asm_amd64.s:1594:goexit: compile.go:354:compile: compile.go:354:compile)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20001205-1.c`:                                 {}, // COMPILE FAIL: 20001205-1.c:6:9: assembler statements not supported (stmt.go:176:compoundStatement: stmt.go:207:blockItem: stmt.go:51:statement)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20001221-1.c`:                                 {}, // COMPILE FAIL: 20001221-1.c: gofmt: exit status 2 (asm_amd64.s:1594:goexit: compile.go:354:compile: compile.go:354:compile)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20001222-1.c`:                                 {}, // COMPILE FAIL: TODO cc.Complex128Value (expr.go:457:expr0: expr.go:2397:primaryExpression: expr.go:2665:primaryExpressionFloatConst)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20010118-1.c`:                                 {}, // COMPILE FAIL: 20010118-1.c: gofmt: exit status 2 (asm_amd64.s:1594:goexit: compile.go:354:compile: compile.go:354:compile)
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20010202-1.c`:                                 {}, // COMPILE FAIL: 20010202-1.c:3:22: variable length arrays are not supported (decl.go:258:signature: type.go:331:checkValidParamType: type.go:354:checkValidType)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20010226-1.c`:                                 {}, // COMPILE FAIL: 20010226-1.c:16:12: nested functions not supported (stmt.go:24:statement: stmt.go:176:compoundStatement: stmt.go:210:blockItem)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20010605-1.c`:                                 {}, // COMPILE FAIL: 20010605-1.c:9:9: nested functions not supported (decl.go:245:functionDefinition0: stmt.go:176:compoundStatement: stmt.go:210:blockItem)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20010903-1.c`:                                 {}, // COMPILE FAIL: 20010903-1.c:7:3: assembler statements not supported (stmt.go:176:compoundStatement: stmt.go:207:blockItem: stmt.go:51:statement)
@@ -498,7 +487,6 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20030418-1.c`:                                 {}, // COMPILE FAIL: 20030418-1.c:13:8: nested functions not supported (decl.go:245:functionDefinition0: stmt.go:176:compoundStatement: stmt.go:210:blockItem)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20030503-1.c`:                                 {}, // COMPILE FAIL: TODO (stmt.go:386:iterationStatement: stmt.go:571:iterationStatementFlat: expr.go:45:expr)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20030530-3.c`:                                 {}, // COMPILE FAIL: 20030530-3.c: gofmt: exit status 2 (asm_amd64.s:1594:goexit: compile.go:354:compile: compile.go:354:compile)
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20030716-1.c`:                                 {}, // COMPILE FAIL: 20030716-1.c:3:21: variable length arrays are not supported (decl.go:258:signature: type.go:331:checkValidParamType: type.go:354:checkValidType)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20030903-1.c`:                                 {}, // COMPILE FAIL: TODO UnaryExpressionReal (expr.go:61:expr: expr.go:463:expr0: expr.go:1152:unaryExpression)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20030910-1.c`:                                 {}, // COMPILE FAIL: TODO UnaryExpressionReal (expr.go:61:expr: expr.go:463:expr0: expr.go:1152:unaryExpression)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20031011-1.c`:                                 {}, // COMPILE FAIL: 20031011-1.c:15:8: nested functions not supported (decl.go:245:functionDefinition0: stmt.go:176:compoundStatement: stmt.go:210:blockItem)
@@ -540,7 +528,6 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/931018-1.c`:                                   {}, // COMPILE FAIL: 931018-1.c: gofmt: exit status 2 (asm_amd64.s:1594:goexit: compile.go:354:compile: compile.go:354:compile)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/941014-4.c`:                                   {}, // COMPILE FAIL: TODO UnaryExpressionLabelAddr (expr.go:61:expr: expr.go:463:expr0: expr.go:1136:unaryExpression)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/941019-1.c`:                                   {}, // COMPILE FAIL: 941019-1.c:1:54: unsupported alignment 16 of _Complex long double (decl.go:258:signature: type.go:331:checkValidParamType: type.go:340:checkValidType)
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/950610-1.c`:                                   {}, // COMPILE FAIL: 950610-1.c:1:15: variable length arrays are not supported (decl.go:258:signature: type.go:331:checkValidParamType: type.go:354:checkValidType)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/950613-1.c`:                                   {}, // COMPILE FAIL: TODO <nil> (decl.go:192:functionDefinition: decl.go:204:functionDefinition0: decl.go:73:newFnCtx)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/950919-1.c`:                                   {}, // COMPILE FAIL: 950919-1.c: gofmt: exit status 2 (asm_amd64.s:1594:goexit: compile.go:294:compile: compile.go:294:compile)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/951116-1.c`:                                   {}, // COMPILE FAIL: 951116-1.c:7:7: nested functions not supported (decl.go:245:functionDefinition0: stmt.go:176:compoundStatement: stmt.go:210:blockItem)
@@ -632,7 +619,6 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr42559.c`:                                    {}, // COMPILE FAIL: TODO UnaryExpressionLabelAddr (expr.go:61:expr: expr.go:463:expr0: expr.go:1136:unaryExpression)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr42716.c`:                                    {}, // COMPILE FAIL: TODO (expr.go:439:expr0: expr.go:676:conditionalExpression: expr.go:45:expr)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr42717.c`:                                    {}, // COMPILE FAIL: TODO (expr.go:439:expr0: expr.go:676:conditionalExpression: expr.go:45:expr)
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr42956.c`:                                    {}, // COMPILE FAIL: pr42956.c:4:3: invalid type size: -1 (type.go:17:typedef: type.go:52:typ0: type.go:369:checkValidType)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr43066.c`:                                    {}, // COMPILE FAIL: pr43066.c:1:1: invalid type size: -1 (type.go:285:typ0: type.go:52:typ0: type.go:369:checkValidType)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr43191.c`:                                    {}, // COMPILE FAIL: pr43191.c:3:1: invalid type size: -1 (type.go:385:structLiteral: type.go:52:typ0: type.go:369:checkValidType)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr43661.c`:                                    {}, // COMPILE FAIL: TODO (expr.go:439:expr0: expr.go:676:conditionalExpression: expr.go:45:expr)
@@ -669,11 +655,6 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr70199.c`:                                    {}, // COMPILE FAIL: TODO <nil> (decl.go:192:functionDefinition: decl.go:204:functionDefinition0: decl.go:73:newFnCtx)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr70355.c`:                                    {}, // COMPILE FAIL: pr70355.c:4:27: unsupported alignment 16 of v2ti (type.go:17:typedef: type.go:52:typ0: type.go:340:checkValidType)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr70916.c`:                                    {}, // COMPILE FAIL: TODO (expr.go:439:expr0: expr.go:676:conditionalExpression: expr.go:45:expr)
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr77754-1.c`:                                  {}, // COMPILE FAIL: pr77754-1.c:5:13: variable length arrays are not supported (decl.go:258:signature: type.go:331:checkValidParamType: type.go:354:checkValidType)
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr77754-2.c`:                                  {}, // COMPILE FAIL: pr77754-2.c:5:18: variable length arrays are not supported (decl.go:258:signature: type.go:331:checkValidParamType: type.go:354:checkValidType)
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr77754-3.c`:                                  {}, // COMPILE FAIL: pr77754-3.c:5:25: variable length arrays are not supported (decl.go:258:signature: type.go:331:checkValidParamType: type.go:354:checkValidType)
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr77754-4.c`:                                  {}, // COMPILE FAIL: pr77754-4.c:5:25: variable length arrays are not supported (decl.go:258:signature: type.go:331:checkValidParamType: type.go:354:checkValidType)
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr77754-5.c`:                                  {}, // COMPILE FAIL: pr77754-5.c:6:14: variable length arrays are not supported (decl.go:258:signature: type.go:331:checkValidParamType: type.go:354:checkValidType)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr79089.c`:                                    {}, // COMPILE FAIL: pr79089.c: gofmt: exit status 2 (asm_amd64.s:1594:goexit: compile.go:354:compile: compile.go:354:compile)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr81262.c`:                                    {}, // COMPILE FAIL: pr81262.c:8:3: assembler statements not supported (stmt.go:176:compoundStatement: stmt.go:207:blockItem: stmt.go:51:statement)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr82052.c`:                                    {}, // COMPILE FAIL: TODO (expr.go:439:expr0: expr.go:676:conditionalExpression: expr.go:45:expr)
@@ -687,7 +668,6 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr85704.c`:                                    {}, // COMPILE FAIL: pr85704.c:3:1: invalid type size: 0 (type.go:385:structLiteral: type.go:52:typ0: type.go:369:checkValidType)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr86122.c`:                                    {}, // COMPILE FAIL: TODO *cc.PredefinedType _Complex int _Complex int (expr.go:2188:assignmentExpression: type.go:35:typ: type.go:141:typ0)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr86123.c`:                                    {}, // COMPILE FAIL: TODO *cc.PredefinedType _Complex unsigned _Complex unsigned (expr.go:2652:primaryExpressionIntConst: type.go:29:helper: type.go:141:typ0)
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr87110.c`:                                    {}, // COMPILE FAIL: pr87110.c: gofmt: exit status 2 (asm_amd64.s:1594:goexit: compile.go:354:compile: compile.go:354:compile)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr87647.c`:                                    {}, // COMPILE FAIL: pr87647.c:3:1: invalid type size: -1 (type.go:385:structLiteral: type.go:52:typ0: type.go:369:checkValidType)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr89655.c`:                                    {}, // COMPILE FAIL: TODO (expr.go:439:expr0: expr.go:676:conditionalExpression: expr.go:45:expr)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/sra-1.c`:                                      {}, // COMPILE FAIL: TODO UnaryExpressionReal (expr.go:61:expr: expr.go:463:expr0: expr.go:1152:unaryExpression)

@@ -6,6 +6,7 @@ package ccgo // import "modernc.org/ccgo/v4/lib"
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"modernc.org/cc/v4"
@@ -214,6 +215,18 @@ func (c *ctx) compoundStatement(w writer, n *cc.CompoundStatement, fnBlock bool,
 			w.w("%s%s", strings.TrimSpace(sep(n.Token)), c.posComment(n))
 		}
 		w.w("%s", c.f.declareLocals())
+		if c.f.vlaSizes != nil {
+			var a []string
+			for d := range c.f.vlaSizes {
+				a = append(a, c.f.locals[d])
+			}
+			sort.Strings(a)
+			w.w("defer func() {")
+			for _, v := range a {
+				w.w("%srealloc(%stls, %s, 0);", tag(external), tag(ccgo), v)
+			}
+			w.w("}();")
+		}
 	default:
 		if !flat {
 			w.w(" {\n %s%s", sep(n.Token), c.posComment(n))

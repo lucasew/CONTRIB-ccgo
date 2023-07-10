@@ -52,6 +52,7 @@ type fnCtx struct {
 	locals           map[*cc.Declarator]string // storage: static or automatic, linkage: none -> C renamed
 	t                *cc.FunctionType
 	tlsAllocs        int64
+	vlaSizes         map[*cc.Declarator]string
 
 	maxValist int
 	nextID    int
@@ -110,6 +111,7 @@ func (f *fnCtx) newAutovarName() (nm string) {
 func (f *fnCtx) newAutovar(n cc.Node, t cc.Type) (nm string) {
 	nm = f.newAutovarName()
 	f.registerAutoVar(fmt.Sprintf("var %s %s;", nm, f.c.typ(n, t)))
+	// trc("%v: %s %v: %q (%v: %v: %v:)", pos(n), t, t.Kind(), nm, origin(4), origin(3), origin(2))
 	return nm
 }
 
@@ -543,9 +545,23 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 		return
 	}
 
-	if x, ok := d.Type().Undecay().(*cc.ArrayType); ok && x.IsVLA() {
-		c.err(errorf("%v: variable length arrays are not supported", pos(n)))
-		return
+	if c.f != nil {
+		t := d.Type()
+		if x, ok := t.(*cc.PointerType); ok {
+			x.Elem()
+		}
+		if x, ok := c.isVLA(t); ok {
+			v := c.f.newAutovar(n, c.ast.SizeT)
+			if c.f.vlaSizes == nil {
+				c.f.vlaSizes = map[*cc.Declarator]string{}
+			}
+			c.f.vlaSizes[d] = v
+			k := ""
+			if sz := x.Elem().Size(); sz != 1 {
+				k = fmt.Sprintf("*%d", sz)
+			}
+			w.w("%s = (%s)%s;", c.f.vlaSizes[d], c.topExpr(w, x.SizeExpression(), c.ast.SizeT, exprDefault), k)
+		}
 	}
 
 	if n.Asm != nil {
@@ -613,6 +629,19 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 				switch c.pass {
 				case 0:
 					w.w("%s%svar %s %s;", sep, c.posComment(n), linkName, c.typ(d, d.Type()))
+				case 2:
+					t, ok := c.isVLA(d.Type())
+					if !ok {
+						break
+					}
+
+					if t.SizeExpression() == nil {
+						c.err(errorf("%v: internal error", d.Position()))
+						break
+					}
+
+					linkName := c.f.locals[d]
+					w.w("%s = %srealloc(%stls, %[1]s, %[4]s);", linkName, tag(external), tag(ccgo), c.f.vlaSizes[d])
 				}
 			}
 		}
@@ -721,9 +750,9 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 	}
 }
 
-func (c *ctx) isVLA(t cc.Type) (cc.ExpressionNode, bool) {
+func (c *ctx) isVLA(t cc.Type) (*cc.ArrayType, bool) {
 	if x, ok := t.Undecay().(*cc.ArrayType); ok && x.IsVLA() {
-		return x.SizeExpression(), true
+		return x, true
 	}
 
 	return nil, false

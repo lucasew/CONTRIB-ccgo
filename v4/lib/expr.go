@@ -173,6 +173,7 @@ func (c *ctx) convertToPointer(n cc.ExpressionNode, s *buf, from cc.Type, to *cc
 }
 
 func (c *ctx) pin(n cc.Node, b *buf) *buf {
+	// trc("%v: %s (%v: %v: %v)", pos(n), cc.NodeSource(n), origin(4), origin(3), origin(2))
 	switch x := b.n.(type) {
 	case *cc.Declarator:
 		if x.StorageDuration() == cc.Automatic {
@@ -301,6 +302,7 @@ func (c *ctx) convertType(n cc.ExpressionNode, s *buf, from, to cc.Type, fromMod
 	}
 
 	c.err(errorf("%v: TODO %q %s, %v %s -> %s, %v %s (%v:)", pos(n), s, from, from.Size(), fromMode, to, to.Size(), toMode, c.pos(n)))
+	// panic(todo(""))
 	//trc("", errorf("ERROR %q %s %s -> %s %s (%v:)", s, from, fromMode, to, toMode, c.pos(n))) //TODO-DBG
 	return s //TODO
 }
@@ -1358,6 +1360,20 @@ out:
 		if t.Kind() == cc.Void {
 			t = n.Type()
 		}
+
+		if c.f != nil {
+			if _, ok := c.isVLA(n.UnaryExpression.Type()); ok {
+				d := c.declaratorOf(n.UnaryExpression)
+				if d == nil {
+					c.err(errorf("%v: internal error", n.Position()))
+					break
+				}
+
+				b.w("(%s)", c.f.vlaSizes[d])
+				return &b, t, exprDefault
+			}
+		}
+
 		rt, rmode = t, exprDefault
 		if c.isValidType(n.UnaryExpression, n.UnaryExpression.Type(), true) {
 			switch {
@@ -1371,6 +1387,17 @@ out:
 		if t.Kind() == cc.Void {
 			t = n.Type()
 		}
+		if c.f != nil {
+			if vt, ok := c.isVLA(n.TypeName.Type()); ok {
+				k := ""
+				if sz := vt.Elem().Size(); sz != 1 {
+					k = fmt.Sprintf("*%d", sz)
+				}
+				b.w("((%s)%s)", c.expr(w, vt.SizeExpression(), c.ast.SizeT, exprDefault), k)
+				return &b, c.ast.SizeT, exprDefault
+			}
+		}
+
 		rt, rmode = t, exprDefault
 		if c.isValidType(n.TypeName, n.TypeName.Type(), true) {
 			switch {
@@ -1421,10 +1448,16 @@ func (c *ctx) postfixExpressionIndex(w writer, p, index cc.ExpressionNode, pt *c
 	elem := pt.Elem()
 	var mul string
 	if v := elem.Size(); v != 1 {
-		if v < 0 {
-			c.err(errorf("%v: TODO", pos(index)))
-		}
 		mul = fmt.Sprintf("*%v", v)
+		if v < 0 {
+			d := c.declaratorOf(p)
+			switch _, ok := c.isVLA(elem); {
+			case c.f != nil && d != nil && ok:
+				mul = fmt.Sprintf("*%s", c.f.vlaSizes[d])
+			default:
+				c.err(errorf("%v: TODO", pos(index)))
+			}
+		}
 	}
 
 	rt, rmode = nt, mode
@@ -1458,7 +1491,12 @@ func (c *ctx) postfixExpressionIndex(w writer, p, index cc.ExpressionNode, pt *c
 		switch x := pt.Undecay().(type) {
 		case *cc.ArrayType:
 			if d := c.declaratorOf(p); d != nil && !d.IsParam() {
-				b.w("%s[%s]", c.expr(w, p, nil, exprIndex), c.topExpr(w, index, nil, exprDefault))
+				switch {
+				case x.IsVLA():
+					b.w("(*(*%s)(%s))", c.typ(p, x.Elem()), unsafe("Add", fmt.Sprintf("%s, (%s)%s", unsafePointer(fmt.Sprintf("%s", c.expr(w, p, nil, exprIndex))), c.topExpr(w, index, nil, exprDefault), mul)))
+				default:
+					b.w("%s[%s]", c.expr(w, p, nil, exprIndex), c.topExpr(w, index, nil, exprDefault))
+				}
 				break
 			}
 
@@ -1610,7 +1648,7 @@ out:
 		case exprSelect:
 			switch n.Type().(type) {
 			case *cc.StructType:
-				c.err(errorf("%v: TODO", pos(n)))
+				return c.postfixExpressionCall(w, n)
 			case *cc.UnionType:
 				v := fmt.Sprintf("%sv%d", tag(ccgoAutomatic), c.id())
 				e, _, _ := c.postfixExpressionCall(w, n)
@@ -1738,12 +1776,7 @@ out:
 		}
 		t := n.TypeName.Type()
 		switch {
-		case cc.IsScalarType(t) && mode == exprUintptr:
-			if c.f == nil || len(a) != 1 {
-				c.err(errorf("%v: invalid initializer", pos(n), t, t.Kind()))
-				break
-			}
-
+		case c.f != nil && cc.IsScalarType(t) && mode == exprUintptr:
 			if c.f.compoundLiterals == nil {
 				c.f.compoundLiterals = map[cc.ExpressionNode]int64{}
 			}
@@ -1757,6 +1790,22 @@ out:
 				bp = c.f.compoundLiterals[n]
 			}
 			w.w("*(*%s)(unsafe.Pointer(%s)) = %s;", c.typ(n, t), bpOff(bp), c.topExpr(w, a[0].AssignmentExpression, t, exprDefault))
+			b.w("(%s)", bpOff(bp))
+			return &b, t.Pointer(), mode
+		case c.f != nil && mode == exprUintptr:
+			if c.f.compoundLiterals == nil {
+				c.f.compoundLiterals = map[cc.ExpressionNode]int64{}
+			}
+			var bp int64
+			switch c.pass {
+			case 1:
+				bp = roundup(c.f.tlsAllocs, int64(t.Align()))
+				c.f.compoundLiterals[n] = bp
+				c.f.tlsAllocs += t.Size()
+			case 2:
+				bp = c.f.compoundLiterals[n]
+			}
+			w.w("*(*%s)(unsafe.Pointer(%s)) = %s;", c.typ(n, t), bpOff(bp), c.initializer(w, n, a, t, 0, t.Kind() == cc.Array))
 			b.w("(%s)", bpOff(bp))
 			return &b, t.Pointer(), mode
 		default:
@@ -2736,9 +2785,14 @@ out:
 						// b.w("(*(*%suintptr)(%sunsafe.%[1]sPointer(&struct{f func%[3]s}{%s})))", tag(preserve), tag(importQualifier), c.signature(x.Type().(*cc.FunctionType), false, false, true), linkName)
 						b.w("%s%s(%s)", tag(preserve), ccgoFP, linkName)
 					default:
-						p := &buf{n: x}
-						p.w("%s", linkName)
-						b.w("%suintptr(%s)", tag(preserve), unsafeAddr(c.pin(n, p)))
+						switch _, ok := c.isVLA(x.Type()); {
+						case ok && c.f != nil:
+							b.w("(%s)", linkName)
+						default:
+							p := &buf{n: x}
+							p.w("%s", linkName)
+							b.w("%suintptr(%s)", tag(preserve), unsafeAddr(c.pin(n, p)))
+						}
 					}
 				default:
 					c.err(errorf("TODO %v", mode))
