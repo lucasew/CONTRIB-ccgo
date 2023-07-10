@@ -43,16 +43,33 @@ func (n *declInfos) info(d *cc.Declarator) (r *declInfo) {
 
 func (n *declInfos) takeAddress(d *cc.Declarator) { n.info(d).addressTaken = true }
 
+//TODO type stack[T any] []T
+//TODO
+//TODO func (s *stack[T]) pop(v T)  { *s = (*s)[:len(*s)-1] }
+//TODO func (s *stack[T]) push(v T) { *s = append(*s, v) }
+//TODO func (s *stack[T]) tos() T   { return (*s)[len(*s)-1] }
+//TODO
+//TODO const (
+//TODO 	ctrlNone = iota
+//TODO 	ctrlDo
+//TODO 	ctrlFor
+//TODO 	ctrlIf
+//TODO 	ctrlSwitch
+//TODO 	ctrlWhile
+//TODO )
+
 type fnCtx struct {
 	autovars         []string
 	c                *ctx
 	compoundLiterals map[cc.ExpressionNode]int64
-	declInfos        declInfos
-	flatScopes       map[*cc.Scope]struct{}
-	locals           map[*cc.Declarator]string // storage: static or automatic, linkage: none -> C renamed
-	t                *cc.FunctionType
-	tlsAllocs        int64
-	vlaSizes         map[*cc.Declarator]string
+	//TODO ctrl             stack[byte]
+	declInfos  declInfos
+	flatScopes map[*cc.Scope]struct{}
+	locals     map[*cc.Declarator]string // storage: static or automatic, linkage: none -> C renamed
+	//TODO switchScope      stack[*cc.Scope]
+	t         *cc.FunctionType
+	tlsAllocs int64
+	vlaSizes  map[*cc.Declarator]string
 
 	maxValist int
 	nextID    int
@@ -100,7 +117,10 @@ next:
 			}
 		}
 	}
-	return &fnCtx{c: c, t: t, flatScopes: flatScopes}
+	r = &fnCtx{c: c, t: t, flatScopes: flatScopes}
+	//TODO r.ctrl.push(ctrlNone)
+	return r
+
 }
 
 func (f *fnCtx) newAutovarName() (nm string) {

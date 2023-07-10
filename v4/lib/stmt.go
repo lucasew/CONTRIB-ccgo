@@ -349,6 +349,10 @@ func (c *ctx) selectionStatement(w writer, n *cc.SelectionStatement) {
 			w.w("};")
 		}
 	case cc.SelectionStatementSwitch: // "switch" '(' ExpressionList ')' Statement
+		//TODO defer func() {
+		//TODO 	c.f.ctrl.pop()
+		//TODO 	c.f.switchScope.pop()
+		//TODO }
 		for _, v := range n.LabeledStatements() {
 			if v.Case == cc.LabeledStatementLabel {
 				c.selectionStatementFlat(w, n)
