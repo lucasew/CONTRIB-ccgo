@@ -1306,9 +1306,11 @@ out:
 					rt, rmode = n.Type(), mode
 					t := p.Elem()
 					if !cc.IsScalarType(t) {
-						c.err(errorf("%v: unsupported va_arg type: %v", n.Position(), t.Kind()))
-						t = p
+						w.w("panic(`unsupported va_arg type: %q`);", t)
+						b.w("(%s{})", c.typ(n, t))
+						break out
 					}
+
 					b.w("%sVa%s(&%s)", c.task.tlsQualifier, c.helper(n, t), c.expr(w, pfe.ArgumentExpressionList.AssignmentExpression, nil, exprDefault))
 					break out
 				}
@@ -1453,7 +1455,7 @@ func (c *ctx) postfixExpressionIndex(w writer, p, index cc.ExpressionNode, pt *c
 			d := c.declaratorOf(p)
 			switch _, ok := c.isVLA(elem); {
 			case c.f != nil && d != nil && ok:
-				mul = fmt.Sprintf("*%s", c.f.vlaSizes[d])
+				mul = fmt.Sprintf("*%suintptr(%s)", tag(preserve), c.f.vlaSizes[d])
 			default:
 				c.err(errorf("%v: TODO", pos(index)))
 			}

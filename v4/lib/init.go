@@ -461,16 +461,16 @@ done:
 	// }
 	// trc("common %q", aa)
 	if lca == nil {
-		trc("MANY %v: (%v:)", pos(n), origin(1))
-		b.w("/* %v: TODO */", origin(1))
+		w.w("panic(`TODO %v: (%v:)`);", pos(n), origin(1))
+		b.w("(%s{})", c.typ(n, t))
 		return &b
 	}
 
 	// trc("lca0 %s, size %v, off %v", lca.Type(), lca.Type().Size(), lca.Offset())
 	lcaType, lcaOff := c.fixLCA(t, lca, a, off0)
 	if lcaType == nil {
-		trc("MANY %v: (%v:)", pos(n), origin(1))
-		b.w("/* %v: TODO */", origin(1))
+		w.w("panic(`TODO %v: (%v:)`);", pos(n), origin(1))
+		b.w("(%s{})", c.typ(n, t))
 		return &b
 	}
 

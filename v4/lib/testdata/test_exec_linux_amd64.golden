@@ -1112,6 +1112,7 @@ assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr33641.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr34029-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr34029-2.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr34030.c
+assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr34091.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr34093.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr34113.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr34127.c
@@ -1178,6 +1179,7 @@ assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr37913.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr37955.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr37976.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr37991.c
+assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr38123.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr38343-2.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr38343.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr38359.c
@@ -1272,6 +1274,7 @@ assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr42749.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr42927.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr42956.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr42998.c
+assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr43066.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr43164.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr43186.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr43188.c
@@ -1347,6 +1350,7 @@ assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr48517.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr48596.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr48734.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr48742.c
+assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr48767.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr48929.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr49029.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr49049.c

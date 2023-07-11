@@ -43,33 +43,23 @@ func (n *declInfos) info(d *cc.Declarator) (r *declInfo) {
 
 func (n *declInfos) takeAddress(d *cc.Declarator) { n.info(d).addressTaken = true }
 
-//TODO type stack[T any] []T
-//TODO
-//TODO func (s *stack[T]) pop(v T)  { *s = (*s)[:len(*s)-1] }
-//TODO func (s *stack[T]) push(v T) { *s = append(*s, v) }
-//TODO func (s *stack[T]) tos() T   { return (*s)[len(*s)-1] }
-//TODO
-//TODO const (
-//TODO 	ctrlNone = iota
-//TODO 	ctrlDo
-//TODO 	ctrlFor
-//TODO 	ctrlIf
-//TODO 	ctrlSwitch
-//TODO 	ctrlWhile
-//TODO )
+type stack[T any] []T
+
+func (s *stack[T]) pop()        { *s = (*s)[:len(*s)-1] }
+func (s *stack[T]) push(v T)    { *s = append(*s, v) }
+func (s *stack[T]) tos(n int) T { return (*s)[len(*s)-n-1] }
 
 type fnCtx struct {
 	autovars         []string
 	c                *ctx
 	compoundLiterals map[cc.ExpressionNode]int64
-	//TODO ctrl             stack[byte]
-	declInfos  declInfos
-	flatScopes map[*cc.Scope]struct{}
-	locals     map[*cc.Declarator]string // storage: static or automatic, linkage: none -> C renamed
-	//TODO switchScope      stack[*cc.Scope]
-	t         *cc.FunctionType
-	tlsAllocs int64
-	vlaSizes  map[*cc.Declarator]string
+	declInfos        declInfos
+	flatScopes       map[*cc.Scope]struct{}
+	locals           map[*cc.Declarator]string // storage: static or automatic, linkage: none -> C renamed
+	flow             stack[any]
+	t                *cc.FunctionType
+	tlsAllocs        int64
+	vlaSizes         map[*cc.Declarator]string
 
 	maxValist int
 	nextID    int
@@ -78,7 +68,7 @@ type fnCtx struct {
 func (c *ctx) newFnCtx(t *cc.FunctionType, n *cc.CompoundStatement) (r *fnCtx) {
 	fnScope := n.LexicalScope()
 	// trc("%v: ==== fnScope %p, parent %p\n%s", n.Position(), fnScope, fnScope.Parent, dumpScope(fnScope))
-	var flatScopes map[*cc.Scope]struct{}
+	flatScopes := map[*cc.Scope]struct{}{}
 next:
 	for _, gotoStmt := range n.Gotos() {
 		gotoScope := gotoStmt.LexicalScope()
@@ -105,9 +95,6 @@ next:
 		}
 
 		// Jumping into a block.
-		if flatScopes == nil {
-			flatScopes = map[*cc.Scope]struct{}{}
-		}
 		for sc := targetScope; sc != nil && sc != fnScope; sc = sc.Parent {
 			// trc("FLAT[%p]", sc)
 			flatScopes[sc] = struct{}{}
@@ -118,7 +105,7 @@ next:
 		}
 	}
 	r = &fnCtx{c: c, t: t, flatScopes: flatScopes}
-	//TODO r.ctrl.push(ctrlNone)
+	r.flow.push(nil)
 	return r
 
 }
@@ -568,7 +555,7 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 	if c.f != nil {
 		t := d.Type()
 		if x, ok := t.(*cc.PointerType); ok {
-			x.Elem()
+			t = x.Elem()
 		}
 		if x, ok := c.isVLA(t); ok {
 			v := c.f.newAutovar(n, c.ast.SizeT)
