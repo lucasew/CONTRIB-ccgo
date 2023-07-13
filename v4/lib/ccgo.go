@@ -21,6 +21,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"modernc.org/cc/v4"
@@ -49,6 +50,7 @@ type Task struct {
 	defs           string
 	//TODO prefixUnpinned        string // --prefix-unpinned <string>
 	execCC                string // -exec-cc
+	experimentPin         int    // -experiment-pin <int>
 	fs                    fs.FS
 	goABI                 *gc.ABI
 	goarch                string
@@ -82,30 +84,31 @@ type Task struct {
 
 	intSize int
 
-	E                         bool // -E
-	ansi                      bool // -ansi
-	c                         bool // -c
-	debugLinkerSave           bool // -debug-linker-save, causes pre type checking save of the linker result.
-	freeStanding              bool // -ffreestanding
-	fullPaths                 bool // -full-paths
-	header                    bool // -header
-	ignoreAsmErrors           bool // -ignore-asm-errors
-	ignoreHeaderFunctions     bool // -ignore-header-functions
-	ignoreUnsupportedAligment bool // -ignore-unsupported-alignment
-	ignoreVectorFunctions     bool // -ignore-vector-functions
-	isExeced                  bool // -exec ...
-	keepObjectFiles           bool // -keep-object-files
-	noBuiltin                 bool // -fno-builtin
-	noObjFmt                  bool // -no-object-file-format
-	nostdinc                  bool // -nostdinc
-	nostdlib                  bool // -nostdlib
-	opt0                      bool // -O0
-	packageNameSet            bool
-	positions                 bool // -positions
-	prefixDefineSet           bool // --prefix-define <string>
-	pthread                   bool // -pthread
-	strictISOMode             bool // -ansi or stc=c90
-	verifyTypes               bool // -verify-types
+	E                            bool // -E
+	ansi                         bool // -ansi
+	c                            bool // -c
+	debugLinkerSave              bool // -debug-linker-save, causes pre type checking save of the linker result.
+	freeStanding                 bool // -ffreestanding
+	fullPaths                    bool // -full-paths
+	header                       bool // -header
+	ignoreAsmErrors              bool // -ignore-asm-errors
+	ignoreHeaderFunctions        bool // -ignore-header-functions
+	ignoreUnsupportedAligment    bool // -ignore-unsupported-alignment
+	ignoreUnsupportedAtomicSizes bool // -ignore-unsupported-atomic-sizes
+	ignoreVectorFunctions        bool // -ignore-vector-functions
+	isExeced                     bool // -exec ...
+	keepObjectFiles              bool // -keep-object-files
+	noBuiltin                    bool // -fno-builtin
+	noObjFmt                     bool // -no-object-file-format
+	nostdinc                     bool // -nostdinc
+	nostdlib                     bool // -nostdlib
+	opt0                         bool // -O0
+	packageNameSet               bool
+	positions                    bool // -positions
+	prefixDefineSet              bool // --prefix-define <string>
+	pthread                      bool // -pthread
+	strictISOMode                bool // -ansi or stc=c90
+	verifyTypes                  bool // -verify-types
 }
 
 // NewTask returns a newly created Task. args[0] is the command name.
@@ -191,6 +194,7 @@ func (t *Task) main() (err error) {
 	set.Arg("O", true, func(arg, val string) error { t.O = fmt.Sprintf("%s%s", arg, val); t.opt0 = val == "0"; return nil })
 	set.Arg("U", true, func(arg, val string) error { t.U = append(t.U, fmt.Sprintf("%s%s", arg, val)); return nil })
 	set.Arg("exec-cc", false, func(arg, val string) error { t.execCC = val; return nil })
+	set.Arg("experiment-pin", false, func(arg, val string) error { t.experimentPin, err = strconv.Atoi(val); return err })
 	set.Arg("hide", false, func(arg, val string) error {
 		for _, v := range strings.Split(val, ",") {
 			t.hidden.add(v)
@@ -223,10 +227,11 @@ func (t *Task) main() (err error) {
 	set.Opt("ignore-asm-errors", func(arg string) error { t.ignoreAsmErrors = true; return nil })
 	set.Opt("ignore-header-functions", func(arg string) error { t.ignoreHeaderFunctions = true; return nil })
 	set.Opt("ignore-unsupported-alignment", func(arg string) error { t.ignoreUnsupportedAligment = true; return nil })
+	set.Opt("ignore-unsupported-atomic-sizes", func(arg string) error { t.ignoreUnsupportedAtomicSizes = true; return nil })
 	set.Opt("ignore-vector-functions", func(arg string) error { t.ignoreVectorFunctions = true; return nil })
 	set.Opt("keep-object-files", func(arg string) error { t.keepObjectFiles = true; return nil })
 	set.Opt("mlong-double-64", func(arg string) error { t.cfgArgs = append(t.cfgArgs, arg); return nil })
-	set.Opt("no-object-file-format", func(arg string) error { t.noObjFmt = true; return nil }) // now ignored
+	set.Opt("no-object-file-format", func(arg string) error { t.noObjFmt = true; return nil })
 	set.Opt("nostdinc", func(arg string) error { t.nostdinc = true; t.cfgArgs = append(t.cfgArgs, arg); return nil })
 	set.Opt("nostdlib", func(arg string) error { t.nostdlib = true; return nil })
 	set.Opt("positions", func(arg string) error { t.positions = true; return nil })

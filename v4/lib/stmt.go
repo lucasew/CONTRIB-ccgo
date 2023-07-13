@@ -154,27 +154,6 @@ func (c *ctx) labeledStatement(w writer, n *cc.LabeledStatement) {
 		w.w("%s%s:", tag(preserve), n.Token.Src()) //TODO use nameSpace
 		c.statement(w, n.Statement)
 	case cc.LabeledStatementCaseLabel: // "case" ConstantExpression ':' Statement
-		if c.pass == 1 {
-		out:
-			switch x := c.f.flow.tos(0).(type) {
-			case *switchCtx:
-				// ok
-			case *ifCtx:
-				c.f.flatScopes[x.s] = struct{}{}
-				for i := 1; ; i++ {
-					switch y := c.f.flow.tos(i).(type) {
-					case *switchCtx:
-						c.f.flatScopes[y.s] = struct{}{}
-						break out
-					default:
-						c.err(errorf("%v: internal error: %T", pos(n), y))
-						break out
-					}
-				}
-			default:
-				c.err(errorf("%v: internal error: %T", pos(n), x))
-			}
-		}
 		switch {
 		case len(c.switchCtx) != 0:
 			w.w("%s:", c.switchCtx[n])
@@ -191,27 +170,6 @@ func (c *ctx) labeledStatement(w writer, n *cc.LabeledStatement) {
 		}
 		c.err(errorf("TODO %v", n.Case))
 	case cc.LabeledStatementDefault: // "default" ':' Statement
-		if c.pass == 1 {
-		out2:
-			switch x := c.f.flow.tos(0).(type) {
-			case *switchCtx:
-				// ok
-			case *ifCtx:
-				c.f.flatScopes[x.s] = struct{}{}
-				for i := 1; ; i++ {
-					switch y := c.f.flow.tos(i).(type) {
-					case *switchCtx:
-						c.f.flatScopes[y.s] = struct{}{}
-						break out2
-					default:
-						c.err(errorf("%v: internal error: %T", pos(n), y))
-						break out2
-					}
-				}
-			default:
-				c.err(errorf("%v: internal error: %T", pos(n), x))
-			}
-		}
 		switch {
 		case len(c.switchCtx) != 0:
 			w.w("%s:", c.switchCtx[n])
@@ -245,8 +203,17 @@ func (c *ctx) compoundStatement(w writer, n *cc.CompoundStatement, fnBlock bool,
 			if c.f.maxValist != 0 {
 				v += 8 * int64((c.f.maxValist + 1))
 			}
-			w.w("%sbp := %[1]stls.%sAlloc(%d); /* tlsAllocs %v maxValist %v */", tag(ccgo), tag(preserve), v, c.f.tlsAllocs, c.f.maxValist)
-			w.w("defer %stls.%sFree(%d);", tag(ccgo), tag(preserve), v)
+			switch {
+			case c.task.experimentPin != 0:
+				w.w("var %spinner %sruntime.%sPinner;", tag(ccgo), tag(importQualifier), tag(preserve))
+				w.w("%sbpp := &[%d]int64{};", tag(ccgo), v/8)
+				w.w("%spinner.%sPin(%[1]sbpp);", tag(ccgo), tag(preserve))
+				w.w("defer %spinner.%sUnpin();", tag(ccgo), tag(preserve))
+				w.w("%sbp := %suintptr(%s);", tag(ccgo), tag(preserve), unsafePointer(fmt.Sprintf("&%sbpp[0]", tag(ccgo))))
+			default:
+				w.w("%sbp := %[1]stls.%sAlloc(%d); /* tlsAllocs %v maxValist %v */", tag(ccgo), tag(preserve), v, c.f.tlsAllocs, c.f.maxValist)
+				w.w("defer %stls.%sFree(%d);", tag(ccgo), tag(preserve), v)
+			}
 			for _, v := range c.f.t.Parameters() {
 				if d := v.Declarator; d != nil && c.f.declInfos.info(d).pinned() {
 					w.w("*(*%s)(%s) = %s_%s;", c.typ(n, d.Type()), unsafePointer(bpOff(c.f.declInfos.info(d).bpOff)), tag(ccgo), d.Name())
@@ -359,12 +326,6 @@ func (c *ctx) isEmptyStatment(n *cc.Statement) bool {
 	return n == nil || n.Case == cc.StatementExpr && n.ExpressionStatement.ExpressionList == nil
 }
 
-type switchCtx struct {
-	s *cc.Scope
-}
-
-type ifCtx struct{ s *cc.Scope }
-
 func (c *ctx) selectionStatement(w writer, n *cc.SelectionStatement) {
 	if _, ok := c.f.flatScopes[n.LexicalScope()]; ok {
 		c.selectionStatementFlat(w, n)
@@ -381,27 +342,9 @@ func (c *ctx) selectionStatement(w writer, n *cc.SelectionStatement) {
 
 	switch n.Case {
 	case cc.SelectionStatementIf: // "if" '(' ExpressionList ')' Statement
-		c.f.flow.push(&ifCtx{s: n.LexicalScope()})
-
-		defer func() { c.f.flow.pop() }()
-
-		if _, ok := c.f.flatScopes[n.LexicalScope()]; ok {
-			c.selectionStatementFlat(w, n)
-			return
-		}
-
 		w.w("if %s", c.expr(w, n.ExpressionList, nil, exprBool))
 		c.bracedStatement(w, n.Statement)
 	case cc.SelectionStatementIfElse: // "if" '(' ExpressionList ')' Statement "else" Statement
-		c.f.flow.push(&ifCtx{s: n.LexicalScope()})
-
-		defer func() { c.f.flow.pop() }()
-
-		if _, ok := c.f.flatScopes[n.LexicalScope()]; ok {
-			c.selectionStatementFlat(w, n)
-			return
-		}
-
 		switch {
 		case c.isEmptyStatment(n.Statement):
 			w.w("if !(%s) {", c.expr(w, n.ExpressionList, nil, exprBool))
@@ -415,15 +358,6 @@ func (c *ctx) selectionStatement(w writer, n *cc.SelectionStatement) {
 			w.w("};")
 		}
 	case cc.SelectionStatementSwitch: // "switch" '(' ExpressionList ')' Statement
-		c.f.flow.push(&switchCtx{s: n.LexicalScope()})
-
-		defer func() { c.f.flow.pop() }()
-
-		if _, ok := c.f.flatScopes[n.LexicalScope()]; ok {
-			c.selectionStatementFlat(w, n)
-			return
-		}
-
 		for _, v := range n.LabeledStatements() {
 			if v.Case == cc.LabeledStatementLabel {
 				c.selectionStatementFlat(w, n)
@@ -478,10 +412,6 @@ func (c *ctx) selectionStatement(w writer, n *cc.SelectionStatement) {
 func (c *ctx) selectionStatementFlat(w writer, n *cc.SelectionStatement) {
 	switch n.Case {
 	case cc.SelectionStatementIf: // "if" '(' ExpressionList ')' Statement
-		c.f.flow.push(&ifCtx{s: n.LexicalScope()})
-
-		defer func() { c.f.flow.pop() }()
-
 		//	if !expr goto a
 		//	stmt
 		// a:
@@ -490,10 +420,6 @@ func (c *ctx) selectionStatementFlat(w writer, n *cc.SelectionStatement) {
 		c.unbracedStatement(w, n.Statement)
 		w.w("%s:", a)
 	case cc.SelectionStatementIfElse: // "if" '(' ExpressionList ')' Statement "else" Statement
-		c.f.flow.push(&ifCtx{s: n.LexicalScope()})
-
-		defer func() { c.f.flow.pop() }()
-
 		//	if !expr goto a
 		//	stmt
 		//	goto b
@@ -507,10 +433,6 @@ func (c *ctx) selectionStatementFlat(w writer, n *cc.SelectionStatement) {
 		c.unbracedStatement(w, n.Statement2)
 		w.w("%s:", b)
 	case cc.SelectionStatementSwitch: // "switch" '(' ExpressionList ')' Statement
-		c.f.flow.push(&switchCtx{s: n.LexicalScope()})
-
-		defer func() { c.f.flow.pop() }()
-
 		//	switch expr {
 		//	case 1:
 		//		goto label1

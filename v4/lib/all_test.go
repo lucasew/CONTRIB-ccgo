@@ -48,6 +48,7 @@ var (
 	oErr1         = flag.Bool("err1", false, "first error line only")
 	oKeep         = flag.Bool("keep", false, "keep temp directories")
 	oPanic        = flag.Bool("panic", false, "panic on miscompilation")
+	oPin          = flag.String("pin", "0", "argument of -experiment-pin")
 	oShellTime    = flag.Duration("shelltimeout", 3600*time.Second, "shell() time limit")
 	oStackTrace   = flag.Bool("trcstack", false, "")
 	oTrace        = flag.Bool("trc", false, "print tested paths.")
@@ -486,8 +487,10 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 				"-verify-types",
 				"--prefix-field=F",
 				"-ignore-asm-errors",
-				"-ignore-vector-functions",
 				"-ignore-unsupported-alignment",
+				"-ignore-unsupported-atomic-sizes",
+				"-ignore-vector-functions",
+				"-experiment-pin", *oPin,
 				path,
 			},
 			&out, &out, nil).Main()
@@ -503,6 +506,8 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 				"-ignore-asm-errors",
 				"-ignore-vector-functions",
 				"-ignore-unsupported-alignment",
+				"-ignore-unsupported-atomic-sizes",
+				"-experiment-pin", *oPin,
 				path,
 			},
 			&out, &out, nil).Main()
@@ -947,6 +952,7 @@ out:
 				"-ignore-asm-errors",
 				"-ignore-vector-functions",
 				"-ignore-unsupported-alignment",
+				"-experiment-pin", *oPin,
 				"main.c",
 				csp,
 			},
@@ -1012,11 +1018,15 @@ func durationStr(d time.Duration) string {
 }
 
 func TestSQLite(t *testing.T) {
-	testSQLite(t, "assets/sqlite-amalgamation")
+	t.Run("simple", testSQLiteSimple)
+	t.Run("speedtest1", testSQLiteSpeedTest1)
 }
 
-func testSQLite(t *testing.T, dir string) {
-	const main = "main.go"
+func testSQLiteSimple(t *testing.T) {
+	const (
+		dir  = "assets/sqlite-amalgamation"
+		main = "main.go"
+	)
 	wd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
@@ -1057,7 +1067,9 @@ func testSQLite(t *testing.T, dir string) {
 		"-verify-types",
 		"-ignore-asm-errors",
 		"-ignore-unsupported-alignment",
+		"-ignore-unsupported-atomic-sizes",
 		"-ignore-vector-functions",
+		"-experiment-pin", *oPin,
 		"-o", main,
 		filepath.Join(dir, "shell.c"),
 		filepath.Join(dir, "sqlite3.c"),
@@ -1166,4 +1178,136 @@ func testSQLite(t *testing.T, dir string) {
 	if *oTraceO {
 		fmt.Printf("%s\n", out)
 	}
+}
+
+func testSQLiteSpeedTest1(t *testing.T) {
+	const (
+		dir  = "assets/sqlite-amalgamation"
+		main = "main.go"
+	)
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer os.Chdir(wd)
+
+	temp, err := os.MkdirTemp("", "ccgo-test-")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	switch {
+	case *oKeep:
+		t.Log(temp)
+	default:
+		defer os.RemoveAll(temp)
+	}
+
+	if err := os.Chdir(temp); err != nil {
+		t.Fatal(err)
+	}
+
+	ccgoArgs := []string{
+		"ccgo",
+
+		"-DHAVE_USLEEP",
+		"-DLONGDOUBLE_TYPE=double",
+		//"-DSQLITE_DEBUG",
+		"-DSQLITE_DEFAULT_MEMSTATUS=0",
+		"-DSQLITE_ENABLE_DBPAGE_VTAB",
+		"-DSQLITE_LIKE_DOESNT_MATCH_BLOBS",
+		//"-DSQLITE_MEMDEBUG",
+		"-DSQLITE_THREADSAFE=0",
+		"--prefix-field=F",
+		"-positions",
+		"-full-paths",
+		"-verify-types",
+		"-ignore-asm-errors",
+		"-ignore-unsupported-alignment",
+		"-ignore-unsupported-atomic-sizes",
+		"-ignore-vector-functions",
+		"-experiment-pin", *oPin,
+		"-o", main,
+		filepath.Join(dir, "speedtest1.c"),
+		filepath.Join(dir, "sqlite3.c"),
+		filepath.Join(dir, "patch.c"),
+	}
+	if *oKeep {
+		ccgoArgs = append(ccgoArgs, "-keep-object-files", "-extended-errors", "-debug-linker-save")
+	}
+	if *oDebug {
+		ccgoArgs = append(ccgoArgs, "-DSQLITE_DEBUG_OS_TRACE", "-DSQLITE_FORCE_OS_TRACE", "-DSQLITE_LOCK_TRACE")
+	}
+	if os.Getenv("GO111MODULE") != "off" {
+		if out, err := shell(true, "go", "mod", "init", "example.com/ccgo/v4/lib/sqlite"); err != nil {
+			t.Fatalf("%v\n%s", err, out)
+		}
+
+		if out, err := shell(true, "go", "get", "modernc.org/libc"); err != nil {
+			t.Fatalf("%v\n%s", err, out)
+		}
+	}
+
+	if !func() (r bool) {
+		defer func() {
+			if err := recover(); err != nil {
+				if *oStackTrace {
+					fmt.Printf("%s\n", debug.Stack())
+				}
+				if *oTrace {
+					fmt.Println(err)
+				}
+				t.Errorf("%v", err)
+				r = false
+			}
+			if *oTraceF {
+				b, _ := os.ReadFile(main)
+				fmt.Printf("\n----\n%s\n----\n", b)
+			}
+		}()
+
+		task := NewTask(goos, goarch, ccgoArgs, nil, nil, cfs)
+		if err := task.Main(); err != nil {
+			if *oTrace {
+				fmt.Println(err)
+			}
+			// err = cpp(*oCpp, ccgoArgs, err)
+			t.Errorf("%v", err)
+			return false
+		}
+
+		return true
+	}() {
+		return
+	}
+
+	executable := "./speedtest1"
+	if runtime.GOOS == "windows" {
+		executable = "speedtest1.exe"
+	}
+	args := []string{"build"}
+	if s := *oXTags; s != "" {
+		args = append(args, "-tags", s)
+	}
+	args = append(args, "-o", executable, main)
+	if out, err := exec.Command("go", args...).CombinedOutput(); err != nil {
+		s := strings.TrimSpace(string(out))
+		if s != "" {
+			s += "\n"
+		}
+		t.Errorf("%s%v", s, err)
+		return
+	}
+
+	out, err := exec.Command(executable).CombinedOutput()
+	if err != nil {
+		if *oTrace {
+			fmt.Printf("%s\n%s\n", out, err)
+		}
+		t.Errorf("%s\n%v", out, err)
+		return
+	}
+
+	t.Logf("\n%s", out)
 }

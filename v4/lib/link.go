@@ -490,6 +490,7 @@ type linker struct {
 	maxUintptr            uint64
 	out                   io.Writer
 	reflectName           string
+	runtimeName           string
 	stringLiterals        map[string]int64
 	synthDecls            map[string][]byte
 	task                  *Task
@@ -625,6 +626,7 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 	l.textSegmentNameP = l.tld.reg.put("ts")
 	l.textSegmentName = l.tld.reg.put("ts")
 	l.reflectName = l.tld.reg.put("reflect")
+	l.runtimeName = l.tld.reg.put("runtime")
 	l.unsafeName = l.tld.reg.put("unsafe")
 
 	// Check for unresolved references.
@@ -729,6 +731,17 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 		default:
 			l.w("\n\t%s \"reflect\"", nm)
 		}
+		rtDummy := ""
+		if l.task.experimentPin != 0 {
+			switch nm := l.runtimeName; nm {
+			case "runtime":
+				l.w("\n\t\"runtime\"")
+				rtDummy = "\t_ runtime.Pinner\n"
+			default:
+				l.w("\n\t%s \"runtime\"", nm)
+				rtDummy = fmt.Sprintf("\t_ %s.Pinner\n", nm)
+			}
+		}
 		switch nm := l.unsafeName; nm {
 		case "unsafe":
 			l.w("\n\t\"unsafe\"")
@@ -751,9 +764,9 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 var (
 	_ %s.Type
 	_ %s.Pointer
-)
+%s)
 
-`, l.reflectName, l.unsafeName)
+`, l.reflectName, l.unsafeName, rtDummy)
 	}
 
 	for _, linkFile := range linkFiles {
@@ -1252,6 +1265,8 @@ func (fi *fnInfo) name(linkName string) string {
 		switch nm := linkName[len(tag(importQualifier)):]; nm {
 		case "libc":
 			return fi.linker.libc.qualifier
+		case "runtime":
+			return fi.linker.runtimeName
 		case "unsafe":
 			return fi.linker.unsafeName
 		default:

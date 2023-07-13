@@ -43,11 +43,16 @@ func (n *declInfos) info(d *cc.Declarator) (r *declInfo) {
 
 func (n *declInfos) takeAddress(d *cc.Declarator) { n.info(d).addressTaken = true }
 
-type stack[T any] []T
+type scoper interface {
+	LexicalScope() *cc.Scope
+}
 
-func (s *stack[T]) pop()        { *s = (*s)[:len(*s)-1] }
-func (s *stack[T]) push(v T)    { *s = append(*s, v) }
-func (s *stack[T]) tos(n int) T { return (*s)[len(*s)-n-1] }
+type flowCtx struct {
+	parent *flowCtx
+	stmt   scoper
+}
+
+func (c *flowCtx) new(stmt scoper) *flowCtx { return &flowCtx{parent: c, stmt: stmt} }
 
 type fnCtx struct {
 	autovars         []string
@@ -56,7 +61,6 @@ type fnCtx struct {
 	declInfos        declInfos
 	flatScopes       map[*cc.Scope]struct{}
 	locals           map[*cc.Declarator]string // storage: static or automatic, linkage: none -> C renamed
-	flow             stack[any]
 	t                *cc.FunctionType
 	tlsAllocs        int64
 	vlaSizes         map[*cc.Declarator]string
@@ -104,10 +108,37 @@ next:
 			}
 		}
 	}
-	r = &fnCtx{c: c, t: t, flatScopes: flatScopes}
-	r.flow.push(nil)
-	return r
-
+	var fc *flowCtx
+	walkC(n, func(n cc.Node, mode int) {
+		switch x := n.(type) {
+		case *cc.Statement:
+			switch x.Case {
+			case cc.StatementSelection:
+				switch mode {
+				case walkPre:
+					fc = fc.new(x.SelectionStatement)
+				case walkPost:
+					fc = fc.parent
+				}
+			case cc.StatementLabeled:
+				switch x.LabeledStatement.Case {
+				case cc.LabeledStatementCaseLabel, cc.LabeledStatementRange, cc.LabeledStatementDefault:
+					switch y := fc.stmt.(type) {
+					case *cc.SelectionStatement:
+						if y.Case != cc.SelectionStatementSwitch {
+							for c := fc; ; c = c.parent {
+								flatScopes[c.stmt.LexicalScope()] = struct{}{}
+								if x, ok := c.stmt.(*cc.SelectionStatement); ok && x.Case == cc.SelectionStatementSwitch {
+									return
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	})
+	return &fnCtx{c: c, t: t, flatScopes: flatScopes}
 }
 
 func (f *fnCtx) newAutovarName() (nm string) {

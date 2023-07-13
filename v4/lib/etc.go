@@ -26,7 +26,8 @@ import (
 var (
 	trcTODOs bool
 
-	extendedErrors bool // true: Errors will include origin info.
+	extendedErrors   bool // true: Errors will include origin info.
+	zeroReflectValue reflect.Value
 
 	reservedNames = nameSet{
 		// Keywords
@@ -717,68 +718,20 @@ func export(s string) string {
 }
 
 // Same as cc.NodeSource but keeps the separators.
-func nodeSource(s ...cc.Node) string {
+func nodeSource(n cc.Node) string {
 	var a []cc.Token
-	for _, n := range s {
-		nodeTokens(n, &a)
-	}
+	walkC(n, func(n cc.Node, mode int) {
+		if x, ok := n.(cc.Token); ok {
+			a = append(a, x)
+		}
+	})
 	sort.Slice(a, func(i, j int) bool { return a[i].Seq() < a[j].Seq() })
 	var b strings.Builder
 	for _, t := range a {
-		// fmt.Fprintf(&b, " %d: ", t.Seq())
 		b.Write(t.Sep())
 		b.Write(t.Src())
 	}
 	return strings.Trim(b.String(), "\n")
-}
-
-func nodeTokens(n cc.Node, a *[]cc.Token) {
-	if n == nil {
-		return
-	}
-
-	t := reflect.TypeOf(n)
-	v := reflect.ValueOf(n)
-	var zero reflect.Value
-	if t.Kind() == reflect.Pointer {
-		t = t.Elem()
-		v = v.Elem()
-		if v == zero {
-			return
-		}
-	}
-
-	if t.Kind() != reflect.Struct {
-		return
-	}
-
-	if x, ok := n.(cc.Token); ok && x.Seq() != 0 {
-		*a = append(*a, x)
-		return
-	}
-
-	nf := t.NumField()
-	for i := 0; i < nf; i++ {
-		f := t.Field(i)
-		if !f.IsExported() {
-			continue
-		}
-
-		if strings.HasPrefix(f.Name, "Token") {
-			if x, ok := v.Field(i).Interface().(cc.Token); ok && x.Seq() != 0 {
-				*a = append(*a, x)
-			}
-			continue
-		}
-
-		if v == zero || v.IsZero() {
-			continue
-		}
-
-		if m, ok := v.Field(i).Interface().(cc.Node); ok {
-			nodeTokens(m, a)
-		}
-	}
 }
 
 func sep(n cc.Node) (r string) {
@@ -882,13 +835,12 @@ func walk(n interface{}, fn func(n gc.Node, pre bool, arg interface{}), arg inte
 
 	t := reflect.TypeOf(n)
 	v := reflect.ValueOf(n)
-	var zero reflect.Value
 	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 		v = v.Elem()
-		if v == zero {
-			return
-		}
+	}
+	if v == zeroReflectValue || v.IsZero() {
+		return
 	}
 
 	switch t.Kind() {
@@ -900,10 +852,6 @@ func walk(n interface{}, fn func(n gc.Node, pre bool, arg interface{}), arg inte
 		for i := 0; i < nf; i++ {
 			f := t.Field(i)
 			if !f.IsExported() {
-				continue
-			}
-
-			if v == zero || v.IsZero() {
 				continue
 			}
 
@@ -1042,4 +990,44 @@ func gcKind(k cc.Kind, cabi *cc.ABI) gc.Kind {
 		panic(todo("", k))
 	}
 	return -1
+}
+
+const (
+	walkTok = iota
+	walkPre
+	walkPost
+)
+
+func walkC(n cc.Node, fn func(n cc.Node, mode int)) {
+	if n == nil {
+		return
+	}
+
+	if _, ok := n.(cc.Token); ok {
+		fn(n, walkTok)
+		return
+	}
+
+	t := reflect.TypeOf(n)
+	v := reflect.ValueOf(n)
+	if t.Kind() == reflect.Pointer {
+		t = t.Elem()
+		v = v.Elem()
+	}
+	if v == zeroReflectValue || v.IsZero() || t.Kind() != reflect.Struct {
+		return
+	}
+
+	fn(n, walkPre)
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		if !f.IsExported() {
+			continue
+		}
+
+		if m, ok := v.Field(i).Interface().(cc.Node); ok {
+			walkC(m, fn)
+		}
+	}
+	fn(n, walkPost)
 }
