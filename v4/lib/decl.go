@@ -54,12 +54,21 @@ type flowCtx struct {
 
 func (c *flowCtx) new(stmt scoper) *flowCtx { return &flowCtx{parent: c, stmt: stmt} }
 
+type inlineParam struct {
+	param       *cc.Parameter
+	replaceWith string
+}
+
 type fnCtx struct {
 	autovars         []string
 	c                *ctx
 	compoundLiterals map[cc.ExpressionNode]int64
 	declInfos        declInfos
 	flatScopes       map[*cc.Scope]struct{}
+	inlineBodies     map[*cc.CompoundStatement]string // val = retval replacing return
+	inlineExit       string
+	inlineParams     []*inlineParam
+	inlining         *cc.CompoundStatement
 	locals           map[*cc.Declarator]string // storage: static or automatic, linkage: none -> C renamed
 	t                *cc.FunctionType
 	tlsAllocs        int64
@@ -138,7 +147,12 @@ next:
 			}
 		}
 	})
-	return &fnCtx{c: c, t: t, flatScopes: flatScopes}
+	return &fnCtx{
+		c:            c,
+		flatScopes:   flatScopes,
+		inlineBodies: map[*cc.CompoundStatement]string{},
+		t:            t,
+	}
 }
 
 func (f *fnCtx) newAutovarName() (nm string) {
@@ -238,6 +252,11 @@ func (c *ctx) externalDeclaration(w writer, n *cc.ExternalDeclaration) {
 			return
 		}
 
+		if d.IsStatic() && d.IsInline() && c.isHeader(d) {
+			c.inlines[d] = n.FunctionDefinition
+			return
+		}
+
 		switch d.Linkage() {
 		case cc.External:
 			c.externsDefined[n.FunctionDefinition.Declarator.Name()] = struct{}{}
@@ -254,6 +273,10 @@ func (c *ctx) externalDeclaration(w writer, n *cc.ExternalDeclaration) {
 	}
 }
 
+func (c *ctx) isHeader(n cc.Node) bool {
+	return n != nil && strings.HasSuffix(n.Position().Filename, ".h")
+}
+
 func (c *ctx) functionDefinition(w writer, n *cc.FunctionDefinition) {
 	if n.UsesVectors() {
 		if !c.task.ignoreVectorFunctions {
@@ -263,10 +286,6 @@ func (c *ctx) functionDefinition(w writer, n *cc.FunctionDefinition) {
 	}
 
 	if c.task.header {
-		return
-	}
-
-	if c.task.ignoreHeaderFunctions && strings.HasSuffix(n.Position().Filename, ".h") {
 		return
 	}
 

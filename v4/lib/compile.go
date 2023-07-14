@@ -179,6 +179,7 @@ type ctx struct {
 	ifn                 string
 	imports             map[string]string // import path: qualifier
 	initPatch           func(int64, *buf)
+	inlines             map[*cc.Declarator]*cc.FunctionDefinition
 	jsonMeta
 	macrosEmited  nameSet
 	maxAlign      int
@@ -221,6 +222,7 @@ func newCtx(task *Task, eh errHandler) *ctx {
 		externsMentioned:    map[string]struct{}{},
 		fields:              map[fielder]*nameSpace{},
 		imports:             map[string]string{},
+		inlines:             map[*cc.Declarator]*cc.FunctionDefinition{},
 		maxAlign:            maxAlign,
 		task:                task,
 		verify:              map[cc.Type]struct{}{},

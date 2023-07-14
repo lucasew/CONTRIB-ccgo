@@ -1646,20 +1646,25 @@ out:
 			return c.addOverflow(w, n, t, mode)
 		}
 
+		inline := false
+		if d := c.declaratorOf(n.PostfixExpression); d != nil && d.IsStatic() && d.IsInline() && c.isHeader(d) {
+			inline = true
+		}
+
 		switch mode {
 		case exprSelect:
 			switch n.Type().(type) {
 			case *cc.StructType:
-				return c.postfixExpressionCall(w, n)
+				return c.postfixExpressionCall(w, n, inline)
 			case *cc.UnionType:
 				v := fmt.Sprintf("%sv%d", tag(ccgoAutomatic), c.id())
-				e, _, _ := c.postfixExpressionCall(w, n)
+				e, _, _ := c.postfixExpressionCall(w, n, inline)
 				w.w("%s := %s;", v, e)
 				b.w("%s", v)
 				return &b, n.Type(), mode
 			}
 		default:
-			return c.postfixExpressionCall(w, n)
+			return c.postfixExpressionCall(w, n, inline)
 		}
 	case cc.PostfixExpressionSelect: // PostfixExpression '.' IDENTIFIER
 		return c.postfixExpressionSelect(w, n, t, mode)
@@ -2352,7 +2357,7 @@ func (c *ctx) declaratorOf(n cc.ExpressionNode) *cc.Declarator {
 	return nil
 }
 
-func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression) (r *buf, rt cc.Type, rmode mode) {
+func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, inline bool) (r *buf, rt cc.Type, rmode mode) {
 	var b buf
 	var ft *cc.FunctionType
 	var d *cc.Declarator
@@ -2371,7 +2376,17 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression) (r *buf, 
 			c.err(errorf("TODO %T", d.Type()))
 			return
 		}
+
+		if inline && ft.IsVariadic() {
+			c.err(errorf("TODO %T", d.Type()))
+			return
+		}
 	default:
+		if inline {
+			c.err(errorf("TODO"))
+			return
+		}
+
 		pt, ok := n.PostfixExpression.Type().(*cc.PointerType)
 		if !ok {
 			c.err(errorf("TODO %T", n.PostfixExpression.Type()))
@@ -2407,7 +2422,18 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression) (r *buf, 
 		args = args[:max]
 	}
 	params := ft.Parameters()
+	if inline {
+		l := len(params)
+		if l == 1 && params[0].Type().Kind() == cc.Void {
+			l--
+		}
+		if l != len(args) {
+			c.err(errorf("%v: TODO", n.Position()))
+			return
+		}
+	}
 	var xargs []*buf
+	var xtypes []cc.Type
 	for i, v := range args {
 		mode := exprDefault
 		var t cc.Type
@@ -2427,7 +2453,12 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression) (r *buf, 
 			mode = exprUintptr
 		}
 		xargs = append(xargs, c.topExpr(w, v, t, mode))
+		xtypes = append(xtypes, t)
 	}
+	if inline {
+		return c.postfixExpressionCallInline(w, c.inlines[d], ft, xargs, xtypes)
+	}
+
 	switch {
 	case c.f == nil:
 		b.w("%s(%snil", c.expr(w, n.PostfixExpression, nil, exprCall), tag(preserve))
@@ -2463,6 +2494,51 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression) (r *buf, 
 		rmode = exprVoid
 	}
 	return &b, rt, rmode
+}
+
+func (c *ctx) postfixExpressionCallInline(w writer, fd *cc.FunctionDefinition, ft *cc.FunctionType, args []*buf, types []cc.Type) (r *buf, rt cc.Type, rmode mode) {
+	var b buf
+	sv := c.f.inlineParams
+
+	defer func() { c.f.inlineParams = sv }()
+
+	params := ft.Parameters()
+	if len(params) == 1 && params[0].Type().Kind() == cc.Void {
+		params = params[1:]
+	}
+	for i, arg := range args {
+		d := params[i].Declarator
+		switch {
+		case d.WriteCount() != 0 || d.ReadCount() > 1 || d.AddressTaken():
+			v := c.f.newAutovar(params[i], types[i])
+			w.w("%s = %s;", v, arg)
+			c.f.inlineParams = append(c.f.inlineParams, &inlineParam{params[i], v})
+		default:
+			c.f.inlineParams = append(c.f.inlineParams, &inlineParam{params[i], string(arg.b)})
+		}
+	}
+	var retVal string
+	rt = ft.Result()
+	if rt.Kind() != cc.Void {
+		retVal = c.f.newAutovar(fd, rt)
+		b.w("(%s)", retVal)
+	}
+	cs := fd.CompoundStatement
+	svcs := c.f.inlining
+	svexit := c.f.inlineExit
+	svret := c.f.inlineBodies[cs]
+
+	defer func() {
+		c.f.inlining = svcs
+		c.f.inlineBodies[cs] = svret
+		c.f.inlineExit = svexit
+	}()
+
+	c.f.inlining = cs
+	c.f.inlineBodies[cs] = retVal
+	c.f.inlineExit = ""
+	c.compoundStatement(w, cs, false, "")
+	return &b, rt, exprDefault
 }
 
 func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
@@ -2672,6 +2748,15 @@ out:
 		rt, rmode = n.Type(), mode
 		switch x := n.ResolvedTo().(type) {
 		case *cc.Declarator:
+			if c.f != nil {
+				for i := len(c.f.inlineParams) - 1; i >= 0; i-- {
+					if ip := c.f.inlineParams[i]; ip.param.Declarator == x {
+						b.w("(%s)", ip.replaceWith)
+						return &b, ip.param.Declarator.Type(), exprDefault
+					}
+				}
+			}
+
 			nm := x.Name()
 			linkName := c.declaratorTag(x) + nm
 			if c.pass == 2 {

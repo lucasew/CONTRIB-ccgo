@@ -92,7 +92,6 @@ type Task struct {
 	fullPaths                    bool // -full-paths
 	header                       bool // -header
 	ignoreAsmErrors              bool // -ignore-asm-errors
-	ignoreHeaderFunctions        bool // -ignore-header-functions
 	ignoreUnsupportedAligment    bool // -ignore-unsupported-alignment
 	ignoreUnsupportedAtomicSizes bool // -ignore-unsupported-atomic-sizes
 	ignoreVectorFunctions        bool // -ignore-vector-functions
@@ -225,7 +224,6 @@ func (t *Task) main() (err error) {
 	set.Opt("full-paths", func(arg string) error { t.fullPaths = true; return nil })
 	set.Opt("header", func(arg string) error { t.header = true; return nil })
 	set.Opt("ignore-asm-errors", func(arg string) error { t.ignoreAsmErrors = true; return nil })
-	set.Opt("ignore-header-functions", func(arg string) error { t.ignoreHeaderFunctions = true; return nil })
 	set.Opt("ignore-unsupported-alignment", func(arg string) error { t.ignoreUnsupportedAligment = true; return nil })
 	set.Opt("ignore-unsupported-atomic-sizes", func(arg string) error { t.ignoreUnsupportedAtomicSizes = true; return nil })
 	set.Opt("ignore-vector-functions", func(arg string) error { t.ignoreVectorFunctions = true; return nil })
