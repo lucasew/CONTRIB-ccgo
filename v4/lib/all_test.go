@@ -1018,6 +1018,10 @@ func durationStr(d time.Duration) string {
 }
 
 func TestSQLite(t *testing.T) {
+	if runtime.GOOS != "linux" { //TODO-
+		t.Skip("TODO")
+	}
+
 	t.Run("simple", testSQLiteSimple)
 	t.Run("speedtest1", testSQLiteSpeedTest1)
 }

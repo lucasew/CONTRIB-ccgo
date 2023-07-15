@@ -1647,7 +1647,7 @@ out:
 		}
 
 		inline := false
-		if d := c.declaratorOf(n.PostfixExpression); d != nil && d.IsStatic() && d.IsInline() && c.isHeader(d) {
+		if d := c.declaratorOf(n.PostfixExpression); d != nil && d.IsStatic() && d.IsInline() && c.isHeader(d) && !c.task.hidden.has(d.Name()) {
 			inline = true
 		}
 
@@ -1655,16 +1655,16 @@ out:
 		case exprSelect:
 			switch n.Type().(type) {
 			case *cc.StructType:
-				return c.postfixExpressionCall(w, n, inline)
+				return c.postfixExpressionCall(w, n, inline, mode)
 			case *cc.UnionType:
 				v := fmt.Sprintf("%sv%d", tag(ccgoAutomatic), c.id())
-				e, _, _ := c.postfixExpressionCall(w, n, inline)
+				e, _, _ := c.postfixExpressionCall(w, n, inline, mode)
 				w.w("%s := %s;", v, e)
 				b.w("%s", v)
 				return &b, n.Type(), mode
 			}
 		default:
-			return c.postfixExpressionCall(w, n, inline)
+			return c.postfixExpressionCall(w, n, inline, mode)
 		}
 	case cc.PostfixExpressionSelect: // PostfixExpression '.' IDENTIFIER
 		return c.postfixExpressionSelect(w, n, t, mode)
@@ -2357,7 +2357,7 @@ func (c *ctx) declaratorOf(n cc.ExpressionNode) *cc.Declarator {
 	return nil
 }
 
-func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, inline bool) (r *buf, rt cc.Type, rmode mode) {
+func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, inline bool, mode mode) (r *buf, rt cc.Type, rmode mode) {
 	var b buf
 	var ft *cc.FunctionType
 	var d *cc.Declarator
@@ -2456,7 +2456,7 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, inline bo
 		xtypes = append(xtypes, t)
 	}
 	if inline {
-		return c.postfixExpressionCallInline(w, c.inlines[d], ft, xargs, xtypes)
+		return c.postfixExpressionCallInline(w, c.inlines[d], ft, xargs, xtypes, mode)
 	}
 
 	switch {
@@ -2496,7 +2496,7 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, inline bo
 	return &b, rt, rmode
 }
 
-func (c *ctx) postfixExpressionCallInline(w writer, fd *cc.FunctionDefinition, ft *cc.FunctionType, args []*buf, types []cc.Type) (r *buf, rt cc.Type, rmode mode) {
+func (c *ctx) postfixExpressionCallInline(w writer, fd *cc.FunctionDefinition, ft *cc.FunctionType, args []*buf, types []cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
 	var b buf
 	sv := c.f.inlineParams
 
@@ -2525,20 +2525,26 @@ func (c *ctx) postfixExpressionCallInline(w writer, fd *cc.FunctionDefinition, f
 	}
 	cs := fd.CompoundStatement
 	svcs := c.f.inlining
+	svT := c.f.inliningT
+	svMode := c.f.inliningMode
 	svexit := c.f.inlineExit
 	svret := c.f.inlineBodies[cs]
 
 	defer func() {
 		c.f.inlining = svcs
+		c.f.inliningT = svT
+		c.f.inliningMode = svMode
 		c.f.inlineBodies[cs] = svret
 		c.f.inlineExit = svexit
 	}()
 
 	c.f.inlining = cs
+	c.f.inliningT = fd.Declarator.Type().(*cc.FunctionType)
 	c.f.inlineBodies[cs] = retVal
 	c.f.inlineExit = ""
+	c.f.inliningMode = mode
 	c.compoundStatement(w, cs, false, "")
-	return &b, rt, exprDefault
+	return &b, rt, mode
 }
 
 func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {

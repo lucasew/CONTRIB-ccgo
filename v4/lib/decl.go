@@ -66,13 +66,17 @@ type fnCtx struct {
 	declInfos        declInfos
 	flatScopes       map[*cc.Scope]struct{}
 	inlineBodies     map[*cc.CompoundStatement]string // val = retval replacing return
-	inlineExit       string
-	inlineParams     []*inlineParam
-	inlining         *cc.CompoundStatement
-	locals           map[*cc.Declarator]string // storage: static or automatic, linkage: none -> C renamed
-	t                *cc.FunctionType
-	tlsAllocs        int64
-	vlaSizes         map[*cc.Declarator]string
+
+	inlineExit   string                // unify
+	inlineParams []*inlineParam        // unify
+	inlining     *cc.CompoundStatement // unify
+	inliningT    *cc.FunctionType      // unify
+	inliningMode mode                  // unify
+
+	locals    map[*cc.Declarator]string // storage: static or automatic, linkage: none -> C renamed
+	t         *cc.FunctionType
+	tlsAllocs int64
+	vlaSizes  map[*cc.Declarator]string
 
 	maxValist int
 	nextID    int

@@ -775,7 +775,7 @@ func (c *ctx) jumpStatement(w writer, n *cc.JumpStatement) {
 					if c.f.inlineExit == "" {
 						c.f.inlineExit = c.label()
 					}
-					w.w("%s = %s; goto %s;", c.f.inlineBodies[cs], c.topExpr(w, n.ExpressionList, nil, exprDefault), c.f.inlineExit)
+					w.w("%s = %s; goto %s;", c.f.inlineBodies[cs], c.topExpr(w, n.ExpressionList, c.f.inliningT.Result(), exprDefault), c.f.inlineExit)
 				default:
 					w.w("return %s;", c.topExpr(w, n.ExpressionList, c.f.t.Result(), exprDefault))
 				}
