@@ -1011,6 +1011,8 @@ func (l *linker) postProcess(fn string, b []byte) (r []byte) {
 				_ = s
 				r = append(r, v...)
 			}
+		case bytes.ContainsRune(v, ';') && strings.TrimSpace(string(v)) == ";":
+			continue
 		default:
 			r = append(r, v...)
 		}

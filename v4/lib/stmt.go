@@ -189,16 +189,13 @@ func (c *ctx) compoundStatement(w writer, n *cc.CompoundStatement, fnBlock bool,
 	defer func() { c.compoundStmtValue = value }()
 
 	_, flat := c.f.flatScopes[n.LexicalScope()]
-	_, inline := c.f.inlineBodies[n]
 	switch {
 	case fnBlock:
 		if c.pass != 2 {
 			break
 		}
 
-		if !inline {
-			w.w(" {\n")
-		}
+		w.w("{\n")
 		switch {
 		case c.f.tlsAllocs+int64(c.f.maxValist) != 0:
 			c.f.tlsAllocs = roundup(c.f.tlsAllocs, 8)
@@ -240,14 +237,14 @@ func (c *ctx) compoundStatement(w writer, n *cc.CompoundStatement, fnBlock bool,
 			w.w("}();")
 		}
 	default:
-		if !flat && !inline {
+		if !flat {
 			w.w(" {\n %s%s", sep(n.Token), c.posComment(n))
 		}
 	}
 	var bi *cc.BlockItem
 	for l := n.BlockItemList; l != nil; l = l.BlockItemList {
 		bi = l.BlockItem
-		if !inline && l.BlockItemList == nil && value != "" {
+		if l.BlockItemList == nil && value != "" {
 			switch bi.Case {
 			case cc.BlockItemStmt:
 				s := bi.Statement
@@ -284,10 +281,6 @@ func (c *ctx) compoundStatement(w writer, n *cc.CompoundStatement, fnBlock bool,
 	}
 	switch {
 	case fnBlock && c.f.t.Result().Kind() != cc.Void && !c.isReturn(bi):
-		if inline {
-			break
-		}
-
 		s := sep(n.Token2)
 		if strings.Contains(s, "\n") {
 			w.w("%s", s)
@@ -298,10 +291,7 @@ func (c *ctx) compoundStatement(w writer, n *cc.CompoundStatement, fnBlock bool,
 			w.w("};")
 		}
 	default:
-		if inline && c.f.inlineExit != "" {
-			w.w("%[1]s:", c.f.inlineExit)
-		}
-		if !flat && !inline {
+		if !flat {
 			w.w("%s", sep(n.Token2))
 			w.w("};")
 		}
@@ -756,29 +746,36 @@ func (c *ctx) jumpStatement(w writer, n *cc.JumpStatement) {
 
 		w.w("break;")
 	case cc.JumpStatementReturn: // "return" ExpressionList ';'
+		if nfo := c.f.inlineInfo; nfo != nil {
+			switch ft := nfo.fd.Declarator.Type().(*cc.FunctionType); {
+			case n.ExpressionList != nil:
+				switch {
+				case nfo.mode == exprVoid:
+					if nfo.exit == "" {
+						nfo.exit = c.label()
+					}
+					w.w("%s = %s;", tag(preserve), c.discardStr(n.ExpressionList), c.topExpr(w, n.ExpressionList, nil, exprDefault))
+				default:
+					if nfo.exit == "" {
+						nfo.result = c.f.newAutovar(nfo.fd, ft.Result())
+						nfo.exit = c.label()
+					}
+					w.w("%s = %s;", nfo.result, c.topExpr(w, n.ExpressionList, ft.Result(), exprDefault))
+				}
+				w.w("goto %s;", nfo.exit)
+			default:
+				panic(todo(""))
+			}
+			return
+		}
+
 		switch {
 		case n.ExpressionList != nil:
 			switch {
 			case c.f.t.Result().Kind() == cc.Void:
-				if c.f.inlining != nil {
-					if c.f.inlineExit == "" {
-						c.f.inlineExit = c.label()
-					}
-					w.w("goto %s;", c.f.inlineExit)
-					break
-				}
-
 				w.w("%s; return;", c.expr(w, n.ExpressionList, nil, exprVoid))
 			default:
-				switch cs := c.f.inlining; {
-				case cs != nil:
-					if c.f.inlineExit == "" {
-						c.f.inlineExit = c.label()
-					}
-					w.w("%s = %s; goto %s;", c.f.inlineBodies[cs], c.topExpr(w, n.ExpressionList, c.f.inliningT.Result(), exprDefault), c.f.inlineExit)
-				default:
-					w.w("return %s;", c.topExpr(w, n.ExpressionList, c.f.t.Result(), exprDefault))
-				}
+				w.w("return %s;", c.topExpr(w, n.ExpressionList, c.f.t.Result(), exprDefault))
 			}
 		default:
 			w.w("return;")

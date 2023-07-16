@@ -54,9 +54,15 @@ type flowCtx struct {
 
 func (c *flowCtx) new(stmt scoper) *flowCtx { return &flowCtx{parent: c, stmt: stmt} }
 
-type inlineParam struct {
-	param       *cc.Parameter
-	replaceWith string
+type inlineInfo struct {
+	args           []*buf
+	exit           string
+	fd             *cc.FunctionDefinition
+	mode           mode
+	params         []*cc.Parameter
+	parent         *inlineInfo
+	replacedParams []string
+	result         string
 }
 
 type fnCtx struct {
@@ -65,18 +71,11 @@ type fnCtx struct {
 	compoundLiterals map[cc.ExpressionNode]int64
 	declInfos        declInfos
 	flatScopes       map[*cc.Scope]struct{}
-	inlineBodies     map[*cc.CompoundStatement]string // val = retval replacing return
-
-	inlineExit   string                // unify
-	inlineParams []*inlineParam        // unify
-	inlining     *cc.CompoundStatement // unify
-	inliningT    *cc.FunctionType      // unify
-	inliningMode mode                  // unify
-
-	locals    map[*cc.Declarator]string // storage: static or automatic, linkage: none -> C renamed
-	t         *cc.FunctionType
-	tlsAllocs int64
-	vlaSizes  map[*cc.Declarator]string
+	inlineInfo       *inlineInfo
+	locals           map[*cc.Declarator]string // storage: static or automatic, linkage: none -> C renamed
+	t                *cc.FunctionType
+	tlsAllocs        int64
+	vlaSizes         map[*cc.Declarator]string
 
 	maxValist int
 	nextID    int
@@ -152,10 +151,9 @@ next:
 		}
 	})
 	return &fnCtx{
-		c:            c,
-		flatScopes:   flatScopes,
-		inlineBodies: map[*cc.CompoundStatement]string{},
-		t:            t,
+		c:          c,
+		flatScopes: flatScopes,
+		t:          t,
 	}
 }
 
@@ -257,7 +255,7 @@ func (c *ctx) externalDeclaration(w writer, n *cc.ExternalDeclaration) {
 		}
 
 		if d.IsStatic() && d.IsInline() && c.isHeader(d) {
-			c.inlines[d] = n.FunctionDefinition
+			c.inlineFuncs[d] = n.FunctionDefinition
 			return
 		}
 
