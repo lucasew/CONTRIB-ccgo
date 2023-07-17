@@ -423,10 +423,6 @@ func (t *Task) getFileSymbols(fset *token.FileSet, fn string) (r *object, err er
 					if err := json.Unmarshal([]byte(strings.Join(a, "`")), &r.meta); err != nil {
 						return nil, err
 					}
-
-					if dmesgs && len(r.meta.WeakAliases) != 0 {
-						dmesg("%v: read json meta: %+v", fn, &r.meta)
-					}
 				default:
 					panic(todo("", v.Kind()))
 				}

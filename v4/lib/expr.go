@@ -690,6 +690,44 @@ func (c *ctx) logicalOrExpression(w writer, n *cc.LogicalOrExpression, t cc.Type
 	return &b, c.ast.Int, rmode
 }
 
+func (c *ctx) unparen(n cc.ExpressionNode) cc.ExpressionNode {
+	switch x := n.(type) {
+	case *cc.ExpressionList:
+		if x.ExpressionList == nil {
+			return c.unparen(x.AssignmentExpression)
+		}
+	case *cc.PrimaryExpression:
+		if x.Case == cc.PrimaryExpressionExpr {
+			return c.unparen(x.ExpressionList)
+		}
+	}
+
+	return n
+}
+
+func (c *ctx) canIgnore(n cc.ExpressionNode) bool {
+	switch x := c.unparen(n).(type) {
+	case *cc.CastExpression:
+		if x.Case != cc.CastExpressionCast || x.TypeName.Type().Kind() != cc.Void {
+			return false
+		}
+
+		switch y := c.unparen(x.CastExpression).(type) {
+		case *cc.PrimaryExpression:
+			switch y.Case {
+			case cc.PrimaryExpressionInt:
+				return true
+			}
+		}
+	case *cc.PrimaryExpression:
+		switch x.Case {
+		case cc.PrimaryExpressionInt:
+			return true
+		}
+	}
+	return false
+}
+
 func (c *ctx) conditionalExpression(w writer, n *cc.ConditionalExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
 	c.exprNestLevel--
 
@@ -751,11 +789,18 @@ func (c *ctx) conditionalExpression(w writer, n *cc.ConditionalExpression, t cc.
 			b.w("%s", v)
 		case exprVoid:
 			rt, rmode = n.Type(), mode
-			w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
-			w.w("%s%s;", c.discardStr(n.ExpressionList), c.topExpr(w, n.ExpressionList, n.Type(), exprVoid))
-			w.w("} else {")
-			w.w("%s%s;", c.discardStr(n.ConditionalExpression), c.topExpr(w, n.ConditionalExpression, n.Type(), exprVoid))
-			w.w("};")
+			switch {
+			case c.canIgnore(n.ExpressionList):
+				w.w("if !(%s) {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
+				w.w("%s%s;", c.discardStr(n.ConditionalExpression), c.topExpr(w, n.ConditionalExpression, n.Type(), exprVoid))
+				w.w("};")
+			default:
+				w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
+				w.w("%s%s;", c.discardStr(n.ExpressionList), c.topExpr(w, n.ExpressionList, n.Type(), exprVoid))
+				w.w("} else {")
+				w.w("%s%s;", c.discardStr(n.ConditionalExpression), c.topExpr(w, n.ConditionalExpression, n.Type(), exprVoid))
+				w.w("};")
+			}
 		default:
 			rt, rmode = n.Type(), mode
 			vs := fmt.Sprintf("var %s %s;", v, c.typ(n, n.Type()))
@@ -958,6 +1003,22 @@ func (c *ctx) multiplicativeExpression(w writer, n *cc.MultiplicativeExpression,
 	return &b, rt, rmode
 }
 
+func (c *ctx) elemSize(n cc.ExpressionNode, op string) (r string) {
+	switch sz := n.Type().(*cc.PointerType).Elem().Undecay().Size(); {
+	case sz < 0:
+		switch d := c.declaratorOf(n); {
+		case c.f != nil && d != nil && c.f.vlaSizes[d] != "":
+			return fmt.Sprintf("%s%suintptr(%s)", op, tag(preserve), c.f.vlaSizes[d])
+		}
+	case sz == 1:
+		return ""
+	case sz > 1:
+		return fmt.Sprintf("%s%d", op, sz)
+	}
+	c.err(errorf("%v: TODO", pos(n)))
+	return ""
+}
+
 func (c *ctx) additiveExpression(w writer, n *cc.AdditiveExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
 	if n.AdditiveExpression != nil && n.MultiplicativeExpression != nil && (n.AdditiveExpression.Value() == cc.Unknown || n.MultiplicativeExpression.Value() == cc.Unknown) {
 		c.exprNestLevel--
@@ -976,17 +1037,9 @@ func (c *ctx) additiveExpression(w writer, n *cc.AdditiveExpression, t cc.Type, 
 			x, y := c.binopArgs(w, n.AdditiveExpression, n.MultiplicativeExpression, n.Type())
 			b.w("(%s + %s)", x, y)
 		case x.Kind() == cc.Ptr && cc.IsIntegerType(y):
-			s := ""
-			if sz := x.(*cc.PointerType).Elem().Undecay().Size(); sz != 1 {
-				s = fmt.Sprintf("*%d", sz)
-			}
-			b.w("(%s + ((%s)%s))", c.expr(w, n.AdditiveExpression, n.Type(), exprDefault), c.expr(w, n.MultiplicativeExpression, n.Type(), exprDefault), s)
+			b.w("(%s + ((%s)%s))", c.expr(w, n.AdditiveExpression, n.Type(), exprDefault), c.expr(w, n.MultiplicativeExpression, n.Type(), exprDefault), c.elemSize(n.AdditiveExpression, "*"))
 		case cc.IsIntegerType(x) && y.Kind() == cc.Ptr:
-			s := ""
-			if sz := y.(*cc.PointerType).Elem().Undecay().Size(); sz != 1 {
-				s = fmt.Sprintf("*%d", sz)
-			}
-			b.w("(((%s)%s)+%s)", c.expr(w, n.AdditiveExpression, n.Type(), exprDefault), s, c.expr(w, n.MultiplicativeExpression, n.Type(), exprDefault))
+			b.w("(((%s)%s)+%s)", c.expr(w, n.AdditiveExpression, n.Type(), exprDefault), c.elemSize(n.MultiplicativeExpression, "*"), c.expr(w, n.MultiplicativeExpression, n.Type(), exprDefault))
 		default:
 			c.err(errorf("TODO %v + %v", x, y)) // -
 		}
@@ -996,17 +1049,9 @@ func (c *ctx) additiveExpression(w writer, n *cc.AdditiveExpression, t cc.Type, 
 			x, y := c.binopArgs(w, n.AdditiveExpression, n.MultiplicativeExpression, n.Type())
 			b.w("(%s - %s)", x, y)
 		case x.Kind() == cc.Ptr && y.Kind() == cc.Ptr:
-			b.w("((%s - %s)", c.expr(w, n.AdditiveExpression, n.Type(), exprDefault), c.expr(w, n.MultiplicativeExpression, n.Type(), exprDefault))
-			if v := x.(*cc.PointerType).Elem().Undecay().Size(); v > 1 {
-				b.w("/%d", v)
-			}
-			b.w(")")
+			b.w("((%s - %s)%s)", c.expr(w, n.AdditiveExpression, n.Type(), exprDefault), c.expr(w, n.MultiplicativeExpression, n.Type(), exprDefault), c.elemSize(n.AdditiveExpression, "/"))
 		case x.Kind() == cc.Ptr && cc.IsIntegerType(y):
-			s := ""
-			if sz := x.(*cc.PointerType).Elem().Undecay().Size(); sz != 1 {
-				s = fmt.Sprintf("*%d", sz)
-			}
-			b.w("(%s - ((%s)%s))", c.expr(w, n.AdditiveExpression, n.Type(), exprDefault), c.expr(w, n.MultiplicativeExpression, n.Type(), exprDefault), s)
+			b.w("(%s - ((%s)%s))", c.expr(w, n.AdditiveExpression, n.Type(), exprDefault), c.expr(w, n.MultiplicativeExpression, n.Type(), exprDefault), c.elemSize(n.AdditiveExpression, "*"))
 		default:
 			c.err(errorf("TODO %v - %v", x, y))
 		}
@@ -1443,25 +1488,38 @@ out:
 	return &b, rt, rmode
 }
 
+func (c *ctx) mul(n cc.ExpressionNode) (r string) {
+	switch x := n.Type().(type) {
+	case *cc.PointerType:
+		sz := x.Elem().Size()
+		if sz == 1 {
+			return ""
+		}
+
+		switch {
+		case sz < 0:
+			d := c.declaratorOf(n)
+			switch _, ok := c.isVLA(x.Elem()); {
+			case c.f != nil && d != nil && ok:
+				return fmt.Sprintf("*%suintptr(%s)", tag(preserve), c.f.vlaSizes[d])
+			default:
+				c.err(errorf("%v: TODO", pos(n)))
+			}
+		default:
+			return fmt.Sprintf("*%v", sz)
+		}
+	default:
+		c.err(errorf("%v: TODO %T", pos(n), x))
+	}
+	return ""
+}
+
 func (c *ctx) postfixExpressionIndex(w writer, p, index cc.ExpressionNode, pt *cc.PointerType, nt, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
 	// trc("%v: %s[%s] %v", c.pos(p), cc.NodeSource(p), cc.NodeSource(index), mode)
 	// defer func() { trc("%v: %s[%s] %v -> %q", c.pos(p), cc.NodeSource(p), cc.NodeSource(index), mode, r.bytes()) }()
 	var b buf
 	elem := pt.Elem()
-	var mul string
-	if v := elem.Size(); v != 1 {
-		mul = fmt.Sprintf("*%v", v)
-		if v < 0 {
-			d := c.declaratorOf(p)
-			switch _, ok := c.isVLA(elem); {
-			case c.f != nil && d != nil && ok:
-				mul = fmt.Sprintf("*%suintptr(%s)", tag(preserve), c.f.vlaSizes[d])
-			default:
-				c.err(errorf("%v: TODO", pos(index)))
-			}
-		}
-	}
-
+	mul := c.mul(p)
 	rt, rmode = nt, mode
 	if f := c.isLastStructOrUnionField(p); f != nil {
 		switch f.Type().(type) {

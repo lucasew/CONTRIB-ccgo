@@ -754,7 +754,7 @@ func (c *ctx) jumpStatement(w writer, n *cc.JumpStatement) {
 					if nfo.exit == "" {
 						nfo.exit = c.label()
 					}
-					w.w("%s = %s;", tag(preserve), c.discardStr(n.ExpressionList), c.topExpr(w, n.ExpressionList, nil, exprDefault))
+					w.w("%s_ = %s;", tag(preserve), c.topExpr(w, n.ExpressionList, nil, exprDefault))
 				default:
 					if nfo.exit == "" {
 						nfo.result = c.f.newAutovar(nfo.fd, ft.Result())

@@ -7,8 +7,9 @@ package ccgo // import "modernc.org/ccgo/v4/lib"
 
 //TODO SYS_getsid macro missing
 //TODO support hidden
-//TODO TNucontext_t - TNucontext_t5
-//TODO name anonymous types
+//TODO Tucontext_t - Tucontext_t5
+//TODO else if
+//TODO collect variable declarations
 
 //  [0]: http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf
 
@@ -59,8 +60,9 @@ type Task struct {
 	inputFiles            []string
 	l                     []string // -l
 	linkFiles             []string
-	o                     string // -o
-	packageName           string // --package-name
+	o                     string   // -o
+	packageName           string   // --package-name
+	predef                []string // --predef
 	prefixAnonType        string
 	prefixAutomatic       string // --prefix-automatic <string>
 	prefixCcgoAutomatic   string
@@ -173,6 +175,7 @@ func (t *Task) main() (err error) {
 
 	set := opt.NewSet()
 	set.Arg("-package-name", false, func(arg, val string) error { t.packageName = val; t.packageNameSet = true; return nil })
+	set.Arg("-predef", false, func(arg, val string) error { t.predef = append(t.predef, val); return nil })
 	set.Arg("-prefix-automatic", false, func(arg, val string) error { t.prefixAutomatic = val; return nil })
 	set.Arg("-prefix-define", false, func(arg, val string) error { t.prefixDefine = val; t.prefixDefineSet = true; return nil })
 	set.Arg("-prefix-enumerator", false, func(arg, val string) error { t.prefixEnumerator = val; return nil })
@@ -358,7 +361,7 @@ func (t *Task) main() (err error) {
 	t.cfg = cfg
 	if t.E {
 		for _, ifn := range t.inputFiles {
-			if err := cc.Preprocess(cfg, sourcesFor(cfg, ifn, t.defs), t.stdout); err != nil {
+			if err := cc.Preprocess(cfg, sourcesFor(cfg, ifn, t), t.stdout); err != nil {
 				return err
 			}
 		}
@@ -378,13 +381,17 @@ func (t *Task) main() (err error) {
 	return t.link()
 }
 
-func sourcesFor(cfg *cc.Config, fn, defs string) (r []cc.Source) {
+func sourcesFor(cfg *cc.Config, fn string, t *Task) (r []cc.Source) {
+	predef := cfg.Predefined
+	if len(t.predef) != 0 {
+		predef += "\n" + strings.Join(t.predef, "\n")
+	}
 	sources := []cc.Source{
-		{Name: "<predefined>", Value: cfg.Predefined},
+		{Name: "<predefined>", Value: predef},
 		{Name: "<builtin>", Value: cc.Builtin},
 	}
-	if defs != "" {
-		sources = append(sources, cc.Source{Name: "<command-line>", Value: defs})
+	if t.defs != "" {
+		sources = append(sources, cc.Source{Name: "<command-line>", Value: t.defs})
 	}
 	return append(sources, cc.Source{Name: fn, FS: cfg.FS})
 }

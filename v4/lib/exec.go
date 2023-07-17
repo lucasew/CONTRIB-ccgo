@@ -27,27 +27,27 @@ const (
 
 func (t *Task) exec(args []string) (err error) {
 	if s := os.Getenv(CCEnvVar); s != "" {
-		return fmt.Errorf("-fake: env var %s already set: %q", CCEnvVar, s)
+		return fmt.Errorf("-exec: env var %s already set: %q", CCEnvVar, s)
 	}
 
 	if t.execCC == "" {
-		return fmt.Errorf("-fake: missing -fake-cc option")
+		return fmt.Errorf("-exec: missing -exec-cc option")
 	}
 
 	if len(args) == 0 {
-		return fmt.Errorf("-fake: missing command")
+		return fmt.Errorf("-exec: missing command")
 	}
 
 	cc, err := exec.LookPath(t.execCC)
 	if err != nil {
-		return fmt.Errorf("-fake: %v", err)
+		return fmt.Errorf("-exec: %v", err)
 	}
 
 	if err := os.Setenv(CCEnvVar, cc); err != nil {
 		return fmt.Errorf("cannot set env var %s: %v", CCEnvVar, err)
 	}
 
-	cflags := t.args[1 : (len(t.args))-len(args)-1] // -1 for the final "-fake"
+	cflags := t.args[1 : (len(t.args))-len(args)-1] // -1 for the final "-exec"
 	if err := os.Setenv(cflagsEnvVar, strutil.JoinFields(cflags, cflagsSep)); err != nil {
 		return fmt.Errorf("cannot set env var %s: %v", cflagsEnvVar, err)
 	}
@@ -66,7 +66,7 @@ func (t *Task) exec(args []string) (err error) {
 
 	switch runtime.GOOS {
 	case "windows":
-		return fmt.Errorf("-fake not yet supported on Windows")
+		return fmt.Errorf("-exec not yet supported on Windows")
 	default:
 		symlink := filepath.Join(dirTemp, filepath.Base(cc))
 		path := os.Getenv("PATH")
@@ -138,6 +138,7 @@ func (t *Task) execed(realCC string, cflags []string) (err error) {
 	set.Opt("c", func(arg string) error { args.add(arg); return nil })
 	set.Opt("ffreestanding", func(arg string) error { args.add(arg); return nil })
 	set.Opt("fno-builtin", func(arg string) error { args.add(arg); return nil })
+	set.Opt("g", func(arg string) error { return nil })
 	set.Opt("mlong-double-64", func(arg string) error { args.add(arg); return nil })
 	set.Opt("nostdinc", func(arg string) error { args.add(arg); return nil })
 	set.Opt("nostdlib", func(arg string) error { args.add(arg); return nil })

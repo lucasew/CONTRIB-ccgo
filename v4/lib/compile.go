@@ -317,7 +317,7 @@ func (c *ctx) compile(ifn, ofn string) (err error) {
 		}
 	}()
 
-	if c.ast, err = cc.Translate(c.cfg, sourcesFor(c.cfg, ifn, c.task.defs)); err != nil {
+	if c.ast, err = cc.Translate(c.cfg, sourcesFor(c.cfg, ifn, c.task)); err != nil {
 		return err
 	}
 
@@ -429,9 +429,6 @@ func (c *ctx) compile(ifn, ofn string) (err error) {
 		return err
 	}
 
-	if dmesgs && len(c.jsonMeta.WeakAliases) != 0 {
-		dmesg("%s -> %s: write json meta: %+v", ifn, ofn, &c.jsonMeta)
-	}
 	s := string(b)
 	a = strings.Split(s, "`")
 	s = strutil.JoinFields(a, "|")
