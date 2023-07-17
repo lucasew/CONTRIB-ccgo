@@ -751,7 +751,12 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 				// nop
 			case 2:
 				if nm := c.f.locals[d]; nm != "" {
-					w.w("%s%svar %s = %s;", sep, c.posComment(n), nm, c.initializerOuter(w, n.Initializer, t))
+					switch {
+					case cc.IsIntegerType(t) && n.Initializer.AssignmentExpression != nil && c.isZero(n.Initializer.AssignmentExpression.Value()):
+						w.w("%s%svar %s %s;", sep, c.posComment(n), nm, c.typ(d, t))
+					default:
+						w.w("%s%svar %s = %s;", sep, c.posComment(n), nm, c.initializerOuter(w, n.Initializer, t))
+					}
 					break
 				}
 
@@ -781,7 +786,12 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 			default:
 				switch {
 				case d.LexicalScope().Parent == nil:
-					w.w("%s%svar %s = %s;", sep, c.posComment(n), linkName, c.initializerOuter(w, n.Initializer, t))
+					switch {
+					case cc.IsScalarType(t) && n.Initializer.AssignmentExpression != nil && c.isZero(n.Initializer.AssignmentExpression.Value()):
+						w.w("%s%svar %s %s;", sep, c.posComment(n), linkName, c.typ(d, t))
+					default:
+						w.w("%s%svar %s = %s;", sep, c.posComment(n), linkName, c.initializerOuter(w, n.Initializer, t))
+					}
 				default:
 					if c.unbracedInitilizer(n.Initializer).Case != cc.InitializerExpr {
 						if b := c.initCode(w,

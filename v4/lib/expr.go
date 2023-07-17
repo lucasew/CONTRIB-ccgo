@@ -3333,7 +3333,12 @@ func (c *ctx) primaryExpressionIntConst(w writer, n *cc.PrimaryExpression, t cc.
 	case c.exprNestLevel == 1:
 		cv := v.Convert(t)
 		if cv == v {
-			b.w("(%s(%s))", c.verifyTyp(n, t), lit)
+			switch {
+			case c.f != nil && c.isZero(v):
+				b.w("(%s)", lit)
+			default:
+				b.w("(%s(%s))", c.verifyTyp(n, t), lit)
+			}
 			break
 		}
 
