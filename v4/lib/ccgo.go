@@ -10,6 +10,7 @@ package ccgo // import "modernc.org/ccgo/v4/lib"
 //TODO Tucontext_t - Tucontext_t5
 //TODO else if
 //TODO collect variable declarations
+//TODO asop p1 = addr; *p1 = *p1 op expr -> *addr op= expr
 
 //  [0]: http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf
 

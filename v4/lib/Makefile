@@ -60,7 +60,7 @@ editor:
 tmp:
 	go test -tags=ccgo.assert -v -run TestExec -trc -trctodo -shelltimeout 5s 2>&1 | tee log-tmp
 	grep -a '^TODO' log | sort | uniq -c | sort -n | tee log-2
-	grep -a 'TOTAL\|PASS' log || true
+	grep -a 'TOTAL\|PASS\|FAIL' log || true
 
 x:
 	rm -f /tmp/ccgo.log
@@ -82,7 +82,7 @@ shorttest:
 	grep TOTAL log-shorttest
 	git status testdata
 	git diff testdata/
-	grep -a 'TOTAL\|PASS' log-shorttest || true
+	grep -a 'TOTAL\|PASS\|FAIL' log-shorttest || true
 
 sqlitetest:
 	go test -v -timeout 24h -run SQL -xtags=libc.memgrind -trc -trco 2>&1 | tee log-sqlitetest

@@ -1001,7 +1001,7 @@ func (l *linker) postProcess(fn string, b []byte) (r []byte) {
 			case strings.HasPrefix(s, "break"):
 				r = r[:n0]
 				continue
-			case strings.HasPrefix(s, "return"), strings.HasPrefix(s, "goto"):
+			case strings.HasPrefix(s, "return"), strings.HasPrefix(s, "goto"), strings.HasPrefix(s, "continue"):
 				continue
 			default:
 				_ = s
