@@ -2179,6 +2179,10 @@ func (c *ctx) postfixExpressionSelect(w writer, n *cc.PostfixExpression, t cc.Ty
 	if mode == exprVoid {
 		mode = exprDefault
 	}
+	if b, rt, rmode := c.postfixExpressionSelectUnionField(w, n, t, mode); b != nil {
+		return b, rt, rmode
+	}
+
 	var isCall bool
 	if x, ok := n.PostfixExpression.(*cc.PostfixExpression); ok {
 		isCall = x.Case == cc.PostfixExpressionCall
@@ -2190,49 +2194,6 @@ func (c *ctx) postfixExpressionSelect(w writer, n *cc.PostfixExpression, t cc.Ty
 			return &b, n.Type(), mode
 		}
 	}
-
-	// d := c.declaratorOf(n.PostfixExpression)
-	// if d != nil && c.f != nil {
-	// 	if info := c.f.declInfos[d]; info != nil {
-	// 	out:
-	// 		switch n.PostfixExpression.Type().Kind() {
-	// 		case cc.Struct:
-	// 			var st *cc.StructType
-	// 			switch x := n.PostfixExpression.Type().(type) {
-	// 			case *cc.StructType:
-	// 				st = x
-	// 			default:
-	// 				break out
-	// 			}
-
-	// 			ok := true
-	// 		loop:
-	// 			for i := 0; i < st.NumFields(); i++ {
-	// 				switch f := st.FieldByIndex(i); {
-	// 				case f.Type().Kind() == cc.Union:
-	// 					ok = false
-	// 					break loop
-	// 				}
-	// 			}
-	// 			if ok {
-	// 				break out
-	// 			}
-
-	// 			switch mode {
-	// 			case exprLvalue, exprDefault, exprSelect:
-	// 				switch {
-	// 				case info.pinned():
-	// 					b.w("(*(*%s)(%s))", c.typ(n, f.Type()), unsafePointer(bpOff(info.bpOff+f.Offset())))
-	// 					return &b, n.Type(), mode
-	// 				default:
-	// 					nm := c.f.locals[d]
-	// 					b.w("(*(*%s)(%s))", c.typ(n, f.Type()), unsafe("Add", fmt.Sprintf("%s, %d", unsafePointer(fmt.Sprintf("&%s", nm)), f.Offset())))
-	// 					return &b, n.Type(), mode
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// }
 
 	if u, ok := n.PostfixExpression.Type().(*cc.UnionType); ok && f != firstPositiveSizedField(u) {
 		switch mode {
@@ -2327,6 +2288,61 @@ func (c *ctx) postfixExpressionSelect(w writer, n *cc.PostfixExpression, t cc.Ty
 		c.err(errorf("TODO %v", mode))
 	}
 	return &b, rt, rmode
+}
+
+func (c *ctx) postfixExpressionSelectUnionField(w writer, n *cc.PostfixExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
+	switch mode {
+	case exprDefault, exprSelect, exprLvalue, exprIndex:
+		// ok
+	default:
+		return nil, nil, 0
+	}
+
+	f := n.Field()
+	switch x := f.Type().Undecay().(type) {
+	case *cc.ArrayType:
+		return nil, nil, 0
+	case *cc.PointerType:
+		if x.Elem().Undecay().Kind() == cc.Array {
+			return nil, nil, 0
+		}
+	}
+
+	n0 := n
+	// PostfixExpression '.' IDENTIFIER
+	var path []*cc.PostfixExpression
+	union := -1
+	for {
+		if n.PostfixExpression.Type().Kind() == cc.Union {
+			union = len(path)
+		}
+		path = append(path, n)
+		x, ok := n.PostfixExpression.(*cc.PostfixExpression)
+		if !ok {
+			break
+		}
+
+		if x.Case != cc.PostfixExpressionSelect {
+			break
+		}
+
+		n = x
+	}
+	if union < 0 || union == len(path)-1 {
+		return nil, nil, 0
+	}
+
+	var b buf
+	var off int64
+	for _, v := range path[:union+1] {
+		off += v.Field().Offset()
+	}
+	s := ""
+	if off != 0 {
+		s = fmt.Sprintf("+%d", off)
+	}
+	b.w("(*(*%s)(%s))", c.typ(n0.Token, f.Type()), unsafePointer(fmt.Sprintf("%s%s", c.topExpr(w, path[union].PostfixExpression, c.pvoid, exprUintptr), s)))
+	return &b, f.Type(), mode
 }
 
 func (c *ctx) parentFields(b *buf, n cc.Node, f *cc.Field) {
