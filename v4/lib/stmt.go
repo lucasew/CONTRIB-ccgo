@@ -542,8 +542,8 @@ func (c *ctx) iterationStatement(w writer, n *cc.IterationStatement) {
 			c.bracedStatement(w, n.Statement)
 		}
 	case cc.IterationStatementDo: // "do" Statement "while" '(' ExpressionList ')' ';'
-		if c.isZero(n.ExpressionList.Value()) {
-			c.statement(w, n.Statement)
+		if c.isSafeZero(n.ExpressionList) {
+			c.unbracedStatement(w, n.Statement)
 			break
 		}
 

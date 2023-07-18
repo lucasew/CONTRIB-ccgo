@@ -901,6 +901,10 @@ func (c *ctx) isNonZero(v cc.Value) bool {
 	}
 }
 
+func (c *ctx) isSafeZero(n cc.ExpressionNode) bool {
+	return c.isZero(n.Value()) && c.canIgnore(n)
+}
+
 func (c *ctx) isZero(v cc.Value) bool {
 	if v == nil || v == cc.Unknown {
 		return false
@@ -2179,6 +2183,10 @@ func (c *ctx) postfixExpressionSelect(w writer, n *cc.PostfixExpression, t cc.Ty
 	if mode == exprVoid {
 		mode = exprDefault
 	}
+	if b, rt, rmode := c.postfixExpressionSelectComplit(w, n, t, mode); b != nil {
+		return b, rt, rmode
+	}
+
 	if b, rt, rmode := c.postfixExpressionSelectUnionField(w, n, t, mode); b != nil {
 		return b, rt, rmode
 	}
@@ -2290,7 +2298,63 @@ func (c *ctx) postfixExpressionSelect(w writer, n *cc.PostfixExpression, t cc.Ty
 	return &b, rt, rmode
 }
 
+func (c *ctx) postfixExpressionSelectComplit(w writer, n *cc.PostfixExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
+	// PostfixExpression '.' IDENTIFIER
+	// (struct/union type){expr}.field
+
+	if c.f == nil {
+		return nil, nil, 0
+	}
+
+	f := n.Field()
+	if !cc.IsScalarType(f.Type()) {
+		return nil, nil, 0
+	}
+
+	switch mode {
+	case exprDefault:
+		// ok
+	default:
+		return nil, nil, 0
+	}
+
+	x, ok := c.unparen(n.PostfixExpression).(*cc.PostfixExpression)
+	if !ok {
+		return nil, nil, 0
+	}
+
+	if x.Case != cc.PostfixExpressionComplit {
+		return nil, nil, 0
+	}
+
+	var a []*cc.Initializer
+	for l := x.InitializerList; l != nil; l = l.InitializerList {
+		a = append(a, c.initalizerFlatten(l.Initializer, nil)...)
+	}
+
+	if len(a) != 1 {
+		return nil, nil, 0
+	}
+
+	if _, ok := x.Type().(*cc.UnionType); !ok {
+		return nil, nil, 0
+	}
+
+	e := a[0].AssignmentExpression
+	var b buf
+	switch d := c.declaratorOf(e); {
+	case d != nil && d.Type() == e.Type():
+		b.w("(*(*%s)(%s))", c.typ(n, f.Type()), unsafePointer(fmt.Sprintf("&%s", c.topExpr(w, e, nil, exprDefault))))
+	default:
+		v := c.f.newAutovar(n, a[0].Type())
+		w.w("%s = %s;", v, c.topExpr(w, e, a[0].Type(), exprDefault))
+		b.w("(*(*%s)(%s))", c.typ(n, f.Type()), unsafePointer(fmt.Sprintf("&%s", v)))
+	}
+	return &b, f.Type(), mode
+}
+
 func (c *ctx) postfixExpressionSelectUnionField(w writer, n *cc.PostfixExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
+	// PostfixExpression '.' IDENTIFIER
 	switch mode {
 	case exprDefault, exprSelect, exprLvalue, exprIndex:
 		// ok
@@ -2309,7 +2373,6 @@ func (c *ctx) postfixExpressionSelectUnionField(w writer, n *cc.PostfixExpressio
 	}
 
 	n0 := n
-	// PostfixExpression '.' IDENTIFIER
 	var path []*cc.PostfixExpression
 	union := -1
 	for {
@@ -2447,6 +2510,34 @@ func (c *ctx) declaratorOf(n cc.ExpressionNode) *cc.Declarator {
 			switch x.Case {
 			case cc.AdditiveExpressionMul: // MultiplicativeExpression
 				n = x.MultiplicativeExpression
+			default:
+				return nil
+			}
+		case *cc.InclusiveOrExpression:
+			switch x.Case {
+			case cc.InclusiveOrExpressionXor: // ExclusiveOrExpression
+				n = x.ExclusiveOrExpression
+			default:
+				return nil
+			}
+		case *cc.ShiftExpression:
+			switch x.Case {
+			case cc.ShiftExpressionAdd:
+				n = x.AdditiveExpression
+			default:
+				return nil
+			}
+		case *cc.AndExpression:
+			switch x.Case {
+			case cc.AndExpressionEq:
+				n = x.EqualityExpression
+			default:
+				return nil
+			}
+		case *cc.MultiplicativeExpression:
+			switch x.Case {
+			case cc.MultiplicativeExpressionCast:
+				n = x.CastExpression
 			default:
 				return nil
 			}
