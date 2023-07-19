@@ -31,6 +31,10 @@ func (c *ctx) statement(w writer, n *cc.Statement) {
 		}
 
 		b := c.topExpr(&a, e, e.Type(), exprVoid)
+		if assert && b == nil {
+			panic(todo("%v:", pos(n)))
+		}
+
 		if a.len() == 0 && b.len() == 0 {
 			return
 		}
@@ -352,6 +356,18 @@ func (c *ctx) selectionStatement(w writer, n *cc.SelectionStatement) {
 			w.w("if !(%s) {", c.expr(w, n.ExpressionList, nil, exprBool))
 			c.unbracedStatement(w, n.Statement2)
 			w.w("};")
+		case n.Statement2.Case == cc.StatementSelection && n.Statement2.SelectionStatement.Case == cc.SelectionStatementIf:
+			w.w("if %s {", c.expr(w, n.ExpressionList, nil, exprBool))
+			c.unbracedStatement(w, n.Statement)
+			w.w("} else ")
+			var b buf
+			c.unbracedStatement(&b, n.Statement2)
+			switch {
+			case !strings.HasPrefix(strings.TrimSpace(string(b.b)), "if"):
+				w.w("{%s};", &b)
+			default:
+				w.w("%s;", &b)
+			}
 		default:
 			w.w("if %s {", c.expr(w, n.ExpressionList, nil, exprBool))
 			c.unbracedStatement(w, n.Statement)

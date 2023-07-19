@@ -968,53 +968,35 @@ var (
 	return l.errors.err()
 }
 
-var (
-	bfallthrough = []byte("fallthroug")
-	bfunc        = []byte("func ")
-	bnl          = []byte("\n")
-	brbrace      = []byte("}")
-)
-
 // Input must be formatted.
 func (l *linker) postProcess(fn string, b []byte) (r []byte) {
-	lines := bytes.Split(b, bnl)
-	r = make([]byte, 0, len(b))
+	lines := strings.Split(string(b), "\n")
 	var inFunc bool
-	var n0, n1 int
-	_ = n0
-	for _, v := range lines {
-		n0 = n1
-		n1 = len(r)
-		switch {
-		case bytes.HasPrefix(v, bfunc):
+	w := 0
+	for _, line := range lines {
+		switch s := strings.TrimSpace(line); {
+		case strings.HasPrefix(line, "func "):
 			inFunc = true
-			r = append(r, v...)
-		case len(v) == 0:
+		case strings.HasPrefix(line, "}"):
+			inFunc = false
+		case s == "", s == ";":
 			if inFunc {
 				continue
 			}
-		case bytes.HasPrefix(v, brbrace):
-			inFunc = false
-			r = append(r, v...)
-		case bytes.Contains(v, bfallthrough) && strings.TrimSpace(string(v)) == "fallthrough":
-			switch s := strings.TrimSpace(string(r[n0:n1])); {
-			case strings.HasPrefix(s, "break"):
-				r = r[:n0]
+		case strings.HasPrefix(s, "fallthrough"):
+			switch p := strings.TrimSpace(lines[w-1]); {
+			case strings.HasPrefix(p, "return"), strings.HasPrefix(p, "goto"), strings.HasPrefix(p, "continue"):
 				continue
-			case strings.HasPrefix(s, "return"), strings.HasPrefix(s, "goto"), strings.HasPrefix(s, "continue"):
+			case strings.HasPrefix(p, "break"):
+				w--
 				continue
-			default:
-				_ = s
-				r = append(r, v...)
 			}
-		case bytes.ContainsRune(v, ';') && strings.TrimSpace(string(v)) == ";":
-			continue
-		default:
-			r = append(r, v...)
 		}
-		r = append(r, '\n')
+		lines[w] = line
+		w++
 	}
-	return append(bytes.TrimSpace(r), '\n')
+	lines = lines[:w]
+	return []byte(strings.Join(lines, "\n"))
 }
 
 func isJsonMeta(linkName string) bool {

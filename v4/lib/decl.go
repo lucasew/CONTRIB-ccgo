@@ -66,7 +66,7 @@ type inlineInfo struct {
 }
 
 type fnCtx struct {
-	autovars         []string
+	autovars         map[string][]string
 	c                *ctx
 	compoundLiterals map[cc.ExpressionNode]int64
 	declInfos        declInfos
@@ -164,12 +164,17 @@ func (f *fnCtx) newAutovarName() (nm string) {
 
 func (f *fnCtx) newAutovar(n cc.Node, t cc.Type) (nm string) {
 	nm = f.newAutovarName()
-	f.registerAutoVar(fmt.Sprintf("var %s %s;", nm, f.c.typ(n, t)))
+	f.registerAutoVar(nm, f.c.typ(n, t))
 	// trc("%v: %s %v: %q (%v: %v: %v:)", pos(n), t, t.Kind(), nm, origin(4), origin(3), origin(2))
 	return nm
 }
 
-func (f *fnCtx) registerAutoVar(s string) { f.autovars = append(f.autovars, s) }
+func (f *fnCtx) registerAutoVar(nm, typ string) {
+	if f.autovars == nil {
+		f.autovars = map[string][]string{}
+	}
+	f.autovars[typ] = append(f.autovars[typ], nm)
+}
 
 func (f *fnCtx) registerLocal(d *cc.Declarator) {
 	if f == nil {
@@ -207,6 +212,7 @@ func (f *fnCtx) renameLocals() {
 
 func (f *fnCtx) declareLocals() string {
 	var a []string
+	m := map[string][]string{}
 	for k, v := range f.locals {
 		if k.IsParam() {
 			continue
@@ -222,10 +228,17 @@ func (f *fnCtx) declareLocals() string {
 		}
 
 		if k.StorageDuration() != cc.Static && v != "" {
-			a = append(a, fmt.Sprintf("\nvar %s %s;", v, f.c.typ(k, k.Type())))
+			ts := f.c.typ(k, k.Type())
+			m[ts] = append(m[ts], v)
 		}
 	}
-	a = append(a, f.autovars...)
+	for k, v := range f.autovars {
+		m[k] = append(m[k], v...)
+	}
+	for k, v := range m {
+		sort.Strings(v)
+		a = append(a, fmt.Sprintf("\nvar %s %s;", strings.Join(v, ", "), k))
+	}
 	sort.Strings(a)
 	return strings.Join(a, "")
 }

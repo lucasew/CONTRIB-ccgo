@@ -611,8 +611,7 @@ func (c *ctx) logicalAndExpression(w writer, n *cc.LogicalAndExpression, t cc.Ty
 			// if v = bl; v { ar };
 			// v && br
 			v := fmt.Sprintf("%sv%d", tag(ccgoAutomatic), c.id())
-			vs := fmt.Sprintf("var %s %sbool;", v, tag(preserve))
-			c.f.registerAutoVar(vs)
+			c.f.registerAutoVar(v, tag(preserve)+"bool")
 			w.w("\nif %s = %s; %s { %s };", v, bl, v, ar.bytes())
 			b.w("((%s) && (%s))", v, br)
 		case al.len() != 0 && ar.len() == 0:
@@ -626,8 +625,7 @@ func (c *ctx) logicalAndExpression(w writer, n *cc.LogicalAndExpression, t cc.Ty
 			// al; if v = bl; v { ar };
 			// v && br
 			v := fmt.Sprintf("%sv%d", tag(ccgoAutomatic), c.id())
-			vs := fmt.Sprintf("var %s %sbool;", v, tag(preserve))
-			c.f.registerAutoVar(vs)
+			c.f.registerAutoVar(v, tag(preserve)+"bool")
 			w.w("%s;", al.bytes())
 			w.w("\nif %s = %s; %s { %s };", v, bl, v, ar.bytes())
 			b.w("((%s) && (%s))", v, br)
@@ -663,8 +661,7 @@ func (c *ctx) logicalOrExpression(w writer, n *cc.LogicalOrExpression, t cc.Type
 			// if v = bl; !v { ar };
 			// v || br
 			v := fmt.Sprintf("%sv%d", tag(ccgoAutomatic), c.id())
-			vs := fmt.Sprintf("var %s %sbool;", v, tag(preserve))
-			c.f.registerAutoVar(vs)
+			c.f.registerAutoVar(v, tag(preserve)+"bool")
 			w.w("\nif %s = %s; !%s { %s };", v, bl, v, ar.bytes())
 			b.w("((%s) || (%s))", v, br)
 		case al.len() != 0 && ar.len() == 0:
@@ -678,8 +675,7 @@ func (c *ctx) logicalOrExpression(w writer, n *cc.LogicalOrExpression, t cc.Type
 			// al; if v = bl; !v { ar };
 			// v || br
 			v := fmt.Sprintf("%sv%d", tag(ccgoAutomatic), c.id())
-			vs := fmt.Sprintf("var %s %sbool;", v, tag(preserve))
-			c.f.registerAutoVar(vs)
+			c.f.registerAutoVar(v, tag(preserve)+"bool")
 			w.w("%s;", al.bytes())
 			w.w("\nif %s = %s; !%s { %s };", v, bl, v, ar.bytes())
 			b.w("((%s) || (%s))", v, br)
@@ -787,7 +783,7 @@ func (c *ctx) conditionalExpression(w writer, n *cc.ConditionalExpression, t cc.
 			vs := fmt.Sprintf("var %s func%s;", v, c.signature(n.Type().(*cc.PointerType).Elem().(*cc.FunctionType), false, false, true))
 			switch {
 			case c.f != nil:
-				c.f.registerAutoVar(vs)
+				c.f.registerAutoVar(v, "func"+c.signature(n.Type().(*cc.PointerType).Elem().(*cc.FunctionType), false, false, true))
 			default:
 				w.w("%s", vs)
 			}
@@ -802,7 +798,7 @@ func (c *ctx) conditionalExpression(w writer, n *cc.ConditionalExpression, t cc.
 			vs := fmt.Sprintf("var %s %s;", v, c.typ(n, n.Type()))
 			switch {
 			case c.f != nil:
-				c.f.registerAutoVar(vs)
+				c.f.registerAutoVar(v, c.typ(n, n.Type()))
 			default:
 				w.w("%s", vs)
 			}
@@ -831,7 +827,7 @@ func (c *ctx) conditionalExpression(w writer, n *cc.ConditionalExpression, t cc.
 			vs := fmt.Sprintf("var %s %s;", v, c.typ(n, n.Type()))
 			switch {
 			case c.f != nil:
-				c.f.registerAutoVar(vs)
+				c.f.registerAutoVar(v, c.typ(n, n.Type()))
 			default:
 				w.w("%s", vs)
 			}
@@ -1222,7 +1218,7 @@ func (c *ctx) preIncDecBitField(op string, w writer, n cc.ExpressionNode, mode m
 		vs := fmt.Sprintf("var %s %s;", v, c.typ(n, f.Type()))
 		switch {
 		case c.f != nil:
-			c.f.registerAutoVar(vs)
+			c.f.registerAutoVar(v, c.typ(n, f.Type()))
 		default:
 			w.w("%s", vs)
 		}
@@ -1556,6 +1552,29 @@ func (c *ctx) indexOff(w writer, n cc.ExpressionNode, mul string) *buf {
 	return &b
 }
 
+func (c *ctx) isUnionComplitSelect(n cc.ExpressionNode) (bool, *cc.PostfixExpression) {
+	x, ok := c.unparen(n).(*cc.PostfixExpression)
+	if !ok {
+		return false, nil
+	}
+
+	if x.Case != cc.PostfixExpressionSelect {
+		return false, nil
+	}
+
+	n = x.PostfixExpression
+	y, ok := c.unparen(n).(*cc.PostfixExpression)
+	if !ok {
+		return false, nil
+	}
+
+	if y.Case != cc.PostfixExpressionComplit {
+		return false, nil
+	}
+
+	return y.TypeName.Type().Kind() == cc.Union, x
+}
+
 func (c *ctx) postfixExpressionIndex(w writer, p, index cc.ExpressionNode, pt *cc.PointerType, nt, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
 	// trc("%v: %s[%s] %v", c.pos(p), cc.NodeSource(p), cc.NodeSource(index), mode)
 	// defer func() { trc("%v: %s[%s] %v -> %q", c.pos(p), cc.NodeSource(p), cc.NodeSource(index), mode, r.bytes()) }()
@@ -1563,23 +1582,20 @@ func (c *ctx) postfixExpressionIndex(w writer, p, index cc.ExpressionNode, pt *c
 	elem := pt.Elem()
 	mul := c.mul(p)
 	rt, rmode = nt, mode
-	if f := c.isLastStructOrUnionField(p); f != nil {
-		switch f.Type().(type) {
-		case *cc.ArrayType:
-			// Flexible array member.
-			//
-			//  https://en.wikipedia.org/wiki/Flexible_array_member
-			switch mode {
-			case exprLvalue, exprDefault, exprSelect:
-				b.w("(*(*%s)(%sunsafe.%sPointer(%s%s)))", c.typ(p, elem), tag(importQualifier), tag(preserve), c.expr(w, p, nil, exprDefault), c.indexOff(w, index, mul))
-				return &b, nt, mode
-			case exprUintptr:
-				b.w("(%s%s)", c.expr(w, p, nil, exprDefault), c.indexOff(w, index, mul))
-				return &b, nt.Pointer(), mode
-			default:
-				c.err(errorf("TODO %v", mode))
-				return &b, t, mode
-			}
+	if f := c.isLastStructOrUnionField(p); f != nil && f.IsFlexibleArrayMember() {
+		// Flexible array member.
+		//
+		//  https://en.wikipedia.org/wiki/Flexible_array_member
+		switch mode {
+		case exprLvalue, exprDefault, exprSelect:
+			b.w("(*(*%s)(%sunsafe.%sPointer(%s%s)))", c.typ(p, elem), tag(importQualifier), tag(preserve), c.expr(w, p, nil, exprDefault), c.indexOff(w, index, mul))
+			return &b, nt, mode
+		case exprUintptr:
+			b.w("(%s%s)", c.expr(w, p, nil, exprDefault), c.indexOff(w, index, mul))
+			return &b, nt.Pointer(), mode
+		default:
+			c.err(errorf("TODO %v", mode))
+			return &b, t, mode
 		}
 	}
 
@@ -1598,6 +1614,13 @@ func (c *ctx) postfixExpressionIndex(w writer, p, index cc.ExpressionNode, pt *c
 					b.w("%s[%s]", c.expr(w, p, nil, exprIndex), c.topExpr(w, index, nil, exprDefault))
 				}
 				break
+			}
+
+			if ok, x := c.isUnionComplitSelect(p); ok && x != nil {
+				if b2, _, _ := c.postfixExpressionSelectComplit(w, x, x.Type(), exprDefault); b2 != nil {
+					b.w("%s[%s]", b2, c.topExpr(w, index, nil, exprDefault))
+					break
+				}
 			}
 
 			b.w("(*(*%s)(%sunsafe.%sPointer(%s%s)))", c.typ(p, elem), tag(importQualifier), tag(preserve), c.expr(w, p, nil, exprDefault), c.indexOff(w, index, mul))
@@ -2302,19 +2325,11 @@ func (c *ctx) postfixExpressionSelectComplit(w writer, n *cc.PostfixExpression, 
 	// PostfixExpression '.' IDENTIFIER
 	// (struct/union type){expr}.field
 
+	// defer func() {
+	// 	trc("%v: %p %v:", n.Position(), r, origin(1))
+	// }()
+
 	if c.f == nil {
-		return nil, nil, 0
-	}
-
-	f := n.Field()
-	if !cc.IsScalarType(f.Type()) {
-		return nil, nil, 0
-	}
-
-	switch mode {
-	case exprDefault:
-		// ok
-	default:
 		return nil, nil, 0
 	}
 
@@ -2323,34 +2338,84 @@ func (c *ctx) postfixExpressionSelectComplit(w writer, n *cc.PostfixExpression, 
 		return nil, nil, 0
 	}
 
+	if _, ok := x.Type().(*cc.UnionType); !ok {
+		return nil, nil, 0
+	}
+
 	if x.Case != cc.PostfixExpressionComplit {
 		return nil, nil, 0
 	}
 
+	f := n.Field()
+	ft := f.Type()
+	if !(cc.IsScalarType(ft) || ft.Undecay().Kind() == cc.Array && cc.IsScalarType(ft.Undecay().(*cc.ArrayType).Elem())) {
+		return nil, nil, 0
+	}
+
+	switch mode {
+	case exprDefault:
+		// ok
+	default:
+		trc("", mode, origin(7), origin(6), origin(5), origin(4))
+		return nil, nil, 0
+	}
+
+	ct := x.TypeName.Type()
 	var a []*cc.Initializer
 	for l := x.InitializerList; l != nil; l = l.InitializerList {
 		a = append(a, c.initalizerFlatten(l.Initializer, nil)...)
 	}
 
-	if len(a) != 1 {
+	switch len(a) {
+	case 0:
 		return nil, nil, 0
-	}
+	case 1:
+		if f.Offset() != 0 {
+			return nil, nil, 0
+		}
 
-	if _, ok := x.Type().(*cc.UnionType); !ok {
-		return nil, nil, 0
-	}
-
-	e := a[0].AssignmentExpression
-	var b buf
-	switch d := c.declaratorOf(e); {
-	case d != nil && d.Type() == e.Type():
-		b.w("(*(*%s)(%s))", c.typ(n, f.Type()), unsafePointer(fmt.Sprintf("&%s", c.topExpr(w, e, nil, exprDefault))))
+		e := a[0].AssignmentExpression
+		var b buf
+		switch d := c.declaratorOf(e); {
+		case d != nil && d.Type() == e.Type():
+			b.w("(*(*%s)(%s))", c.typ(n, ft), unsafePointer(fmt.Sprintf("&%s", c.topExpr(w, e, nil, exprDefault))))
+		default:
+			v := c.f.newAutovar(n, a[0].Type())
+			w.w("%s = %s;", v, c.topExpr(w, e, a[0].Type(), exprDefault))
+			b.w("(*(*%s)(%s))", c.typ(n, ft), unsafePointer(fmt.Sprintf("&%s", v)))
+		}
+		return &b, ft, mode
 	default:
-		v := c.f.newAutovar(n, a[0].Type())
-		w.w("%s = %s;", v, c.topExpr(w, e, a[0].Type(), exprDefault))
-		b.w("(*(*%s)(%s))", c.typ(n, f.Type()), unsafePointer(fmt.Sprintf("&%s", v)))
+		if f.Offset() != 0 {
+			return nil, nil, 0
+		}
+
+		var commonField *cc.Field
+		for _, v := range a {
+			f := v.Field()
+			if f == nil {
+				if f = v.Parent().Field(); f == nil {
+					return nil, nil, 0
+				}
+			}
+
+			if f != commonField && commonField != nil {
+				return nil, nil, 0
+			}
+
+			commonField = f
+		}
+
+		if commonField.Offset() != 0 {
+			return nil, nil, 0
+		}
+
+		var b buf
+		v := c.f.newAutovar(n, commonField.Type())
+		w.w("%s = %s;", v, c.initializer(w, n, a, commonField.Type(), 0, ct.Undecay().Kind() == cc.Array))
+		b.w("(*(*%s)(%s))", c.typ(n, ft), unsafePointer(fmt.Sprintf("&%s", v)))
+		return &b, ft, mode
 	}
-	return &b, f.Type(), mode
 }
 
 func (c *ctx) postfixExpressionSelectUnionField(w writer, n *cc.PostfixExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
@@ -2446,6 +2511,7 @@ func (c *ctx) isLastStructOrUnionField(n cc.ExpressionNode) *cc.Field {
 
 func (c *ctx) declaratorOf(n cc.ExpressionNode) *cc.Declarator {
 	for n != nil {
+		n = c.unparen(n)
 		switch x := n.(type) {
 		case *cc.PrimaryExpression:
 			switch x.Case {
@@ -2485,6 +2551,12 @@ func (c *ctx) declaratorOf(n cc.ExpressionNode) *cc.Declarator {
 			switch x.Case {
 			case cc.CastExpressionUnary: // UnaryExpression
 				n = x.UnaryExpression
+			case cc.CastExpressionCast:
+				if x.Type() != x.CastExpression.Type() {
+					return nil
+				}
+
+				n = x.CastExpression
 			default:
 				return nil
 			}
@@ -2894,8 +2966,7 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 					switch {
 					case mode == exprDefault:
 						p := fmt.Sprintf("%sp%d", tag(ccgo), c.id())
-						ps := fmt.Sprintf("var %s %s;", p, c.typ(n, ut.Pointer()))
-						c.f.registerAutoVar(ps)
+						c.f.registerAutoVar(p, c.typ(n, ut.Pointer()))
 						w.w("\n%s = %s;", p, c.expr(w, n.UnaryExpression, ut.Pointer(), exprUintptr))
 						v = fmt.Sprintf("(*(*%s)(%s))", c.typ(n, ut), unsafePointer(p))
 						w.w("\n%s %s= %s%s;", v, op, c.topExpr(w, n.AssignmentExpression, ct, exprDefault), k)
@@ -2904,8 +2975,7 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 					}
 				default:
 					p := fmt.Sprintf("%sp%d", tag(ccgo), c.id())
-					ps := fmt.Sprintf("var %s %s;", p, c.typ(n, ut.Pointer()))
-					c.f.registerAutoVar(ps)
+					c.f.registerAutoVar(p, c.typ(n, ut.Pointer()))
 					w.w("\n%s = %s;", p, c.expr(w, n.UnaryExpression, ut.Pointer(), exprUintptr))
 					v = fmt.Sprintf("(*(*%s)(%s))", c.typ(n, ut), unsafePointer(p))
 					w.w("\n%s = %s((%s(%s)) %s ((%s)%s));", v, c.typ(n, ut), c.typ(n, ct), v, op, c.expr(w, n.AssignmentExpression, ct, exprDefault), k)

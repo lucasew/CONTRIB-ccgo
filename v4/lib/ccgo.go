@@ -8,8 +8,7 @@ package ccgo // import "modernc.org/ccgo/v4/lib"
 //TODO SYS_getsid macro missing
 //TODO support hidden
 //TODO Tucontext_t - Tucontext_t5
-//TODO else if
-//TODO collect variable declarations
+//TODO acosh u does not need to be pinned
 
 //  [0]: http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf
 
