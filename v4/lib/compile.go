@@ -153,6 +153,7 @@ func tag(nm name) string {
 // errHandler is a function called on error.
 type errHandler func(msg string, args ...interface{})
 
+// https://www.vishalchovatiya.com/default-handlers-in-c-weak_alias/
 type jsonMeta struct {
 	WeakAliases map[string]string // redirect what link name: redirect to link name
 }
