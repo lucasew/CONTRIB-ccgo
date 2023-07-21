@@ -318,6 +318,9 @@ func (c *ctx) functionDefinition0(w writer, sep string, pos cc.Node, d *cc.Decla
 		return
 	}
 
+	if s := c.visbilityAttr(d.Type()); s != "" {
+		c.Visibility[c.declaratorTag(d)+d.Name()] = s
+	}
 	c.fn = d
 	defer func(d *cc.Declarator) { c.fn = d }(d)
 
@@ -585,6 +588,14 @@ func (c *ctx) weakAttr(t cc.Type) (r bool) {
 	return false
 }
 
+func (c *ctx) visbilityAttr(t cc.Type) (r string) {
+	if a := t.Attributes(); a != nil {
+		return a.Visibility()
+	}
+
+	return ""
+}
+
 func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExternal bool) {
 	d := n.Declarator
 	if sc := d.LexicalScope(); sc.Parent == nil {
@@ -600,9 +611,13 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 		}
 	}
 
-	if t := d.Type(); c.weakAttr(t) && c.aliasAttr(t) != "" {
-		toLinkName := tag(external) + c.aliasAttr(t)
-		if to := c.aliasAttrDecl(t); to != nil {
+	dt := d.Type()
+	if s := c.visbilityAttr(dt); s != "" {
+		c.Visibility[c.declaratorTag(d)+d.Name()] = s
+	}
+	if c.weakAttr(dt) && c.aliasAttr(dt) != "" {
+		toLinkName := tag(external) + c.aliasAttr(dt)
+		if to := c.aliasAttrDecl(dt); to != nil {
 			toLinkName = c.declaratorTag(to) + to.Name()
 		}
 		c.WeakAliases[c.declaratorTag(d)+d.Name()] = toLinkName

@@ -9,6 +9,7 @@ package ccgo // import "modernc.org/ccgo/v4/lib"
 //TODO support hidden
 //TODO Tucontext_t - Tucontext_t5
 //TODO acosh u does not need to be pinned
+//TODO tests += staticcheck
 
 //  [0]: http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf
 

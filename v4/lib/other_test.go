@@ -37,6 +37,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36339.c`:                 {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36339.c: unexpected fault address 0x62500060
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr36339.c`: {}, // EXEC FAIL: assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr36339.c: unexpected fault address 0x50e70060
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/immediate-pointer.c`:               {}, // EXEC FAIL: assets/github.com/vnmakarov/mir/c-tests/lacc/immediate-pointer.c: 0x601044, 16
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36093.c`:                 {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36093.c: panic: 544
 
 	//TODO
 
