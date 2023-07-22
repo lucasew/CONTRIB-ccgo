@@ -5,6 +5,7 @@
 // Package ccgo implements the ccgo command.
 package ccgo // import "modernc.org/ccgo/v4/lib"
 
+//TODO TestSQLite linux/arm64
 //TODO SYS_getsid macro missing
 //TODO support hidden
 //TODO Tucontext_t - Tucontext_t5
@@ -91,6 +92,7 @@ type Task struct {
 	c                            bool // -c
 	debugLinkerSave              bool // -debug-linker-save, causes pre type checking save of the linker result.
 	freeStanding                 bool // -ffreestanding
+	absolutePaths                bool // -absolute-paths
 	fullPaths                    bool // -full-paths
 	header                       bool // -header
 	ignoreAsmErrors              bool // -ignore-asm-errors
@@ -217,6 +219,7 @@ func (t *Task) main() (err error) {
 		return nil
 	})
 	set.Opt("E", func(arg string) error { t.E = true; return nil })
+	set.Opt("absolute-paths", func(arg string) error { t.absolutePaths = true; return nil })
 	set.Opt("ansi", func(arg string) error { t.ansi = true; t.strictISOMode = true; return nil })
 	set.Opt("c", func(arg string) error { t.c = true; return nil })
 	set.Opt("debug-linker-save", func(arg string) error { t.debugLinkerSave = true; return nil })

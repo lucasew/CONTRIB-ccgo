@@ -599,6 +599,10 @@ func (c *ctx) pos(n cc.Node) (r token.Position) {
 
 	if r = token.Position(n.Position()); r.IsValid() {
 		switch {
+		case c.task.absolutePaths:
+			if s, err := filepath.Abs(r.Filename); err == nil {
+				r.Filename = s
+			}
 		case c.task.fullPaths:
 			if strings.HasPrefix(r.Filename, home) {
 				r.Filename = "$HOME" + r.Filename[len(home):]

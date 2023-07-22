@@ -2635,7 +2635,6 @@ assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36034-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36034-2.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36038.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36077.c
-assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36093.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36339.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36343.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36691.c
