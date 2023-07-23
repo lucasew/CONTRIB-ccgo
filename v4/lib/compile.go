@@ -293,12 +293,16 @@ func (c *ctx) compile(ifn, ofn string) (err error) {
 			return
 		}
 
-		if c.hasErrors {
+		if c.hasErrors || err != nil {
 			return
 		}
 
 		if !c.task.noObjFmt {
 			if err2 := exec.Command("gofmt", "-s", "-w", "-r", "(x) -> x", ofn).Run(); err2 != nil {
+				// if dmesgs {
+				// 	b, _ := os.ReadFile(ofn)
+				// 	dmesg("%s: gofmt FAIL %v:\n%s", ofn, err2, b)
+				// }
 				c.err(errorf("%s: gofmt: %v", ifn, err2))
 				if err == nil {
 					err = err2

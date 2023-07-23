@@ -58,6 +58,7 @@ type Task struct {
 	goarch                string
 	goos                  string
 	hidden                nameSet // -hide <string>
+	ignoreFile            nameSet // -ignore-file=comma separated file list
 	inputFiles            []string
 	l                     []string // -l
 	linkFiles             []string
@@ -205,6 +206,12 @@ func (t *Task) main() (err error) {
 		}
 		return nil
 	})
+	set.Arg("ignore-file", false, func(arg, val string) error {
+		for _, v := range strings.Split(val, ",") {
+			t.ignoreFile.add(v)
+		}
+		return nil
+	})
 	set.Arg("l", true, func(arg, val string) error {
 		t.l = append(t.l, val)
 		t.linkFiles = append(t.linkFiles, arg+"="+val)
@@ -265,6 +272,10 @@ func (t *Task) main() (err error) {
 	if err := set.Parse(t.args[1:], func(arg string) error {
 		if strings.HasPrefix(arg, "-") {
 			return errorf(" unrecognized command-line option '%s'", arg)
+		}
+
+		if t.ignoreFile.has(arg) {
+			return nil
 		}
 
 		if strings.HasSuffix(arg, ".c") || strings.HasSuffix(arg, ".h") {
