@@ -57,8 +57,9 @@ type Task struct {
 	goABI                 *gc.ABI
 	goarch                string
 	goos                  string
-	hidden                nameSet // -hide <string>
-	ignoreFile            nameSet // -ignore-file=comma separated file list
+	hidden                nameSet  // -hide <string>
+	ignoreFile            nameSet  // -ignore-file=comma separated file list
+	imports               []string // -import=comma separated import list
 	inputFiles            []string
 	l                     []string // -l
 	linkFiles             []string
@@ -159,7 +160,7 @@ func (t *Task) Main() (err error) {
 
 func (t *Task) main() (err error) {
 	if dmesgs {
-		dmesg("%v: ==== enter %s", origin(1), t.args)
+		dmesg("%v: ==== enter %s CC=%q %s=%q(=realCC)", origin(1), t.args, os.Getenv("CC"), CCEnvVar, os.Getenv(CCEnvVar))
 		defer func() {
 			dmesg("%v: ==== exit: %v", origin(1), err)
 		}()
@@ -193,7 +194,6 @@ func (t *Task) main() (err error) {
 	set.Arg("-prefix-tagged-union", false, func(arg, val string) error { t.prefixTaggedUnion = val; return nil })
 	set.Arg("-prefix-typename", false, func(arg, val string) error { t.prefixTypename = val; return nil })
 	set.Arg("-prefix-undefined", false, func(arg, val string) error { t.prefixUndefined = val; return nil })
-	//TODO set.Arg("-prefix-unpinned", false, func(arg, val string) error { t.prefixUnpinned = val; return nil })
 	set.Arg("D", true, func(arg, val string) error { t.D = append(t.D, fmt.Sprintf("%s%s", arg, val)); return nil })
 	set.Arg("I", true, func(arg, val string) error { t.I = append(t.I, val); return nil })
 	set.Arg("O", true, func(arg, val string) error { t.O = fmt.Sprintf("%s%s", arg, val); t.opt0 = val == "0"; return nil })
@@ -210,6 +210,10 @@ func (t *Task) main() (err error) {
 		for _, v := range strings.Split(val, ",") {
 			t.ignoreFile.add(v)
 		}
+		return nil
+	})
+	set.Arg("import", false, func(arg, val string) error {
+		t.imports = append(t.imports, strings.Split(val, ",")...)
 		return nil
 	})
 	set.Arg("l", true, func(arg, val string) error {
@@ -350,7 +354,12 @@ func (t *Task) main() (err error) {
 	}
 
 	// trc("", t.cfgArgs)
+	sv := os.Getenv("CC")
+	if s := os.Getenv(CCEnvVar); s != "" {
+		os.Setenv("CC", s)
+	}
 	cfg, err := cc.NewConfig(t.goos, t.goarch, t.cfgArgs...)
+	os.Setenv("CC", sv)
 	if err != nil {
 		return err
 	}

@@ -71,14 +71,18 @@ func (o *object) load() (file *gc.SourceFile, err error) {
 	return file, nil
 }
 
-func (o *object) collectExternVars(file *gc.SourceFile) (vars map[string][]*gc.VarSpec, err error) {
+func (o *object) collectExternVars(file *gc.SourceFile) (seps map[*gc.VarSpec]string, vars map[string][]*gc.VarSpec, err error) {
+	seps = map[*gc.VarSpec]string{}
 	vars = map[string][]*gc.VarSpec{}
 	for _, decl := range file.TopLevelDecls {
 		switch x := decl.(type) {
 		case *gc.VarDecl:
+			if len(x.VarSpecs) == 1 {
+				seps[x.VarSpecs[0]] = x.Var.Sep()
+			}
 			for _, spec := range x.VarSpecs {
 				if len(spec.IdentifierList) != 1 {
-					return nil, errorf("collectExternVars: internal error")
+					return nil, nil, errorf("collectExternVars: internal error")
 				}
 
 				nm := spec.IdentifierList[0].Ident.Src()
@@ -90,7 +94,7 @@ func (o *object) collectExternVars(file *gc.SourceFile) (vars map[string][]*gc.V
 			}
 		}
 	}
-	return vars, nil
+	return seps, vars, nil
 }
 
 // link name -> type ID
@@ -754,6 +758,17 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 			}
 			l.w("%q", v.id)
 		}
+		if len(l.task.imports) != 0 {
+			l.w("\n")
+			for _, v := range l.task.imports {
+				switch x := strings.IndexByte(v, '='); {
+				case x > 0:
+					l.w("\n\t%s %q", v[:x], v[x+1:])
+				default:
+					l.w("\n\t%q", v)
+				}
+			}
+		}
 		l.w("\n)")
 		l.w(`
 
@@ -844,13 +859,14 @@ var (
 		}
 
 		// vars
-		vars, err := object.collectExternVars(file)
+		seps, vars, err := object.collectExternVars(file)
 		if err != nil {
 			return errorf("loading %s: %v", object.id, err)
 		}
 
 		for linkName, specs := range vars {
 			for _, spec := range specs {
+				sep := seps[spec]
 				switch ex := l.externVars[linkName]; {
 				case ex != nil:
 					switch {
@@ -859,6 +875,7 @@ var (
 					case len(ex.spec.ExprList) == 0:
 						fi := l.newFnInfo(spec)
 						var b buf
+						b.w("\n%svar ", sep)
 						l.print0(&b, fi, spec)
 						l.externVars[linkName] = &externVar{rendered: b.bytes(), spec: spec}
 					default:
@@ -867,6 +884,7 @@ var (
 				default:
 					fi := l.newFnInfo(spec)
 					var b buf
+					b.w("\n%svar ", sep)
 					l.print0(&b, fi, spec)
 					l.externVars[linkName] = &externVar{rendered: b.bytes(), spec: spec}
 				}
@@ -1146,7 +1164,7 @@ func %s(f interface{}) uintptr {
 	}
 	sort.Strings(a)
 	for _, k := range a {
-		l.w("\n\nvar %s", l.externVars[k].rendered)
+		l.w("\n\n%s", l.externVars[k].rendered)
 	}
 
 	if l.textSegment.Len() == 0 {

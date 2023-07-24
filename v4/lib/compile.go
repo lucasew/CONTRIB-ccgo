@@ -39,7 +39,6 @@ const (
 const (
 	// Lower values have higher priority in name allocation.
 	external name = iota // storage class static, linkage external
-	//TODO externalUnpinned
 
 	typename
 	taggedStruct
@@ -59,7 +58,6 @@ const (
 	field          // field name
 	meta           // linker metadata
 
-	//TODO unpinned
 	preserve
 )
 
@@ -92,7 +90,6 @@ var (
 		taggedStruct:    "ts", // tagged struct
 		taggedUnion:     "tu", // tagged union
 		typename:        "tn", // type name
-		//TODO unpinned:        "un", // unpinned
 	}
 )
 

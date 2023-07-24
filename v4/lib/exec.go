@@ -96,7 +96,7 @@ func (s *strSlice) add(v ...string) { *s = append(*s, v...) }
 func (t *Task) execed(realCC string, cflags []string) (err error) {
 	if dmesgs {
 		wd, err := os.Getwd()
-		dmesg("%v: ==== ENTER: wd %v, %v \\\n%v", origin(1), wd, err, t.args)
+		dmesg("%v: ==== ENTER: wd (%v, %v), CC=%q %s=%q(=realCC)\\\n%v", origin(1), wd, err, os.Getenv("CC"), CCEnvVar, os.Getenv(CCEnvVar), t.args)
 	}
 
 	defer func() {
@@ -111,8 +111,7 @@ func (t *Task) execed(realCC string, cflags []string) (err error) {
 		dmesg("%v: ==== EXIT OK:", origin(1))
 	}()
 
-	ccBase := filepath.Base(realCC)
-	if len(t.args) == 0 || t.args[0] != ccBase {
+	if len(t.args) == 0 || filepath.Base(t.args[0]) != filepath.Base(realCC) {
 		return fmt.Errorf("%v: internal error: real CC=%q, faked args=%q", origin(1), realCC, t.args)
 	}
 
