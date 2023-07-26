@@ -47,6 +47,7 @@ assets/benchmarksgame-team.pages.debian.net/spectral-norm.c
 assets/ccgo/bug/arr.c
 assets/ccgo/bug/atomic.c
 assets/ccgo/bug/bitfield.c
+assets/ccgo/bug/complit.c
 assets/ccgo/bug/condfn.c
 assets/ccgo/bug/cpl_convert.c
 assets/ccgo/bug/csmith.c

@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
-.PHONY:	build_all_targets clean edit editor tmp x csmith fftest shorttest sqlitetest debug install wotk
+.PHONY:	build_all_targets clean edit editor tmp x csmith fftest shorttest sqlitetest debug install work
 
 build_all_targets:
 	GOOS=darwin GOARCH=amd64 go build -v ./...

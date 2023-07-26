@@ -2375,13 +2375,14 @@ func (c *ctx) postfixExpressionSelectComplit(w writer, n *cc.PostfixExpression, 
 		}
 
 		e := a[0].AssignmentExpression
+		f := a[0].Field()
 		var b buf
 		switch d := c.declaratorOf(e); {
-		case d != nil && d.Type() == e.Type():
+		case d != nil && d.Type() == f.Type():
 			b.w("(*(*%s)(%s))", c.typ(n, ft), unsafePointer(fmt.Sprintf("&%s", c.topExpr(w, e, nil, exprDefault))))
 		default:
-			v := c.f.newAutovar(n, a[0].Type())
-			w.w("%s = %s;", v, c.topExpr(w, e, a[0].Type(), exprDefault))
+			v := c.f.newAutovar(n, f.Type())
+			w.w("%s = %s;", v, c.topExpr(w, e, f.Type(), exprDefault))
 			b.w("(*(*%s)(%s))", c.typ(n, ft), unsafePointer(fmt.Sprintf("&%s", v)))
 		}
 		return &b, ft, mode
