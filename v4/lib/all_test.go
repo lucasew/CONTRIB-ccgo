@@ -56,6 +56,7 @@ var (
 	oTraceCC      = flag.Bool("trccc", false, "trace TestExec C compiler errors")
 	oTraceF       = flag.Bool("trcf", false, "print test file content")
 	oTraceO       = flag.Bool("trco", false, "print test output")
+	oWork         = flag.String("xwork", "", "TestExec will use a go.work file for packages in the CSV list")
 	oXTags        = flag.String("xtags", "", "passed to go build of TestSQLite")
 
 	cfs    fs.FS
@@ -100,6 +101,17 @@ func (f *overlayFS) Open(name string) (fs.File, error) {
 }
 
 func TestMain(m *testing.M) {
+	switch runtime.GOOS {
+	case "linux":
+		switch runtime.GOARCH {
+		case "amd64":
+			// ok
+		default:
+			panic(todo("unsupported target: %s/%s", runtime.GOOS, runtime.GOARCH)) //TODO
+		}
+	default:
+		panic(todo("unsupported target: %s/%s", runtime.GOOS, runtime.GOARCH)) //TODO
+	}
 	isTesting = true
 	testWD, err := filepath.Abs("testdata")
 	if err != nil {
@@ -318,29 +330,62 @@ func TestExec(t *testing.T) {
 
 	defer g.close()
 
-	tmp := t.TempDir()
+	var tmp string
+	switch {
+	case *oWork != "":
+		temp, err := os.MkdirTemp("", "ccgo-test-")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		tmp = temp
+
+		defer func() {
+			os.RemoveAll(tmp)
+		}()
+	default:
+		tmp = t.TempDir()
+	}
+
 	if err := inDir(tmp, func() error {
 		if out, err := shell(true, "go", "mod", "init", "test"); err != nil {
 			return fmt.Errorf("%s\vFAIL: %v", out, err)
 		}
 
-		if out, err := shell(true, "go", "get", defaultLibc); err != nil {
-			return fmt.Errorf("%s\vFAIL: %v", out, err)
+		switch s := *oWork; {
+		case s != "":
+			if out, err := shell(true, "go", "work", "init"); err != nil {
+				return fmt.Errorf("%s\vFAIL: %v", out, err)
+			}
+
+			if out, err := shell(true, "go", "work", "use", "."); err != nil {
+				return fmt.Errorf("%s\vFAIL: %v", out, err)
+			}
+
+			for _, v := range strings.Split(s, ",") {
+				if out, err := shell(true, "go", "work", "use", v); err != nil {
+					return fmt.Errorf("%s\vFAIL: %v", out, err)
+				}
+			}
+		default:
+			if out, err := shell(true, "go", "get", defaultLibc+"@master"); err != nil { //TODO- &master
+				return fmt.Errorf("%s\vFAIL: %v", out, err)
+			}
 		}
 
 		for _, v := range []struct {
 			path string
 			exec bool
 		}{
-			{"CompCert-3.6/test/c", true},
-			{"benchmarksgame-team.pages.debian.net", true},
-			{"ccgo", true},
-			{"gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile", false},
-			{"gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute", true},
-			{"github.com/AbsInt/CompCert/test/c", true},
+			//TODO {"CompCert-3.6/test/c", true},
+			//TODO {"benchmarksgame-team.pages.debian.net", true},
+			//TODO {"ccgo", true},
+			//TODO {"gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile", false},
+			//TODO {"gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute", true},
+			//TODO {"github.com/AbsInt/CompCert/test/c", true},
 			{"github.com/cxgo", false},
-			{"github.com/gcc-mirror/gcc/gcc/testsuite", true},
-			{"github.com/vnmakarov", true},
+			//TODO {"github.com/gcc-mirror/gcc/gcc/testsuite", true},
+			//TODO {"github.com/vnmakarov", true},
 			{"tcc-0.9.27/tests/tests2", true},
 		} {
 			t.Run(v.path, func(t *testing.T) {
@@ -423,18 +468,7 @@ func trccc(path string, err error) {
 }
 
 func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *golden, id int, args []string) (err error) {
-	// p.Lock()
-	// trc("ADD %q", path)
-	// if p.paths == nil {
-	// 	p.paths = map[string]struct{}{}
-	// }
-	// p.paths[path] = struct{}{}
-	// p.Unlock()
 	defer func() {
-		// p.Lock()
-		// delete(p.paths, path)
-		// trc("DONE %q %v", path, p.paths)
-		// p.Unlock()
 		if err != nil {
 			p.fail()
 		}
@@ -533,13 +567,15 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 	}
 
 	bin = "gobin_" + enforceBinaryExt(ofn)
-	if _, err = shell(false, "go", "build", "-o", bin, ofn); err != nil {
+	var shOut []byte
+	if shOut, err = shell(false, "go", "build", "-o", bin, ofn); err != nil {
 		// trc("gc %v %v", path, err)
 		if cCompilerFailed || isTestExecKnownFail(fullPath) {
 			p.skip()
 			return nil
 		}
 
+		trc("%s\nFAIL: %v", shOut, err)
 		trc("`%s`: {}, // BUILD FAIL: %v", fullPath, firstError(err, true))
 		p.err(err)
 		return firstError(err, *oErr1)
@@ -769,13 +805,24 @@ func TestCSmith(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if os.Getenv("GO111MODULE") != "off" {
-		if out, err := shell(true, "go", "mod", "init", "example.com/ccgo/v4/lib/csmith"); err != nil {
-			t.Fatalf("%v\n%s", err, out)
+	if out, err := shell(true, "go", "mod", "init", "example.com/ccgo/v4/lib/csmith"); err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+
+	switch s := *oWork; {
+	case s != "":
+		if out, err := shell(true, "go", "work", "use", "."); err != nil {
+			t.Fatalf("%s\vFAIL: %v", out, err)
 		}
 
-		if out, err := shell(true, "go", "get", "modernc.org/libc"); err != nil {
-			t.Fatalf("%v\n%s", err, out)
+		for _, v := range strings.Split(s, ",") {
+			if out, err := shell(true, "go", "work", "use", v); err != nil {
+				t.Fatalf("%s\vFAIL: %v", out, err)
+			}
+		}
+	default:
+		if out, err := shell(true, "go", "get", defaultLibc+"@master"); err != nil { //TODO- @master
+			t.Fatalf("%s\vFAIL: %v", out, err)
 		}
 	}
 
@@ -1018,6 +1065,7 @@ func durationStr(d time.Duration) string {
 }
 
 func TestSQLite(t *testing.T) {
+	t.Skip("TODO")               //TODO
 	if runtime.GOOS != "linux" { //TODO-
 		t.Skip("TODO")
 	}

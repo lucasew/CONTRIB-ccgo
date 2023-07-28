@@ -25,7 +25,7 @@ import (
 type name int
 
 const (
-	defaultLibc = "modernc.org/libc"
+	defaultLibc = "modernc.org/libc/v2"
 
 	generatedFilePrefix = "Code generated for "
 	generatedFileSuffix = ", DO NOT EDIT."

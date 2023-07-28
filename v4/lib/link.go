@@ -280,75 +280,153 @@ func (t *Task) getPkgSymbols(importPath, mode string) (r *object, err error) {
 	}
 
 	r = newObject(objectPkg, importPath)
-	base := fmt.Sprintf("capi_%s_%s.go", t.goos, t.goarch)
-	var fn string
-	for _, v := range pkg.GoFiles {
-		if filepath.Base(v) == base {
-			fn = v
-			break
+	for _, fn := range pkg.GoFiles {
+		b, err := os.ReadFile(fn)
+		if err != nil {
+			return nil, errorf("%s: %v", importPath, err)
 		}
-	}
-	if fn == "" {
-		return nil, errorf("%s: file %s not found", importPath, base)
-	}
 
-	b, err := os.ReadFile(fn)
-	if err != nil {
-		return nil, errorf("%s: %v", importPath, err)
-	}
+		file, err := gc.ParseSourceFile(&gc.ParseSourceFileConfig{}, fn, b)
+		if err != nil {
+			return nil, errorf("%s: %v", importPath, err)
+		}
 
-	file, err := gc.ParseSourceFile(&gc.ParseSourceFileConfig{}, fn, b)
-	if err != nil {
-		return nil, errorf("%s: %v", importPath, err)
-	}
+		if r.pkgName == "" {
+			r.pkgName = file.PackageClause.PackageName.Src()
+		}
+		for _, v := range file.TopLevelDecls {
+			switch x := v.(type) {
+			case *gc.FunctionDecl:
+				if !isCapiFunc(x) {
+					break
+				}
 
-	var capi gc.Node
-out:
-	for _, v := range file.TopLevelDecls {
-		if x, ok := v.(*gc.VarDecl); ok {
-			for _, v := range x.VarSpecs {
-				for i, id := range v.IdentifierList {
-					if nm := id.Ident.Src(); nm == "CAPI" {
-						capi = v.ExprList[i].Expr
-						break out
+				r.externs.add(x.FunctionName.Src())
+			case *gc.VarDecl:
+				for _, v := range x.VarSpecs {
+					for _, id := range v.IdentifierList {
+						nm := id.Ident.Src()
+						if !isCapiName(nm) {
+							continue
+						}
+
+						r.externs.add(nm)
 					}
 				}
 			}
 		}
 	}
+	return r, nil
+	//TODO-	base := fmt.Sprintf("capi_%s_%s.go", t.goos, t.goarch)
+	//TODO-	var fn string
+	//TODO-	for _, v := range pkg.GoFiles {
+	//TODO-		if filepath.Base(v) == base {
+	//TODO-			fn = v
+	//TODO-			break
+	//TODO-		}
+	//TODO-	}
+	//TODO-	if fn == "" {
+	//TODO-		return nil, errorf("%s: file %s not found", importPath, base)
+	//TODO-	}
+	//TODO-
+	//TODO-	b, err := os.ReadFile(fn)
+	//TODO-	if err != nil {
+	//TODO-		return nil, errorf("%s: %v", importPath, err)
+	//TODO-	}
+	//TODO-
+	//TODO-	file, err := gc.ParseSourceFile(&gc.ParseSourceFileConfig{}, fn, b)
+	//TODO-	if err != nil {
+	//TODO-		return nil, errorf("%s: %v", importPath, err)
+	//TODO-	}
+	//TODO-
+	//TODO-	var capi gc.Node
+	//TODO-
+	//TODO- out:
+	//TODO-
+	//TODO-	for _, v := range file.TopLevelDecls {
+	//TODO-		if x, ok := v.(*gc.VarDecl); ok {
+	//TODO-			for _, v := range x.VarSpecs {
+	//TODO-				for i, id := range v.IdentifierList {
+	//TODO-					if nm := id.Ident.Src(); nm == "CAPI" {
+	//TODO-						capi = v.ExprList[i].Expr
+	//TODO-						break out
+	//TODO-					}
+	//TODO-				}
+	//TODO-			}
+	//TODO-		}
+	//TODO-	}
+	//TODO-
+	//TODO-	if capi == nil {
+	//TODO-		return nil, errorf("%s: CAPI not declared in %s", importPath, fn)
+	//TODO-	}
+	//TODO-
+	//TODO-	lit, ok := capi.(*gc.CompositeLit)
+	//TODO-	if !ok {
+	//TODO-		return nil, errorf("%s: unexpected CAPI node type: %T", importPath, capi)
+	//TODO-	}
+	//TODO-
+	//TODO-	if _, ok := lit.LiteralType.(*gc.MapTypeNode); !ok {
+	//TODO-		return nil, errorf("%s: unexpected CAPI literal type: %T", importPath, lit.LiteralType)
+	//TODO-	}
+	//TODO-
+	//TODO-	r.pkgName = file.PackageClause.PackageName.Src()
+	//TODO-	for _, v := range lit.LiteralValue.ElementList {
+	//TODO-		switch x := v.Key.(type) {
+	//TODO-		case *gc.BasicLit:
+	//TODO-			if x.Token.Ch != gc.STRING_LIT {
+	//TODO-				return nil, errorf("%s: invalid CAPI key type", importPath)
+	//TODO-			}
+	//TODO-
+	//TODO-			var key string
+	//TODO-			if key, err = strconv.Unquote(x.Token.Src()); err != nil {
+	//TODO-				return nil, errorf("%s: invalid CAPI key value: %s", importPath, x.Token.Src())
+	//TODO-			}
+	//TODO-
+	//TODO-			r.externs.add(tag(external) + key)
+	//TODO-		default:
+	//TODO-			panic(todo("%T", x))
+	//TODO-		}
+	//TODO-	}
+	//TODO-	return r, nil
+}
 
-	if capi == nil {
-		return nil, errorf("%s: CAPI not declared in %s", importPath, fn)
+func isCapiName(nm string) bool {
+	return strings.HasPrefix(nm, "X") && len(nm) > 1
+}
+
+func isCapiFunc(n *gc.FunctionDecl) bool {
+	nm := n.FunctionName.Src()
+	if !isCapiName(nm) {
+		return false
 	}
 
-	lit, ok := capi.(*gc.CompositeLit)
-	if !ok {
-		return nil, errorf("%s: unexpected CAPI node type: %T", importPath, capi)
+	if n.TypeParameters != nil {
+		return false
 	}
 
-	if _, ok := lit.LiteralType.(*gc.MapTypeNode); !ok {
-		return nil, errorf("%s: unexpected CAPI literal type: %T", importPath, lit.LiteralType)
+	sig := n.Signature
+	if sig.Parameters == nil {
+		return false
 	}
 
-	r.pkgName = file.PackageClause.PackageName.Src()
-	for _, v := range lit.LiteralValue.ElementList {
-		switch x := v.Key.(type) {
-		case *gc.BasicLit:
-			if x.Token.Ch != gc.STRING_LIT {
-				return nil, errorf("%s: invalid CAPI key type", importPath)
-			}
+	pl := sig.Parameters.ParameterList
+	if len(pl) == 0 {
+		return false
+	}
 
-			var key string
-			if key, err = strconv.Unquote(x.Token.Src()); err != nil {
-				return nil, errorf("%s: invalid CAPI key value: %s", importPath, x.Token.Src())
-			}
+	pd0 := pl[0]
+	if len(pd0.IdentifierList) != 1 {
+		return false
+	}
 
-			r.externs.add(tag(external) + key)
-		default:
-			panic(todo("%T", x))
+	switch x := pd0.Type.(type) {
+	case *gc.PointerTypeNode:
+		switch y := x.BaseType.(type) {
+		case *gc.TypeNameNode:
+			return y.Name.Ident.Src() == "TLS"
 		}
 	}
-	return r, nil
+	return false
 }
 
 func (t *Task) getFileSymbols(fset *token.FileSet, fn string) (r *object, err error) {
