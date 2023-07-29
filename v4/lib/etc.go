@@ -550,7 +550,7 @@ func (n *nameSpace) registerNameSet(l *linker, set nameSet, tld bool) {
 		x, y := symKind(a), symKind(b)
 		return x < y || x == y && a < b
 	})
-	// trc("==== (A)")
+	// trc("==== (A) nameSpace@%p", n)
 	// for _, v := range linkNames {
 	// 	trc("%q", v)
 	// }
@@ -570,13 +570,23 @@ func (n *nameSpace) registerNameSet(l *linker, set nameSet, tld bool) {
 			}
 
 			n.registerName(l, linkName)
-		case staticInternal, staticNone:
+		case staticInternal:
 			if tld {
 				panic(todo("", linkName))
 			}
 
-			n.dict.put(linkName, l.tld.registerName(l, linkName))
-			n.registerName(l, linkName)
+			goName := l.fileLinkNames2GoNames[linkName]
+			n.reg.put(goName)
+			n.dict.put(linkName, goName)
+		case staticNone:
+			if tld {
+				panic(todo("", linkName))
+			}
+
+			goName := l.tld.registerName(l, linkName)
+			l.fileLinkNames2GoNames[linkName] = goName
+			n.reg.put(goName)
+			n.dict.put(linkName, goName)
 		case automatic, ccgoAutomatic, ccgo:
 			if tld {
 				panic(todo("", linkName))
@@ -607,6 +617,7 @@ func (n *nameSpace) registerName(l *linker, linkName string) (goName string) {
 	goName = n.reg.put(goName)
 	n.dict.put(linkName, goName)
 	// trc("%p: registered %q -> %q", n, linkName, goName)
+	// trc("nameSpace@%p %q -> %q (%v)", n, linkName, goName, origin(2))
 	return goName
 }
 

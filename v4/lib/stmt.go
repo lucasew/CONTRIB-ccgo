@@ -723,7 +723,10 @@ func (c *ctx) iterationStatementFlat(w writer, n *cc.IterationStatement) {
 		//	goto a
 		// brk:
 		a := c.label()
-		c.expr(w, n.ExpressionList, nil, exprVoid)
+		b := c.expr(w, n.ExpressionList, nil, exprVoid)
+		if b.len() != 0 {
+			w.w("%s;", b)
+		}
 		w.w("%s: ", a)
 		if n.ExpressionList2 != nil {
 			w.w("if !(%s) { goto %s };", c.expr(w, n.ExpressionList2, nil, exprBool), brk)

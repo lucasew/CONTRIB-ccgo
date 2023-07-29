@@ -2853,7 +2853,7 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 			w.w("%s = %s;", c.expr(w, n.UnaryExpression, nil, exprDefault), v)
 			b.w("%s", v)
 		case exprVoid:
-			//TODO- b.w("%s = %s", c.expr(w, n.UnaryExpression, nil, exprLvalue), c.expr(w, n.AssignmentExpression, n.UnaryExpression.Type(), exprDefault))
+			//TODO should write all to 'w' and return empy 'b'.
 			b.w("%s = ", c.expr(w, n.UnaryExpression, nil, exprLvalue))
 			c.exprNestLevel--
 

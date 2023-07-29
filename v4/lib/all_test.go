@@ -56,7 +56,7 @@ var (
 	oTraceCC      = flag.Bool("trccc", false, "trace TestExec C compiler errors")
 	oTraceF       = flag.Bool("trcf", false, "print test file content")
 	oTraceO       = flag.Bool("trco", false, "print test output")
-	oWork         = flag.String("xwork", "", "TestExec will use a go.work file for packages in the CSV list")
+	oXWork        = flag.String("xwork", "", "TestExec will use a go.work file for packages in the CSV list")
 	oXTags        = flag.String("xtags", "", "passed to go build of TestSQLite")
 
 	cfs    fs.FS
@@ -300,25 +300,17 @@ func inDir(dir string, f func() error) (err error) {
 	return f()
 }
 
-func absCwd() (string, error) {
-	wd, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-
-	if wd, err = filepath.Abs(wd); err != nil {
-		return "", err
-	}
-
-	return wd, nil
-}
-
 type echoWriter struct {
+	mu     sync.Mutex
 	w      bytes.Buffer
 	silent bool
 }
 
 func (w *echoWriter) Write(b []byte) (int, error) {
+	w.mu.Lock()
+
+	defer w.mu.Unlock()
+
 	if !w.silent {
 		os.Stderr.Write(b)
 	}
@@ -332,7 +324,7 @@ func TestExec(t *testing.T) {
 
 	var tmp string
 	switch {
-	case *oWork != "":
+	case *oXWork != "":
 		temp, err := os.MkdirTemp("", "ccgo-test-")
 		if err != nil {
 			t.Fatal(err)
@@ -352,7 +344,7 @@ func TestExec(t *testing.T) {
 			return fmt.Errorf("%s\vFAIL: %v", out, err)
 		}
 
-		switch s := *oWork; {
+		switch s := *oXWork; {
 		case s != "":
 			if out, err := shell(true, "go", "work", "init"); err != nil {
 				return fmt.Errorf("%s\vFAIL: %v", out, err)
@@ -377,16 +369,17 @@ func TestExec(t *testing.T) {
 			path string
 			exec bool
 		}{
-			//TODO {"CompCert-3.6/test/c", true},
-			//TODO {"benchmarksgame-team.pages.debian.net", true},
+			{"github.com/cxgo", false},
+			{"tcc-0.9.27/tests/tests2", true},
+			{"CompCert-3.6/test/c", true},
+			{"benchmarksgame-team.pages.debian.net", true},
+
 			//TODO {"ccgo", true},
 			//TODO {"gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile", false},
 			//TODO {"gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute", true},
 			//TODO {"github.com/AbsInt/CompCert/test/c", true},
-			{"github.com/cxgo", false},
 			//TODO {"github.com/gcc-mirror/gcc/gcc/testsuite", true},
 			//TODO {"github.com/vnmakarov", true},
-			{"tcc-0.9.27/tests/tests2", true},
 		} {
 			t.Run(v.path, func(t *testing.T) {
 				testExec(t, "assets/"+v.path, v.exec, g)
@@ -465,6 +458,50 @@ func trccc(path string, err error) {
 	if *oTraceCC {
 		fmt.Printf("%v: C compiler failed: %v\n", path, err)
 	}
+}
+
+func shell(echo bool, cmd string, args ...string) ([]byte, error) {
+	cmd, err := exec.LookPath(cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	wd, err := absCwd()
+	if err != nil {
+		return nil, err
+	}
+
+	if echo {
+		fmt.Printf("execute %s %q in %s\n", cmd, args, wd)
+	}
+	var b echoWriter
+	b.silent = !echo
+	ctx, cancel := context.WithTimeout(context.Background(), *oShellTime)
+	defer cancel()
+	c := exec.CommandContext(ctx, cmd, args...)
+	c.Stdout = &b
+	c.Stderr = &b
+	c.WaitDelay = *oShellTime + time.Minute
+	err = c.Start()
+	if err != nil {
+		return nil, err
+	}
+
+	err = c.Wait()
+	return b.w.Bytes(), err
+}
+
+func absCwd() (string, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	if wd, err = filepath.Abs(wd); err != nil {
+		return "", err
+	}
+
+	return wd, nil
 }
 
 func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *golden, id int, args []string) (err error) {
@@ -809,7 +846,7 @@ func TestCSmith(t *testing.T) {
 		t.Fatalf("%v\n%s", err, out)
 	}
 
-	switch s := *oWork; {
+	switch s := *oXWork; {
 	case s != "":
 		if out, err := shell(true, "go", "work", "use", "."); err != nil {
 			t.Fatalf("%s\vFAIL: %v", out, err)
