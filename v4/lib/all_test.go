@@ -369,17 +369,16 @@ func TestExec(t *testing.T) {
 			path string
 			exec bool
 		}{
-			{"github.com/cxgo", false},
-			{"tcc-0.9.27/tests/tests2", true},
 			{"CompCert-3.6/test/c", true},
 			{"benchmarksgame-team.pages.debian.net", true},
-
-			//TODO {"ccgo", true},
-			//TODO {"gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile", false},
-			//TODO {"gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute", true},
-			//TODO {"github.com/AbsInt/CompCert/test/c", true},
-			//TODO {"github.com/gcc-mirror/gcc/gcc/testsuite", true},
-			//TODO {"github.com/vnmakarov", true},
+			{"ccgo", true},
+			{"gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile", false},
+			{"gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute", true},
+			{"github.com/AbsInt/CompCert/test/c", true},
+			{"github.com/cxgo", false},
+			{"github.com/gcc-mirror/gcc/gcc/testsuite", true},
+			{"github.com/vnmakarov", true},
+			{"tcc-0.9.27/tests/tests2", true},
 		} {
 			t.Run(v.path, func(t *testing.T) {
 				testExec(t, "assets/"+v.path, v.exec, g)

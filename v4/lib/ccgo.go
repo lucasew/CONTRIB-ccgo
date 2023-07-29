@@ -41,16 +41,15 @@ var (
 
 // Task represents a compilation job.
 type Task struct {
-	D              []string // -D
-	I              []string // -I
-	O              string   // -O
-	U              []string // -U
-	args           []string // command name in args[0]
-	cfg            *cc.Config
-	cfgArgs        []string
-	compiledfFiles map[string]string // *.c -> *.c.go
-	defs           string
-	//TODO prefixUnpinned        string // --prefix-unpinned <string>
+	D                     []string // -D
+	I                     []string // -I
+	O                     string   // -O
+	U                     []string // -U
+	args                  []string // command name in args[0]
+	cfg                   *cc.Config
+	cfgArgs               []string
+	compiledfFiles        map[string]string // *.c -> *.c.go
+	defs                  string
 	execCC                string // -exec-cc
 	experimentPin         int    // -experiment-pin <int>
 	fs                    fs.FS
