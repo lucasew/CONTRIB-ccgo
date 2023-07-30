@@ -733,18 +733,27 @@ func (c *ctx) canIgnore(n cc.ExpressionNode) bool {
 			return false
 		}
 
-		switch y := c.unparen(x.CastExpression).(type) {
-		case *cc.PrimaryExpression:
-			switch y.Case {
-			case cc.PrimaryExpressionInt:
-				return true
-			}
-		}
+		return c.canIgnore(x.CastExpression)
 	case *cc.PrimaryExpression:
 		switch x.Case {
-		case cc.PrimaryExpressionInt:
+		case
+			cc.PrimaryExpressionChar,
+			cc.PrimaryExpressionFloat,
+			cc.PrimaryExpressionIdent,
+			cc.PrimaryExpressionInt,
+			cc.PrimaryExpressionLChar,
+			cc.PrimaryExpressionLString:
+
 			return true
 		}
+	case *cc.ExpressionList:
+		for ; x != nil; x = x.ExpressionList {
+			if !c.canIgnore(x.AssignmentExpression) {
+				return false
+			}
+		}
+
+		return true
 	}
 	return false
 }
@@ -816,11 +825,18 @@ func (c *ctx) conditionalExpression(w writer, n *cc.ConditionalExpression, t cc.
 				w.w("%s%s;", c.discardStr(n.ConditionalExpression), c.topExpr(w, n.ConditionalExpression, n.Type(), exprVoid))
 				w.w("};")
 			default:
-				w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
-				w.w("%s%s;", c.discardStr(n.ExpressionList), c.topExpr(w, n.ExpressionList, n.Type(), exprVoid))
-				w.w("} else {")
-				w.w("%s%s;", c.discardStr(n.ConditionalExpression), c.topExpr(w, n.ConditionalExpression, n.Type(), exprVoid))
-				w.w("};")
+				switch {
+				case c.canIgnore(n.ConditionalExpression):
+					w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
+					w.w("%s%s;", c.discardStr(n.ExpressionList), c.topExpr(w, n.ExpressionList, n.Type(), exprVoid))
+					w.w("};")
+				default:
+					w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
+					w.w("%s%s;", c.discardStr(n.ExpressionList), c.topExpr(w, n.ExpressionList, n.Type(), exprVoid))
+					w.w("} else {")
+					w.w("%s%s;", c.discardStr(n.ConditionalExpression), c.topExpr(w, n.ConditionalExpression, n.Type(), exprVoid))
+					w.w("};")
+				}
 			}
 		default:
 			rt, rmode = n.Type(), mode
@@ -1376,8 +1392,7 @@ out:
 					rt, rmode = n.Type(), mode
 					t := p.Elem()
 					if !cc.IsScalarType(t) {
-						w.w("panic(`unsupported va_arg type: %q`);", t)
-						b.w("(%s{})", c.typ(n, t))
+						b.w("(*((*%s)(%s)))", c.typ(n, t), unsafePointer(fmt.Sprintf("%sVaOther(&%s, %d)", c.task.tlsQualifier, c.expr(w, pfe.ArgumentExpressionList.AssignmentExpression, nil, exprDefault), t.Size())))
 						break out
 					}
 
@@ -2681,6 +2696,7 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, mode mode
 	}
 	params := c.normalizeParams(ft.Parameters())
 	var xargs []*buf
+	var xtypes []cc.Type
 	for i, v := range args {
 		mode := exprDefault
 		var t cc.Type
@@ -2700,6 +2716,7 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, mode mode
 			mode = exprUintptr
 		}
 		xargs = append(xargs, c.topExpr(w, v, t, mode))
+		xtypes = append(xtypes, t)
 	}
 	switch {
 	case inlineFD != nil:
@@ -2767,12 +2784,13 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, mode mode
 			b.w(", 0")
 		default:
 			b.w(", %s%sVaList(%s", c.task.tlsQualifier, tag(preserve), bpOff(c.f.tlsAllocs+8))
-			if n := len(xargs[ft.MinArgs():]); n > c.f.maxValist {
-				c.f.maxValist = n
-			}
-			for _, v := range xargs[ft.MinArgs():] {
+			var sz int64
+			xt := xtypes[ft.MinArgs():]
+			for i, v := range xargs[ft.MinArgs():] {
+				sz += roundup(xt[i].Size(), 8)
 				b.w(", %s", v)
 			}
+			c.f.maxVaListSize = mathutil.MaxInt64(c.f.maxVaListSize, sz)
 			b.w(")")
 		}
 	default:
@@ -2853,7 +2871,7 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 			w.w("%s = %s;", c.expr(w, n.UnaryExpression, nil, exprDefault), v)
 			b.w("%s", v)
 		case exprVoid:
-			//TODO should write all to 'w' and return empy 'b'.
+			//TODO should write all to 'w' and return empty 'b'.
 			b.w("%s = ", c.expr(w, n.UnaryExpression, nil, exprLvalue))
 			c.exprNestLevel--
 

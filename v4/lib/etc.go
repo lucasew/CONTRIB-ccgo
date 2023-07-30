@@ -454,10 +454,8 @@ func (p *parallel) exec(run func() error) {
 	p.limit <- struct{}{}
 	p.wg.Add(1)
 
-	// atomic.AddInt32(&p.inflight, 1)
 	go func() {
 		defer func() {
-			// atomic.AddInt32(&p.inflight, -1)
 			p.wg.Done()
 			<-p.limit
 		}()

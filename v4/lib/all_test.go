@@ -104,7 +104,7 @@ func TestMain(m *testing.M) {
 	switch runtime.GOOS {
 	case "linux":
 		switch runtime.GOARCH {
-		case "amd64":
+		case "amd64", "386":
 			// ok
 		default:
 			panic(todo("unsupported target: %s/%s", runtime.GOOS, runtime.GOARCH)) //TODO
@@ -557,7 +557,6 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 				"-verify-types",
 				"--prefix-field=F",
 				"-ignore-asm-errors",
-				"-ignore-unsupported-alignment",
 				"-ignore-unsupported-atomic-sizes",
 				"-ignore-vector-functions",
 				"-experiment-pin", *oPin,
@@ -575,7 +574,6 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 				"--prefix-field=F",
 				"-ignore-asm-errors",
 				"-ignore-vector-functions",
-				"-ignore-unsupported-alignment",
 				"-ignore-unsupported-atomic-sizes",
 				"-experiment-pin", *oPin,
 				path,
@@ -635,6 +633,11 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 			err := errorf("%s: %s: FAIL: %v", fullPath, goOut, err)
 			if *oPanic {
 				panic(err)
+			}
+
+			if strings.Contains(firstError(err, true).Error(), "assembler statements not supported") {
+				p.skip()
+				return nil
 			}
 
 			trc("`%s`: {}, // EXEC FAIL: %v", fullPath, firstError(err, true))

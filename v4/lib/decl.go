@@ -77,8 +77,8 @@ type fnCtx struct {
 	tlsAllocs        int64
 	vlaSizes         map[*cc.Declarator]string
 
-	maxValist int
-	nextID    int
+	maxVaListSize int64
+	nextID        int
 }
 
 func (c *ctx) newFnCtx(t *cc.FunctionType, n *cc.CompoundStatement) (r *fnCtx) {
@@ -624,20 +624,19 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 		return
 	}
 
-	if d.Type().Kind() == cc.Function && d.Linkage() == cc.External || d.IsExtern() && !d.Type().IsIncomplete() {
+	if dt.Kind() == cc.Function && d.Linkage() == cc.External || d.IsExtern() && !dt.IsIncomplete() {
 		c.externsDeclared[d.Name()] = d
 	}
 
-	if d.Type().Kind() == cc.Function || d.IsExtern() && d.Type().IsIncomplete() {
+	if dt.Kind() == cc.Function || d.IsExtern() && dt.IsIncomplete() {
 		return
 	}
 
 	if c.f != nil {
-		t := d.Type()
-		if x, ok := t.(*cc.PointerType); ok {
-			t = x.Elem()
+		if x, ok := dt.(*cc.PointerType); ok {
+			dt = x.Elem()
 		}
-		if x, ok := c.isVLA(t); ok {
+		if x, ok := c.isVLA(dt); ok {
 			v := c.f.newAutovar(n, c.ast.SizeT)
 			if c.f.vlaSizes == nil {
 				c.f.vlaSizes = map[*cc.Declarator]string{}

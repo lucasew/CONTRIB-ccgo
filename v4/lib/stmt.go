@@ -47,7 +47,9 @@ func (c *ctx) statement(w writer, n *cc.Statement) {
 			// w.w("/* %v: %T %v %s %q */", pos(n), e, e.Type().Kind(), cc.NodeSource(e), b.bytes())
 			w.w("%s_ = ", tag(preserve))
 		}
-		w.w("%s;", b.bytes())
+		if b.len() != 0 {
+			w.w("%s;", b.bytes())
+		}
 	case cc.StatementSelection: // SelectionStatement
 		w.w("%s%s", sep, c.posComment(n))
 		c.selectionStatement(w, n.SelectionStatement)
@@ -201,11 +203,11 @@ func (c *ctx) compoundStatement(w writer, n *cc.CompoundStatement, fnBlock bool,
 
 		w.w("{\n")
 		switch {
-		case c.f.tlsAllocs+int64(c.f.maxValist) != 0:
+		case c.f.tlsAllocs+int64(c.f.maxVaListSize) != 0:
 			c.f.tlsAllocs = roundup(c.f.tlsAllocs, 8)
 			v := c.f.tlsAllocs
-			if c.f.maxValist != 0 {
-				v += 8 * int64((c.f.maxValist + 1))
+			if c.f.maxVaListSize != 0 {
+				v += c.f.maxVaListSize + 8
 			}
 			switch {
 			case c.task.experimentPin != 0:
@@ -215,7 +217,7 @@ func (c *ctx) compoundStatement(w writer, n *cc.CompoundStatement, fnBlock bool,
 				w.w("defer %spinner.%sUnpin();", tag(ccgo), tag(preserve))
 				w.w("%sbp := %suintptr(%s);", tag(ccgo), tag(preserve), unsafePointer(fmt.Sprintf("&%sbpp[0]", tag(ccgo))))
 			default:
-				w.w("%sbp := %[1]stls.%sAlloc(%d); /* tlsAllocs %v maxValist %v */", tag(ccgo), tag(preserve), v, c.f.tlsAllocs, c.f.maxValist)
+				w.w("%sbp := %[1]stls.%sAlloc(%d); /* tlsAllocs %v maxVaListSize %v */", tag(ccgo), tag(preserve), v, c.f.tlsAllocs, c.f.maxVaListSize)
 				w.w("defer %stls.%sFree(%d);", tag(ccgo), tag(preserve), v)
 			}
 			for _, v := range c.f.t.Parameters() {
