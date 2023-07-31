@@ -1104,12 +1104,11 @@ func durationStr(d time.Duration) string {
 }
 
 func TestSQLite(t *testing.T) {
-	t.Skip("TODO")               //TODO
 	if runtime.GOOS != "linux" { //TODO-
 		t.Skip("TODO")
 	}
 
-	t.Run("simple", testSQLiteSimple)
+	//TODO t.Run("simple", testSQLiteSimple)
 	t.Run("speedtest1", testSQLiteSpeedTest1)
 }
 
@@ -1172,13 +1171,24 @@ func testSQLiteSimple(t *testing.T) {
 	if *oDebug {
 		ccgoArgs = append(ccgoArgs, "-DSQLITE_DEBUG_OS_TRACE", "-DSQLITE_FORCE_OS_TRACE", "-DSQLITE_LOCK_TRACE")
 	}
-	if os.Getenv("GO111MODULE") != "off" {
-		if out, err := shell(true, "go", "mod", "init", "example.com/ccgo/v4/lib/sqlite"); err != nil {
-			t.Fatalf("%v\n%s", err, out)
+	switch s := *oXWork; {
+	case s != "":
+		if out, err := shell(true, "go", "work", "init"); err != nil {
+			t.Fatalf("%s\vFAIL: %v", out, err)
 		}
 
-		if out, err := shell(true, "go", "get", "modernc.org/libc"); err != nil {
-			t.Fatalf("%v\n%s", err, out)
+		if out, err := shell(true, "go", "work", "use", "."); err != nil {
+			t.Fatalf("%s\vFAIL: %v", out, err)
+		}
+
+		for _, v := range strings.Split(s, ",") {
+			if out, err := shell(true, "go", "work", "use", v); err != nil {
+				t.Fatalf("%s\vFAIL: %v", out, err)
+			}
+		}
+	default:
+		if out, err := shell(true, "go", "get", defaultLibc+"@master"); err != nil { //TODO- &master
+			t.Fatalf("%s\vFAIL: %v", out, err)
 		}
 	}
 
@@ -1330,13 +1340,24 @@ func testSQLiteSpeedTest1(t *testing.T) {
 	if *oDebug {
 		ccgoArgs = append(ccgoArgs, "-DSQLITE_DEBUG_OS_TRACE", "-DSQLITE_FORCE_OS_TRACE", "-DSQLITE_LOCK_TRACE")
 	}
-	if os.Getenv("GO111MODULE") != "off" {
-		if out, err := shell(true, "go", "mod", "init", "example.com/ccgo/v4/lib/sqlite"); err != nil {
-			t.Fatalf("%v\n%s", err, out)
+	switch s := *oXWork; {
+	case s != "":
+		if out, err := shell(true, "go", "work", "init"); err != nil {
+			t.Fatalf("%s\vFAIL: %v", out, err)
 		}
 
-		if out, err := shell(true, "go", "get", "modernc.org/libc"); err != nil {
-			t.Fatalf("%v\n%s", err, out)
+		if out, err := shell(true, "go", "work", "use", "."); err != nil {
+			t.Fatalf("%s\vFAIL: %v", out, err)
+		}
+
+		for _, v := range strings.Split(s, ",") {
+			if out, err := shell(true, "go", "work", "use", v); err != nil {
+				t.Fatalf("%s\vFAIL: %v", out, err)
+			}
+		}
+	default:
+		if out, err := shell(true, "go", "get", defaultLibc+"@master"); err != nil { //TODO- &master
+			t.Fatalf("%s\vFAIL: %v", out, err)
 		}
 	}
 

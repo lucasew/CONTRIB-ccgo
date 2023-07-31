@@ -2498,6 +2498,8 @@ assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/loop-2b.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/loop-2c.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/loop-2d.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/loop-2e.c
+assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/loop-2f.c
+assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/loop-2g.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/loop-3.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/loop-3b.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/loop-3c.c
@@ -3917,6 +3919,8 @@ assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/loop-2b.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/loop-2c.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/loop-2d.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/loop-2e.c
+assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/loop-2f.c
+assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/loop-2g.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/loop-3.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/loop-3b.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/loop-3c.c
@@ -4369,6 +4373,7 @@ assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr94809.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr95731.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr96549.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr97073.c
+assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr97386-1.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr97386-2.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr97404.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr97421-1.c
@@ -4481,6 +4486,8 @@ assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/zerolen-2.c
 assets/github.com/vnmakarov/mir/c-benchmarks/array.c
 assets/github.com/vnmakarov/mir/c-benchmarks/binary-trees.c
 assets/github.com/vnmakarov/mir/c-benchmarks/funnkuch-reduce.c
+assets/github.com/vnmakarov/mir/c-benchmarks/hash.c
+assets/github.com/vnmakarov/mir/c-benchmarks/hash2.c
 assets/github.com/vnmakarov/mir/c-benchmarks/heapsort.c
 assets/github.com/vnmakarov/mir/c-benchmarks/lists.c
 assets/github.com/vnmakarov/mir/c-benchmarks/mandelbrot.c
