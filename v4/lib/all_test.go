@@ -1104,15 +1104,19 @@ func durationStr(d time.Duration) string {
 }
 
 func TestSQLite(t *testing.T) {
-	if runtime.GOOS != "linux" { //TODO-
+	switch runtime.GOARCH {
+	case "amd64":
+		// ok
+	default:
 		t.Skip("TODO")
 	}
 
-	//TODO t.Run("simple", testSQLiteSimple)
+	t.Run("simple", testSQLiteSimple)
 	t.Run("speedtest1", testSQLiteSpeedTest1)
 }
 
 func testSQLiteSimple(t *testing.T) {
+	t.Skip("TODO")
 	const (
 		dir  = "assets/sqlite-amalgamation"
 		main = "main.go"
