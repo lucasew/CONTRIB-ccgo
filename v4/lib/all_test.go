@@ -104,7 +104,7 @@ func TestMain(m *testing.M) {
 	switch runtime.GOOS {
 	case "linux":
 		switch runtime.GOARCH {
-		case "amd64":
+		case "amd64", "386":
 			// ok
 		default:
 			panic(todo("unsupported target: %s/%s", runtime.GOOS, runtime.GOARCH)) //TODO
@@ -1171,6 +1171,11 @@ func testSQLiteSimple(t *testing.T) {
 	if *oDebug {
 		ccgoArgs = append(ccgoArgs, "-DSQLITE_DEBUG_OS_TRACE", "-DSQLITE_FORCE_OS_TRACE", "-DSQLITE_LOCK_TRACE")
 	}
+
+	if out, err := shell(true, "go", "mod", "init", "example.com/ccgo/v4/lib/sqlite1"); err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+
 	switch s := *oXWork; {
 	case s != "":
 		if out, err := shell(true, "go", "work", "init"); err != nil {
@@ -1340,6 +1345,10 @@ func testSQLiteSpeedTest1(t *testing.T) {
 	if *oDebug {
 		ccgoArgs = append(ccgoArgs, "-DSQLITE_DEBUG_OS_TRACE", "-DSQLITE_FORCE_OS_TRACE", "-DSQLITE_LOCK_TRACE")
 	}
+	if out, err := shell(true, "go", "mod", "init", "example.com/ccgo/v4/lib/sqlite1"); err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+
 	switch s := *oXWork; {
 	case s != "":
 		if out, err := shell(true, "go", "work", "init"); err != nil {
