@@ -20,35 +20,16 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/github.com/vnmakarov/mir/c-tests/new/issue23.c`:                              {}, // Output is long double specific.
 
 	//TODO
-	`assets/github.com/AbsInt/CompCert/test/c/knucleotide.c`:                             {}, // EXEC FAIL: assets/github.com/AbsInt/CompCert/test/c/knucleotide.c: A 30.284
-	`assets/github.com/vnmakarov/mir/c-benchmarks/hash2.c`:                               {}, // EXEC FAIL: assets/github.com/vnmakarov/mir/c-benchmarks/hash2.c: malloc ht_node: Invalid error number
-	`assets/CompCert-3.6/test/c/chomp.c`:                                                 {}, // EXEC FAIL: assets/CompCert-3.6/test/c/chomp.c: panic: runtime error: invalid memory address or nil pointer dereference
-	`assets/CompCert-3.6/test/c/knucleotide.c`:                                           {}, // EXEC FAIL: assets/CompCert-3.6/test/c/knucleotide.c: A 30.284
-	`assets/CompCert-3.6/test/c/perlin.c`:                                                {}, // EXEC FAIL: assets/CompCert-3.6/test/c/perlin.c: panic: libc_linux_386.go:1700:_floor
-	`assets/benchmarksgame-team.pages.debian.net/binary-trees.c`:                         {}, // EXEC FAIL: assets/benchmarksgame-team.pages.debian.net/binary-trees.c: panic: runtime error: invalid memory address or nil pointer dereference
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/990826-0.c`:                    {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/990826-0.c: panic: libc_linux_386.go:1700:_floor
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/991014-1.c`:                    {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/991014-1.c: runtime: out of memory: cannot allocate 1073741824-byte block (2151383040 in use)
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/991118-1.c`:                    {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/991118-1.c: SIGABRT: abort
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/bf64-1.c`:                      {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/bf64-1.c: SIGABRT: abort
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/bitfld-3.c`:                    {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/bitfld-3.c: SIGABRT: abort
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/float-floor.c`:                 {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/float-floor.c: panic: libc_linux_386.go:1700:_floor
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr57344-4.c`:                   {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr57344-4.c: panic: 40
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr79327.c`:                     {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr79327.c: SIGABRT: abort
-	`assets/github.com/AbsInt/CompCert/test/c/chomp.c`:                                   {}, // EXEC FAIL: assets/github.com/AbsInt/CompCert/test/c/chomp.c: panic: runtime error: invalid memory address or nil pointer dereference
-	`assets/github.com/AbsInt/CompCert/test/c/perlin.c`:                                  {}, // EXEC FAIL: assets/github.com/AbsInt/CompCert/test/c/perlin.c: panic: libc_linux_386.go:1700:_floor
-	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/990826-0.c`:    {}, // EXEC FAIL: assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/990826-0.c: panic: libc_linux_386.go:1700:_floor
-	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/991014-1.c`:    {}, // EXEC FAIL: assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/991014-1.c: runtime: out of memory: cannot allocate 1073741824-byte block (2151415808 in use)
-	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/991118-1.c`:    {}, // EXEC FAIL: assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/991118-1.c: SIGABRT: abort
-	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/bf64-1.c`:      {}, // EXEC FAIL: assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/bf64-1.c: SIGABRT: abort
-	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/bitfld-3.c`:    {}, // EXEC FAIL: assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/bitfld-3.c: SIGABRT: abort
-	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/float-floor.c`: {}, // EXEC FAIL: assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/float-floor.c: panic: libc_linux_386.go:1700:_floor
-	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr57344-4.c`:   {}, // EXEC FAIL: assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr57344-4.c: panic: 40
-	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr79327.c`:     {}, // EXEC FAIL: assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr79327.c: SIGABRT: abort
-	`assets/github.com/vnmakarov/mir/c-benchmarks/hash.c`:                                {}, // EXEC FAIL: assets/github.com/vnmakarov/mir/c-benchmarks/hash.c: strdup newkey: Invalid error number
-	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-types-init.c`:                 {}, // EXEC FAIL
-	`assets/github.com/vnmakarov/mir/c-tests/lacc/float-arithmetic.c`:                    {}, // EXEC FAIL
-	`assets/github.com/vnmakarov/mir/c-tests/lacc/printstr.c`:                            {}, // EXEC FAIL: assets/github.com/vnmakarov/mir/c-tests/lacc/printstr.c: hpanic: libc_linux_386.go:1485:X__ctype_b_loc
-	`assets/github.com/vnmakarov/mir/c-tests/lacc/string-conversion.c`:                   {}, // EXEC FAIL: assets/github.com/vnmakarov/mir/c-tests/lacc/string-conversion.c: if
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/991014-1.c`:                  {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/991014-1.c: runtime: out of memory: cannot allocate 1073741824-byte block (2151383040 in use)
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr57344-4.c`:                 {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr57344-4.c: panic: 40
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr79327.c`:                   {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr79327.c: SIGABRT: abort
+	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/991014-1.c`:  {}, // EXEC FAIL: assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/991014-1.c: runtime: out of memory: cannot allocate 1073741824-byte block (2151383040 in use)
+	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr57344-4.c`: {}, // EXEC FAIL: assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr57344-4.c: panic: 40
+	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr79327.c`:   {}, // EXEC FAIL: assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr79327.c: SIGABRT: abort
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-types-init.c`:               {}, // EXEC FAIL
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/float-arithmetic.c`:                  {}, // EXEC FAIL
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/printstr.c`:                          {}, // EXEC FAIL: assets/github.com/vnmakarov/mir/c-tests/lacc/printstr.c: hpanic: libc_linux_386.go:1484:X__ctype_b_loc
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/string-conversion.c`:                 {}, // EXEC FAIL: assets/github.com/vnmakarov/mir/c-tests/lacc/string-conversion.c: if
 
 	// BUILD FAIL - compiles but does not build.
 
@@ -245,7 +226,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr77754-5.c`:                                  {}, // COMPILE FAIL: pr77754-5.c:6:6: incomplete type: array of array of int (type.go:477:isValidType1: type.go:401:isValidParamType: type.go:489:isValidType1:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr79089.c`:                                    {}, // COMPILE FAIL: pr79089.c: gofmt: exit status 2 (asm_386.s:1363:goexit: compile.go:440:compile: compile.go:440:compile:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr82052.c`:                                    {}, // COMPILE FAIL: -: TODO (expr.go:851:conditionalExpression: expr.go:43:topExpr: expr.go:54:expr:)
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr82564.c`:                                    {}, // COMPILE FAIL: pr82564.c:9:8: invalid type size: -1 (type.go:42:typ: type.go:65:typ0: type.go:496:isValidType1:)
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr82564.c`:                                    {}, // COMPILE FAIL: pr82564.c:9:5: invalid type size: -1 (type.go:42:typ: type.go:65:typ0: type.go:496:isValidType1:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr84136.c`:                                    {}, // COMPILE FAIL: TODO UnaryExpressionLabelAddr (expr.go:70:expr: expr.go:493:expr0: expr.go:1498:unaryExpression:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr84305.c`:                                    {}, // COMPILE FAIL: pr84305.c:3:34: TODO (expr.go:1724:postfixExpression: expr.go:1598:postfixExpressionIndex: expr.go:1546:mul:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr84960.c`:                                    {}, // COMPILE FAIL: TODO <nil> (decl.go:307:functionDefinition: decl.go:329:functionDefinition0: decl.go:98:newFnCtx:)

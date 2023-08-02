@@ -1105,7 +1105,7 @@ func durationStr(d time.Duration) string {
 
 func TestSQLite(t *testing.T) {
 	switch runtime.GOARCH {
-	case "amd64":
+	case "amd64", "386":
 		// ok
 	default:
 		t.Skip("TODO")
