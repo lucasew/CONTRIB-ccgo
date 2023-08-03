@@ -556,7 +556,6 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 				"-c",
 				"-verify-types",
 				"--prefix-field=F",
-				"-ignore-asm-errors",
 				"-ignore-unsupported-atomic-sizes",
 				"-ignore-vector-functions",
 				"-experiment-pin", *oPin,
@@ -572,7 +571,6 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 				"-o", ofn,
 				"-verify-types",
 				"--prefix-field=F",
-				"-ignore-asm-errors",
 				"-ignore-vector-functions",
 				"-ignore-unsupported-atomic-sizes",
 				"-experiment-pin", *oPin,
@@ -585,6 +583,11 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 			trc("ccgo %v %v", fullPath, err)
 		}
 		if cCompilerFailed || isTestExecKnownFail(fullPath) {
+			p.skip()
+			return nil
+		}
+
+		if strings.Contains(firstError(err, true).Error(), "assembler statements not supported") {
 			p.skip()
 			return nil
 		}
@@ -1159,7 +1162,6 @@ func testSQLiteSimple(t *testing.T) {
 		"-positions",
 		"-full-paths",
 		"-verify-types",
-		"-ignore-asm-errors",
 		"-ignore-unsupported-alignment",
 		"-ignore-unsupported-atomic-sizes",
 		"-ignore-vector-functions",
@@ -1323,17 +1325,16 @@ func testSQLiteSpeedTest1(t *testing.T) {
 
 		"-DHAVE_USLEEP",
 		"-DLONGDOUBLE_TYPE=double",
-		//"-DSQLITE_DEBUG",
+		"-DSQLITE_DEBUG",
 		"-DSQLITE_DEFAULT_MEMSTATUS=0",
 		"-DSQLITE_ENABLE_DBPAGE_VTAB",
 		"-DSQLITE_LIKE_DOESNT_MATCH_BLOBS",
-		//"-DSQLITE_MEMDEBUG",
+		"-DSQLITE_MEMDEBUG",
 		"-DSQLITE_THREADSAFE=0",
 		"--prefix-field=F",
 		"-positions",
 		"-full-paths",
 		"-verify-types",
-		"-ignore-asm-errors",
 		"-ignore-unsupported-alignment",
 		"-ignore-unsupported-atomic-sizes",
 		"-ignore-vector-functions",

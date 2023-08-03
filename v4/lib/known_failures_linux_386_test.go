@@ -10,26 +10,26 @@ var testExecKnownFails = map[string]struct{}{
 	// Won't fix
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20031003-1.c`:                  {}, // Out-of-range float to int conversion, result not specified.
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/941014-2.c`:                    {}, // Prints value at uninitialized memory.
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/991014-1.c`:                    {}, // OOM on 32b systems (looks like a Go compiler fault, though)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/20031003-1.c`:  {}, // Out-of-range float to int conversion, result not specified.
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/941014-2.c`:    {}, // Prints value at uninitialized memory.
+	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/991014-1.c`:    {}, // OOM on 32b systems (looks like a Go compiler fault, though)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/return-addr.c`: {}, // Prints runtime-specific values.
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-basic.c`:                      {}, // Compiler specific bitfield union size.
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-trailing-zero.c`:              {}, // Compiler specific bitfield union size.
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-types-init.c`:                 {}, // Compiler specific bitfield handling.
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/float-arithmetic.c`:                    {}, // Conjectured rounding mode difference.
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/macro-paste.c`:                         {}, // Tests a particular positive value (24) returned by puts while it's specified to be only non negative on success.
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/whitespace.c`:                          {}, // Tests a particular positive value (24) returned by puts while it's specified to be only non negative on success.
 	`assets/github.com/vnmakarov/mir/c-tests/new/issue23.c`:                              {}, // Output is long double specific.
 
-	//TODO
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/991014-1.c`:                  {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/991014-1.c: runtime: out of memory: cannot allocate 1073741824-byte block (2151383040 in use)
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr57344-4.c`:                 {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr57344-4.c: panic: 40
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr79327.c`:                   {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr79327.c: SIGABRT: abort
-	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/991014-1.c`:  {}, // EXEC FAIL: assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/991014-1.c: runtime: out of memory: cannot allocate 1073741824-byte block (2151383040 in use)
-	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr57344-4.c`: {}, // EXEC FAIL: assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr57344-4.c: panic: 40
-	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr79327.c`:   {}, // EXEC FAIL: assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr79327.c: SIGABRT: abort
-	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-types-init.c`:               {}, // EXEC FAIL
-	`assets/github.com/vnmakarov/mir/c-tests/lacc/float-arithmetic.c`:                  {}, // EXEC FAIL
-	`assets/github.com/vnmakarov/mir/c-tests/lacc/printstr.c`:                          {}, // EXEC FAIL: assets/github.com/vnmakarov/mir/c-tests/lacc/printstr.c: hpanic: libc_linux_386.go:1484:X__ctype_b_loc
-	`assets/github.com/vnmakarov/mir/c-tests/lacc/string-conversion.c`:                 {}, // EXEC FAIL: assets/github.com/vnmakarov/mir/c-tests/lacc/string-conversion.c: if
+	//TODO needs later musl version
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr79327.c`:                 {}, // EXEC FAIL: SIGABRT: abort musl v0.6.0 does not support printf 'h' verb.
+	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr79327.c`: {}, // EXEC FAIL: SIGABRT: abort
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/printstr.c`:                        {}, // EXEC FAIL: assets/github.com/vnmakarov/mir/c-tests/lacc/printstr.c: hpanic: libc_linux_386.go:1484:X__ctype_b_loc
+
+	// TODO
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/string-conversion.c`: {}, // EXEC FAIL but manuall PASS
 
 	// BUILD FAIL - compiles but does not build.
 
@@ -49,10 +49,8 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/anon-1.c`:                                 {}, // BUILD FAIL: exit status 1
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/unsafe-fp-assoc-1.c`:                 {}, // BUILD FAIL: exit status 1
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr42570.c`:                                {}, // BUILD FAIL: exit status 1
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr43385.c`:                                {}, // BUILD FAIL: exit status 1
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr67037.c`:                                {}, // BUILD FAIL: exit status 1
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr79286.c`:                                {}, // BUILD FAIL: exit status 1
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85156.c`:                                {}, // BUILD FAIL: exit status 1
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/strlen-6.c`:                               {}, // BUILD FAIL: exit status 1
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/va-arg-22.c`:                              {}, // BUILD FAIL: exit status 1
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/zerolen-1.c`:                              {}, // BUILD FAIL: exit status 1
@@ -69,10 +67,8 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/anon-1.c`:                 {}, // BUILD FAIL: exit status 1
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/ieee/unsafe-fp-assoc-1.c`: {}, // BUILD FAIL: exit status 1
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr42570.c`:                {}, // BUILD FAIL: exit status 1
-	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr43385.c`:                {}, // BUILD FAIL: exit status 1
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr67037.c`:                {}, // BUILD FAIL: exit status 1
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr79286.c`:                {}, // BUILD FAIL: exit status 1
-	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr85156.c`:                {}, // BUILD FAIL: exit status 1
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr91597.c`:                {}, // BUILD FAIL: exit status 1
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/strlen-6.c`:               {}, // BUILD FAIL: exit status 1
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/va-arg-22.c`:              {}, // BUILD FAIL: exit status 1
@@ -96,7 +92,6 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20000211-1.c`:                                 {}, // COMPILE FAIL: TODO (decl.go:687:initDeclarator: type.go:18:typedef: type.go:328:typ0:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20000326-2.c`:                                 {}, // COMPILE FAIL: TODO BlockItemLabel (decl.go:337:functionDefinition0: stmt.go:286:compoundStatement: stmt.go:320:blockItem:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20000405-3.c`:                                 {}, // COMPILE FAIL: 20000405-3.c:1:1: unsupported alignment 32 of struct foo {entry array of 40 pointer to void} (type.go:512:structLiteral: type.go:65:typ0: type.go:444:isValidType1:)
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20000804-1.c`:                                 {}, // COMPILE FAIL: TODO *cc.PredefinedType _Complex long long _Complex long long (expr.go:3599:primaryExpressionIntConst: type.go:30:helper: type.go:162:typ0:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20001121-1.c`:                                 {}, // COMPILE FAIL: 20001121-1.c: gofmt: exit status 2 (asm_386.s:1363:goexit: compile.go:440:compile: compile.go:440:compile:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20001221-1.c`:                                 {}, // COMPILE FAIL: 20001221-1.c: gofmt: exit status 2 (asm_386.s:1363:goexit: compile.go:440:compile: compile.go:440:compile:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20001222-1.c`:                                 {}, // COMPILE FAIL: TODO cc.Complex128Value (expr.go:487:expr0: expr.go:3210:primaryExpression: expr.go:3633:primaryExpressionFloatConst:)
@@ -107,7 +102,6 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20010903-2.c`:                                 {}, // COMPILE FAIL: 20010903-2.c:9:14: nested functions not supported (decl.go:374:functionDefinition0: stmt.go:286:compoundStatement: stmt.go:325:blockItem:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20011023-1.c`:                                 {}, // COMPILE FAIL: 20011023-1.c:8:8: nested functions not supported (decl.go:374:functionDefinition0: stmt.go:286:compoundStatement: stmt.go:325:blockItem:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20020309-1.c`:                                 {}, // COMPILE FAIL: 20020309-1.c:8:5: nested functions not supported (stmt.go:25:statement: stmt.go:286:compoundStatement: stmt.go:325:blockItem:)
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20020312-1.c`:                                 {}, // COMPILE FAIL: 20020312-1.c: gofmt: exit status 2 (asm_386.s:1363:goexit: compile.go:440:compile: compile.go:440:compile:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20021108-1.c`:                                 {}, // COMPILE FAIL: TODO UnaryExpressionLabelAddr (expr.go:70:expr: expr.go:493:expr0: expr.go:1498:unaryExpression:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20030224-1.c`:                                 {}, // COMPILE FAIL: 20030224-1.c:6:25: invalid type size: -1 (type.go:42:typ: type.go:65:typ0: type.go:496:isValidType1:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20030418-1.c`:                                 {}, // COMPILE FAIL: 20030418-1.c:13:8: nested functions not supported (decl.go:374:functionDefinition0: stmt.go:286:compoundStatement: stmt.go:325:blockItem:)
@@ -155,7 +149,6 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/990517-1.c`:                                   {}, // COMPILE FAIL: 990517-1.c: gofmt: exit status 2 (asm_386.s:1363:goexit: compile.go:440:compile: compile.go:440:compile:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/991213-1.c`:                                   {}, // COMPILE FAIL: TODO UnaryExpressionImag (expr.go:3226:primaryExpression: expr.go:493:expr0: expr.go:1522:unaryExpression:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/991213-3.c`:                                   {}, // COMPILE FAIL: TODO <nil> (decl.go:307:functionDefinition: decl.go:329:functionDefinition0: decl.go:98:newFnCtx:)
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/asmgoto-1.c`:                                  {}, // COMPILE FAIL: TODO UnaryExpressionLabelAddr (expr.go:70:expr: expr.go:493:expr0: expr.go:1498:unaryExpression:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/complex-1.c`:                                  {}, // COMPILE FAIL: TODO *cc.PredefinedType _Complex int _Complex int (decl.go:501:signature: type.go:48:typ2: type.go:162:typ0:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/complex-2.c`:                                  {}, // COMPILE FAIL: TODO UnaryExpressionImag (expr.go:70:expr: expr.go:493:expr0: expr.go:1522:unaryExpression:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/complex-3.c`:                                  {}, // COMPILE FAIL: TODO UnaryExpressionImag (expr.go:70:expr: expr.go:493:expr0: expr.go:1522:unaryExpression:)
@@ -284,13 +277,10 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20050604-1.c`:                                 {}, // COMPILE FAIL: 20050604-1.c:16:3: unsupported vector type: v4hi (type.go:341:typ0: type.go:65:typ0: type.go:458:isValidType1:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20050607-1.c`:                                 {}, // COMPILE FAIL: 20050607-1.c.go:19:17: undefined: "main" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20060420-1.c`:                                 {}, // COMPILE FAIL: 20060420-1.c.go:26:17: undefined: "main" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20061220-1.c`:                                 {}, // COMPILE FAIL: 20061220-1.c:10:8: nested functions not supported (decl.go:374:functionDefinition0: stmt.go:286:compoundStatement: stmt.go:325:blockItem:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20070614-1.c`:                                 {}, // COMPILE FAIL: TODO cc.Complex64Value (expr.go:487:expr0: expr.go:3210:primaryExpression: expr.go:3633:primaryExpressionFloatConst:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20070824-1.c`:                                 {}, // COMPILE FAIL: 20070824-1.c.go:33:18: undefined: "__builtin_alloca" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20070919-1.c`:                                 {}, // COMPILE FAIL: 20070919-1.c:31:7: invalid type size: -1 (type.go:42:typ: type.go:65:typ0: type.go:496:isValidType1:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20071210-1.c`:                                 {}, // COMPILE FAIL: TODO <nil> (decl.go:307:functionDefinition: decl.go:329:functionDefinition0: decl.go:98:newFnCtx:)
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20071220-1.c`:                                 {}, // COMPILE FAIL: TODO <nil> (decl.go:307:functionDefinition: decl.go:329:functionDefinition0: decl.go:98:newFnCtx:)
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20071220-2.c`:                                 {}, // COMPILE FAIL: TODO UnaryExpressionLabelAddr (expr.go:70:expr: expr.go:493:expr0: expr.go:1498:unaryExpression:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20080502-1.c`:                                 {}, // COMPILE FAIL: 20080502-1.c.go:21:5: undefined: "__builtin_signbit" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20090219-1.c`:                                 {}, // COMPILE FAIL: 20090219-1.c:12:8: nested functions not supported (decl.go:374:functionDefinition0: stmt.go:286:compoundStatement: stmt.go:325:blockItem:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20101011-1.c`:                                 {}, // COMPILE FAIL: 20101011-1.c.go:619:2: undefined: "signal" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
@@ -352,7 +342,6 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-8l.c`:                             {}, // COMPILE FAIL: fp-cmp-8l.c.go:41:5: undefined: "__builtin_isless" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/mzero4.c`:                                {}, // COMPILE FAIL: mzero4.c.go:49:18: undefined: "tan" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/pr38016.c`:                               {}, // COMPILE FAIL: pr38016.c.go:41:5: undefined: "__builtin_isless" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:)
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/pr50310.c`:                               {}, // COMPILE FAIL: pr50310.c.go:28:6: undefined: "__builtin_isgreater" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/pr72824-2.c`:                             {}, // COMPILE FAIL: pr72824-2.c.go:19:17: undefined: "main" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/medce-1.c`:                                    {}, // COMPILE FAIL: medce-1.c.go:36:2: undefined: "link_error" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nest-align-1.c`:                               {}, // COMPILE FAIL: nest-align-1.c:25:8: nested functions not supported (decl.go:374:functionDefinition0: stmt.go:286:compoundStatement: stmt.go:325:blockItem:)
@@ -390,16 +379,13 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr53645-2.c`:                                  {}, // COMPILE FAIL: pr53645-2.c:44:3: unsupported vector type: UV (type.go:355:typ0: type.go:65:typ0: type.go:458:isValidType1:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr53645.c`:                                    {}, // COMPILE FAIL: pr53645.c:44:3: unsupported vector type: UV (type.go:355:typ0: type.go:65:typ0: type.go:458:isValidType1:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr56837.c`:                                    {}, // COMPILE FAIL: TODO *cc.PredefinedType _Complex int _Complex int (type.go:42:typ: type.go:355:typ0: type.go:162:typ0:)
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr56982.c`:                                    {}, // COMPILE FAIL: pr56982.c.go:61:8: undefined: "_setjmp" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr60003.c`:                                    {}, // COMPILE FAIL: pr60003.c.go:23:2: undefined: "__builtin_longjmp" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr60960.c`:                                    {}, // COMPILE FAIL: pr60960.c.go:19:17: undefined: "main" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr61725.c`:                                    {}, // COMPILE FAIL: pr61725.c.go:21:9: undefined: "__builtin_ffs" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr64006.c`:                                    {}, // COMPILE FAIL: pr64006.c.go:31:6: undefined: "__builtin_mul_overflowInt32" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr64242.c`:                                    {}, // COMPILE FAIL: pr64242.c.go:26:2: undefined: "__builtin_longjmp" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr65427.c`:                                    {}, // COMPILE FAIL: pr65427.c:4:3: unsupported vector type: V (type.go:42:typ: type.go:65:typ0: type.go:458:isValidType1:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr68249.c`:                                    {}, // COMPILE FAIL: -: TODO (expr.go:851:conditionalExpression: expr.go:43:topExpr: expr.go:54:expr:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr68381.c`:                                    {}, // COMPILE FAIL: pr68381.c.go:22:5: undefined: "__builtin_mul_overflowUint16" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr69691.c`:                                    {}, // COMPILE FAIL: pr69691.c.go:40:5: undefined: "__builtin_strchr" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr70460.c`:                                    {}, // COMPILE FAIL: TODO <nil> (decl.go:307:functionDefinition: decl.go:329:functionDefinition0: decl.go:98:newFnCtx:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr70903.c`:                                    {}, // COMPILE FAIL: pr70903.c.go:17:17: undefined: "main" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr71494.c`:                                    {}, // COMPILE FAIL: TODO <nil> (decl.go:307:functionDefinition: decl.go:329:functionDefinition0: decl.go:98:newFnCtx:)
@@ -423,7 +409,6 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/simd-4.c`:                                     {}, // COMPILE FAIL: simd-4.c.go:268:17: undefined: "main" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/simd-5.c`:                                     {}, // COMPILE FAIL: simd-5.c:5:9: unsupported vector type: Q (type.go:60:verifyTyp: type.go:65:typ0: type.go:458:isValidType1:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/simd-6.c`:                                     {}, // COMPILE FAIL: simd-6.c.go:17:17: undefined: "main" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/stkalign.c`:                                   {}, // COMPILE FAIL: stkalign.c:11:69: unsupported alignment 64 of struct {c char} (type.go:42:typ: type.go:65:typ0: type.go:444:isValidType1:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/string-opt-18.c`:                              {}, // COMPILE FAIL: string-opt-18.c.go:33:5: undefined: "mempcpy" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/user-printf.c`:                                {}, // COMPILE FAIL: user-printf.c.go:593:15: undefined: "tmpnam" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/va-arg-pack-1.c`:                              {}, // COMPILE FAIL: va-arg-pack-1.c.go:176:5: undefined: "bar" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
@@ -467,13 +452,10 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/20050604-1.c`:                 {}, // COMPILE FAIL: 20050604-1.c:16:3: unsupported vector type: v4hi (type.go:341:typ0: type.go:65:typ0: type.go:458:isValidType1:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/20050607-1.c`:                 {}, // COMPILE FAIL: 20050607-1.c.go:19:17: undefined: "main" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/20060420-1.c`:                 {}, // COMPILE FAIL: 20060420-1.c.go:26:17: undefined: "main" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
-	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/20061220-1.c`:                 {}, // COMPILE FAIL: 20061220-1.c:10:8: nested functions not supported (decl.go:374:functionDefinition0: stmt.go:286:compoundStatement: stmt.go:325:blockItem:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/20070614-1.c`:                 {}, // COMPILE FAIL: TODO cc.Complex64Value (expr.go:487:expr0: expr.go:3210:primaryExpression: expr.go:3633:primaryExpressionFloatConst:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/20070824-1.c`:                 {}, // COMPILE FAIL: 20070824-1.c.go:33:18: undefined: "__builtin_alloca" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/20070919-1.c`:                 {}, // COMPILE FAIL: 20070919-1.c:31:7: invalid type size: -1 (type.go:42:typ: type.go:65:typ0: type.go:496:isValidType1:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/20071210-1.c`:                 {}, // COMPILE FAIL: TODO <nil> (decl.go:307:functionDefinition: decl.go:329:functionDefinition0: decl.go:98:newFnCtx:)
-	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/20071220-1.c`:                 {}, // COMPILE FAIL: TODO <nil> (decl.go:307:functionDefinition: decl.go:329:functionDefinition0: decl.go:98:newFnCtx:)
-	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/20071220-2.c`:                 {}, // COMPILE FAIL: TODO UnaryExpressionLabelAddr (expr.go:70:expr: expr.go:493:expr0: expr.go:1498:unaryExpression:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/20080502-1.c`:                 {}, // COMPILE FAIL: 20080502-1.c.go:21:5: undefined: "__builtin_signbit" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/20090219-1.c`:                 {}, // COMPILE FAIL: 20090219-1.c:12:8: nested functions not supported (decl.go:374:functionDefinition0: stmt.go:286:compoundStatement: stmt.go:325:blockItem:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/20101011-1.c`:                 {}, // COMPILE FAIL: 20101011-1.c.go:619:2: undefined: "signal" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
@@ -535,7 +517,6 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-8l.c`:             {}, // COMPILE FAIL: fp-cmp-8l.c.go:41:5: undefined: "__builtin_isless" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/ieee/mzero4.c`:                {}, // COMPILE FAIL: mzero4.c.go:49:18: undefined: "tan" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/ieee/pr38016.c`:               {}, // COMPILE FAIL: pr38016.c.go:41:5: undefined: "__builtin_isless" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:)
-	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/ieee/pr50310.c`:               {}, // COMPILE FAIL: pr50310.c.go:28:6: undefined: "__builtin_isgreater" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/ieee/pr72824-2.c`:             {}, // COMPILE FAIL: pr72824-2.c.go:19:17: undefined: "main" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/medce-1.c`:                    {}, // COMPILE FAIL: medce-1.c.go:36:2: undefined: "link_error" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/nest-align-1.c`:               {}, // COMPILE FAIL: nest-align-1.c:25:8: nested functions not supported (decl.go:374:functionDefinition0: stmt.go:286:compoundStatement: stmt.go:325:blockItem:)
@@ -571,7 +552,6 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr53645-2.c`:                  {}, // COMPILE FAIL: pr53645-2.c:44:3: unsupported vector type: UV (type.go:355:typ0: type.go:65:typ0: type.go:458:isValidType1:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr53645.c`:                    {}, // COMPILE FAIL: pr53645.c:44:3: unsupported vector type: UV (type.go:355:typ0: type.go:65:typ0: type.go:458:isValidType1:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr56837.c`:                    {}, // COMPILE FAIL: TODO *cc.PredefinedType _Complex int _Complex int (type.go:42:typ: type.go:355:typ0: type.go:162:typ0:)
-	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr56982.c`:                    {}, // COMPILE FAIL: pr56982.c.go:61:8: undefined: "_setjmp" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr60003.c`:                    {}, // COMPILE FAIL: pr60003.c.go:23:2: undefined: "__builtin_longjmp" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr60960.c`:                    {}, // COMPILE FAIL: pr60960.c.go:19:17: undefined: "main" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr61725.c`:                    {}, // COMPILE FAIL: pr61725.c.go:21:9: undefined: "__builtin_ffs" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
@@ -580,7 +560,6 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr65427.c`:                    {}, // COMPILE FAIL: pr65427.c:4:3: unsupported vector type: V (type.go:42:typ: type.go:65:typ0: type.go:458:isValidType1:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr68249.c`:                    {}, // COMPILE FAIL: -: TODO (expr.go:851:conditionalExpression: expr.go:43:topExpr: expr.go:54:expr:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr68381.c`:                    {}, // COMPILE FAIL: pr68381.c.go:22:5: undefined: "__builtin_mul_overflowUint16" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
-	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr69691.c`:                    {}, // COMPILE FAIL: pr69691.c.go:40:5: undefined: "__builtin_strchr" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr70460.c`:                    {}, // COMPILE FAIL: TODO <nil> (decl.go:307:functionDefinition: decl.go:329:functionDefinition0: decl.go:98:newFnCtx:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr70903.c`:                    {}, // COMPILE FAIL: pr70903.c.go:17:17: undefined: "main" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr71494.c`:                    {}, // COMPILE FAIL: TODO <nil> (decl.go:307:functionDefinition: decl.go:329:functionDefinition0: decl.go:98:newFnCtx:)
@@ -617,7 +596,6 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/simd-4.c`:                     {}, // COMPILE FAIL: simd-4.c.go:268:17: undefined: "main" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/simd-5.c`:                     {}, // COMPILE FAIL: simd-5.c:5:9: unsupported vector type: Q (type.go:60:verifyTyp: type.go:65:typ0: type.go:458:isValidType1:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/simd-6.c`:                     {}, // COMPILE FAIL: simd-6.c.go:17:17: undefined: "main" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
-	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/stkalign.c`:                   {}, // COMPILE FAIL: stkalign.c:11:69: unsupported alignment 64 of struct {c char} (type.go:42:typ: type.go:65:typ0: type.go:444:isValidType1:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/string-opt-18.c`:              {}, // COMPILE FAIL: string-opt-18.c.go:33:5: undefined: "mempcpy" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/user-printf.c`:                {}, // COMPILE FAIL: user-printf.c.go:593:15: undefined: "tmpnam" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/va-arg-pack-1.c`:              {}, // COMPILE FAIL: va-arg-pack-1.c.go:176:5: undefined: "bar" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)

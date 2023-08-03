@@ -20,7 +20,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/whitespace.c`:                          {}, // Tests a particular positive value (24) returned by puts while it's specified to be only non negative on success.
 	`assets/github.com/vnmakarov/mir/c-tests/new/issue23.c`:                              {}, // Output is long double specific.
 
-	//TODO
+	//TODO later musl version
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr79327.c`:                 {}, // EXEC FAIL: SIGABRT: abort musl v0.6.0 does not support printf 'h' verb.
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr79327.c`: {}, // EXEC FAIL: SIGABRT: abort
 
