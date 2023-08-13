@@ -69,6 +69,7 @@ type fnCtx struct {
 	autovars         map[string][]string
 	c                *ctx
 	compoundLiterals map[cc.ExpressionNode]int64
+	d                *cc.Declarator
 	declInfos        declInfos
 	flatScopes       map[*cc.Scope]struct{}
 	inlineInfo       *inlineInfo
@@ -81,7 +82,7 @@ type fnCtx struct {
 	nextID        int
 }
 
-func (c *ctx) newFnCtx(t *cc.FunctionType, n *cc.CompoundStatement) (r *fnCtx) {
+func (c *ctx) newFnCtx(d *cc.Declarator, t *cc.FunctionType, n *cc.CompoundStatement) (r *fnCtx) {
 	fnScope := n.LexicalScope()
 	// trc("%v: ==== fnScope %p, parent %p\n%s", n.Position(), fnScope, fnScope.Parent, dumpScope(fnScope))
 	flatScopes := map[*cc.Scope]struct{}{}
@@ -152,6 +153,7 @@ next:
 	})
 	return &fnCtx{
 		c:          c,
+		d:          d,
 		flatScopes: flatScopes,
 		t:          t,
 	}
@@ -326,7 +328,7 @@ func (c *ctx) functionDefinition0(w writer, sep string, pos cc.Node, d *cc.Decla
 
 	c.isValidType1(d, ft, true)
 	f0, pass := c.f, c.pass
-	c.f = c.newFnCtx(ft, cs)
+	c.f = c.newFnCtx(d, ft, cs)
 	defer func() { c.f = f0; c.pass = pass }()
 	c.pass = 1
 	for _, v := range ft.Parameters() {
@@ -737,7 +739,7 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 			t = n.Initializer.Type()
 		}
 		if d.StorageDuration() == cc.Static {
-			if d.Linkage() == cc.None && d.ReadCount() == 0 && d.Name() == "__func__" {
+			if d.Linkage() == cc.None && (d.ReadCount() == 0 || c.f.inlineInfo != nil) && d.Name() == "__func__" {
 				return
 			}
 

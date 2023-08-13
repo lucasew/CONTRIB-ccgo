@@ -22,6 +22,7 @@ type initPatch struct {
 
 func (c *ctx) initializerOuter(w writer, n *cc.Initializer, t cc.Type) (r *buf) {
 	a := c.initalizerFlatten(n, nil)
+	// trc("==== OUTER")
 	// dumpInitializer(a, "")
 	return c.initializer(w, n, a, t, 0, false)
 }
@@ -61,6 +62,29 @@ func (c *ctx) initializer(w writer, n cc.Node, a []*cc.Initializer, t cc.Type, o
 			return nil
 		}
 
+		if t.Kind() == cc.Ptr && in.AssignmentExpression.Type().Undecay().Kind() == cc.Array {
+			switch x := c.unparen(in.AssignmentExpression).(type) {
+			case *cc.PostfixExpression:
+				if x.Case != cc.PostfixExpressionComplit {
+					break
+				}
+
+				t := in.AssignmentExpression.Type().Undecay().(*cc.ArrayType)
+				r = c.topExpr(w, in.AssignmentExpression, t, exprDefault)
+				switch {
+				case c.initPatch != nil:
+					nm := fmt.Sprintf("%s__ccgo_init_%d", tag(preserve), c.id())
+					w.w("\nvar %s = %s;\n\n", nm, r)
+					var b buf
+					b.w("%suintptr(%s)", tag(preserve), unsafeAddr(nm))
+					return &b
+				default:
+					return r
+				}
+			default:
+				// trc("%v: %T %s", in.AssignmentExpression.Position(), x, cc.NodeSource(in.AssignmentExpression))
+			}
+		}
 		r = c.topExpr(w, in.AssignmentExpression, t, exprDefault)
 		if t.Kind() == cc.Ptr && c.initPatch != nil && (t.Kind() == cc.Ptr && t.(*cc.PointerType).Elem().Kind() == cc.Function || c.mentionsFunc(in.AssignmentExpression)) {
 			c.initPatch(off0, r)

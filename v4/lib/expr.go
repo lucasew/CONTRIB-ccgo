@@ -302,7 +302,7 @@ func (c *ctx) convertType(n cc.ExpressionNode, s *buf, from, to cc.Type, fromMod
 	}
 
 	c.err(errorf("%v: TODO %q %s, %v %s -> %s, %v %s (%v:)", pos(n), s, from, from.Size(), fromMode, to, to.Size(), toMode, c.pos(n)))
-	// panic(todo(""))
+	// panic(todo("")) //TODO-DBG
 	//trc("", errorf("ERROR %q %s %s -> %s %s (%v:)", s, from, fromMode, to, toMode, c.pos(n))) //TODO-DBG
 	return s //TODO
 }
@@ -3036,6 +3036,11 @@ out:
 		case *cc.Declarator:
 			nm := x.Name()
 			if c.f != nil {
+				if c.f.inlineInfo != nil && nm == "__func__" {
+					b.w("%q", c.f.d.Name()+"\x00")
+					return &b, rt, exprDefault
+				}
+
 				for nfo := c.f.inlineInfo; nfo != nil; nfo = nfo.parent {
 					for i, v := range nfo.params {
 						if v.Declarator == x {
@@ -3088,8 +3093,9 @@ out:
 						}
 
 						c.err(errorf("TODO %T:", y.Elem()))
+					case *cc.FunctionType:
+						b.w("(*(*func%s)(%s))", c.signature(y, false, false, true), unsafePointer(bpOff(info.bpOff)))
 					default:
-						//b.w("(*(*func%s)(%s))", c.signature(x.Type().(*cc.FunctionType), false, false), unsafePointer(bpOff(info.bpOff)))
 						c.err(errorf("TODO %T", y))
 					}
 				default:
