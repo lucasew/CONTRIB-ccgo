@@ -32,8 +32,8 @@ modernc.org/ccgo/v3 v3.16.14/go.mod h1:mPDSujUIaTNWQSG4eqKw+atqLOEbma6Ncsa94WbC9
 modernc.org/ccorpus v1.11.6 h1:J16RXiiqiCgua6+ZvQot4yUuUy8zxgqbqEEUuGPlISk=
 modernc.org/ccorpus2 v1.4.1 h1:EOVSHo/nqIP8NjEpOno5gGaDOlY5OLWQsnPc44w0mqI=
 modernc.org/ccorpus2 v1.4.1/go.mod h1:Wifvo4Q/qS/h1aRoC2TffcHsnxwTikmi1AuLANuucJQ=
-modernc.org/fileutil v1.1.2 h1:Gcd7C/E4gI3fq/qV3YiwFIhDq1LPIWFwkD+BijLByzw=
-modernc.org/fileutil v1.1.2/go.mod h1:HdjlliqRHrMAI4nVOvvpYVzVgvRSK7WnoCiG0GUWJNo=
+modernc.org/fileutil v1.2.0 h1:c7fsfzHf9WfUFXvv/RY9sStAr+VAKXYGKiAhBQQNoT4=
+modernc.org/fileutil v1.2.0/go.mod h1:0rLMFc17WSz6Bm/GtHeme7TOX8pNRhFN2NkfBlOZhrQ=
 modernc.org/gc/v2 v2.3.0 h1:DubPTNRbXOG5xXPyULfM0XNJH/HCWdl+cLM3fJf0MXg=
 modernc.org/gc/v2 v2.3.0/go.mod h1:wzN5dK1AzVGoH6XOzc3YZ+ey/jPgYHLuVckd62P0GYU=
 modernc.org/httpfs v1.0.6 h1:AAgIpFZRXuYnkjftxTAZwMIiwEqAfk8aVB2/oA6nAeM=
