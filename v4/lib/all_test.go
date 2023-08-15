@@ -112,7 +112,6 @@ func TestMain(m *testing.M) {
 	default:
 		panic(todo("unsupported target: %s/%s", runtime.GOOS, runtime.GOARCH)) //TODO
 	}
-	isTesting = true
 	testWD, err := filepath.Abs("testdata")
 	if err != nil {
 		panic(todo("", err))
@@ -553,6 +552,7 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 			goarch,
 			[]string{
 				"ccgo",
+
 				"-c",
 				"-verify-types",
 				"--prefix-field=F",
@@ -568,6 +568,7 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 			goarch,
 			[]string{
 				"ccgo",
+
 				"-o", ofn,
 				"-verify-types",
 				"--prefix-field=F",
@@ -1147,6 +1148,27 @@ func testSQLiteSimple(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	switch s := *oXWork; {
+	case s != "":
+		if out, err := shell(true, "go", "work", "init"); err != nil {
+			t.Fatalf("%s\vFAIL: %v", out, err)
+		}
+
+		if out, err := shell(true, "go", "work", "use", "."); err != nil {
+			t.Fatalf("%s\vFAIL: %v", out, err)
+		}
+
+		for _, v := range strings.Split(s, ",") {
+			if out, err := shell(true, "go", "work", "use", v); err != nil {
+				t.Fatalf("%s\vFAIL: %v", out, err)
+			}
+		}
+	default:
+		if out, err := shell(true, "go", "get", defaultLibc+"@master"); err != nil { //TODO- &master
+			t.Fatalf("%s\vFAIL: %v", out, err)
+		}
+	}
+
 	ccgoArgs := []string{
 		"ccgo",
 
@@ -1180,27 +1202,6 @@ func testSQLiteSimple(t *testing.T) {
 
 	if out, err := shell(true, "go", "mod", "init", "example.com/ccgo/v4/lib/sqlite1"); err != nil {
 		t.Fatalf("%v\n%s", err, out)
-	}
-
-	switch s := *oXWork; {
-	case s != "":
-		if out, err := shell(true, "go", "work", "init"); err != nil {
-			t.Fatalf("%s\vFAIL: %v", out, err)
-		}
-
-		if out, err := shell(true, "go", "work", "use", "."); err != nil {
-			t.Fatalf("%s\vFAIL: %v", out, err)
-		}
-
-		for _, v := range strings.Split(s, ",") {
-			if out, err := shell(true, "go", "work", "use", v); err != nil {
-				t.Fatalf("%s\vFAIL: %v", out, err)
-			}
-		}
-	default:
-		if out, err := shell(true, "go", "get", defaultLibc+"@master"); err != nil { //TODO- &master
-			t.Fatalf("%s\vFAIL: %v", out, err)
-		}
 	}
 
 	if !func() (r bool) {

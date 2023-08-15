@@ -195,13 +195,12 @@ func (t *Task) link() (err error) {
 
 	fset := token.NewFileSet()
 	objects := map[string]*object{}
-	mode := os.Getenv("GO111MODULE")
 	var libc *object
 	for _, v := range t.linkFiles {
 		var object *object
 		switch {
 		case strings.HasPrefix(v, "-l="):
-			object, err = t.getPkgSymbols(v[len("-l="):], mode)
+			object, err = t.getPkgSymbols(v[len("-l="):])
 			if err != nil {
 				break
 			}
@@ -245,16 +244,7 @@ func (t *Task) link() (err error) {
 	}
 }
 
-func (t *Task) getPkgSymbols(importPath, mode string) (r *object, err error) {
-	switch mode {
-	case "", "on":
-		// ok
-	default:
-		if !isTesting {
-			return nil, errorf("GO111MODULE=%s not supported", mode)
-		}
-	}
-
+func (t *Task) getPkgSymbols(importPath string) (r *object, err error) {
 	pkgs, err := packages.Load(
 		&packages.Config{
 			Mode: packages.NeedFiles,

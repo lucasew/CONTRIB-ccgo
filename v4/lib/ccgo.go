@@ -35,8 +35,6 @@ import (
 var (
 	oTraceL = flag.Bool("trcl", false, "Print produced object files.")
 	oTraceG = flag.Bool("trcg", false, "Print produced Go files.")
-
-	isTesting bool
 )
 
 // Task represents a compilation job.
@@ -57,9 +55,12 @@ type Task struct {
 	goarch                string
 	goos                  string
 	hidden                nameSet  // -hide <string>
+	idirafter             []string // -idirafter
 	ignoreFile            nameSet  // -ignore-file=comma separated file list
 	imports               []string // -import=comma separated import list
 	inputFiles            []string
+	iquote                []string // -iquote
+	isystem               []string // -isystem
 	l                     []string // -l
 	linkFiles             []string
 	o                     string   // -o
@@ -205,6 +206,7 @@ func (t *Task) main() (err error) {
 		}
 		return nil
 	})
+	set.Arg("idirafter", true, func(arg, val string) error { t.idirafter = append(t.idirafter, val); return nil })
 	set.Arg("ignore-file", false, func(arg, val string) error {
 		for _, v := range strings.Split(val, ",") {
 			t.ignoreFile.add(v)
@@ -215,6 +217,8 @@ func (t *Task) main() (err error) {
 		t.imports = append(t.imports, strings.Split(val, ",")...)
 		return nil
 	})
+	set.Arg("iquote", true, func(arg, val string) error { t.iquote = append(t.iquote, val); return nil })
+	set.Arg("isystem", true, func(arg, val string) error { t.isystem = append(t.isystem, val); return nil })
 	set.Arg("l", true, func(arg, val string) error {
 		t.l = append(t.l, val)
 		t.linkFiles = append(t.linkFiles, arg+"="+val)
@@ -235,7 +239,12 @@ func (t *Task) main() (err error) {
 	set.Opt("debug-linker-save", func(arg string) error { t.debugLinkerSave = true; return nil })
 	set.Opt("exec", func(arg string) error { return opt.Skip(nil) })
 	set.Opt("extended-errors", func(arg string) error { extendedErrors = true; gc.ExtendedErrors = true; return nil })
-	set.Opt("ffreestanding", func(arg string) error { t.freeStanding = true; t.cfgArgs = append(t.cfgArgs, arg); return nil })
+	set.Opt("ffreestanding", func(arg string) error {
+		t.freeStanding = true
+		t.noBuiltin = true
+		t.cfgArgs = append(t.cfgArgs, arg)
+		return nil
+	})
 	set.Opt("fno-builtin", func(arg string) error { t.noBuiltin = true; t.cfgArgs = append(t.cfgArgs, arg); return nil })
 	set.Opt("full-paths", func(arg string) error { t.fullPaths = true; return nil })
 	set.Opt("header", func(arg string) error { t.header = true; return nil })
@@ -299,6 +308,18 @@ func (t *Task) main() (err error) {
 			return t.exec([]string(x))
 		default:
 			return errorf("parsing %v: %v", t.args[1:], err)
+		}
+	}
+
+	if len(t.isystem) == 0 && !t.freeStanding {
+		isystem, err := isystem(t.goos, t.goarch, defaultLibc)
+		if err != nil {
+			return err
+		}
+
+		if isystem != "" {
+			t.isystem = []string{isystem}
+			t.D = append(t.D, "-D_GNU_SOURCE")
 		}
 	}
 
@@ -372,13 +393,58 @@ func (t *Task) main() (err error) {
 	if t.header {
 		cfg.Header = true
 	}
-	t.I = t.I[:len(t.I):len(t.I)]
-	cfg.IncludePaths = append([]string{""}, t.I...)
+
+	if t.nostdinc {
+		cfg.HostIncludePaths = nil
+		cfg.HostSysIncludePaths = nil
+	}
+
+	// --------------------------------------------------------------------
+	// https://gcc.gnu.org/onlinedocs/gcc/Directory-Options.html
+	//
+	// Directories specified with -iquote apply only to the quote form of the
+	// directive, #include "file". Directories specified with -I, -isystem, or
+	// -idirafter apply to lookup for both the #include "file" and #include <file>
+	// directives.
+	//
+	// You can specify any number or combination of these options on the command
+	// line to search for header files in several directories. The lookup order is
+	// as follows:
+
+	cfg.IncludePaths = nil
+	cfg.SysIncludePaths = nil
+
+	// 1 For the quote form of the include directive, the directory of the current
+	//   file is searched first.
+	cfg.IncludePaths = append(cfg.IncludePaths, "")
+
+	// 2 For the quote form of the include directive, the directories specified by
+	//   -iquote options are searched in left-to-right order, as they appear on the
+	//   command line.
+	cfg.IncludePaths = append(cfg.IncludePaths, t.iquote...)
+
+	// 3 Directories specified with -I options are scanned in left-to-right order.
+	cfg.IncludePaths = append(cfg.IncludePaths, t.I...)
+	cfg.SysIncludePaths = append(cfg.SysIncludePaths, t.I...)
+
+	// 4 Directories specified with -isystem options are scanned in left-to-right
+	//   order.
+	cfg.IncludePaths = append(cfg.IncludePaths, t.isystem...)
+	cfg.SysIncludePaths = append(cfg.SysIncludePaths, t.isystem...)
+
+	// 5 Standard system directories are scanned.
 	cfg.IncludePaths = append(cfg.IncludePaths, cfg.HostIncludePaths...)
 	cfg.IncludePaths = append(cfg.IncludePaths, cfg.HostSysIncludePaths...)
-	cfg.SysIncludePaths = append(t.I, cfg.HostSysIncludePaths...)
+	cfg.SysIncludePaths = append(cfg.SysIncludePaths, cfg.HostIncludePaths...)
+	cfg.SysIncludePaths = append(cfg.SysIncludePaths, cfg.HostSysIncludePaths...)
+
+	// 6 Directories specified with -idirafter options are scanned in left-to-right
+	//   order.
+	cfg.IncludePaths = append(cfg.IncludePaths, t.idirafter...)
+	cfg.SysIncludePaths = append(cfg.SysIncludePaths, t.idirafter...)
+	// --------------------------------------------------------------------
+
 	t.defs = buildDefs(t.D, t.U)
-	// trc("", t.defs)
 	cfg.FS = t.fs
 	t.cfg = cfg
 	if t.E {

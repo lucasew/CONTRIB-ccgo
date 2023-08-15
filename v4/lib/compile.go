@@ -16,8 +16,10 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"golang.org/x/mod/semver"
+	"golang.org/x/tools/go/packages"
 	"modernc.org/cc/v4"
 	"modernc.org/strutil"
 )
@@ -91,12 +93,57 @@ var (
 		taggedUnion:     "tu", // tagged union
 		typename:        "tn", // type name
 	}
+
+	isystem0    string
+	isystem0Err error
+	isystemOnce sync.Once
 )
 
 func init() {
 	if !semver.IsValid(objectFileSemver) {
 		panic(todo("internal error: invalid objectFileSemver: %q", objectFileSemver))
 	}
+}
+
+func isystem(goos, goarch, importPath string) (string, error) {
+	isystemOnce.Do(func() {
+		pkgs, err := packages.Load(
+			&packages.Config{
+				Mode: packages.NeedFiles,
+				Env:  append(os.Environ(), fmt.Sprintf("GOOS=%s", goos), fmt.Sprintf("GOARCH=%s", goarch)),
+			},
+			importPath,
+		)
+		if err != nil {
+			isystem0Err = errorf("%s", err)
+			return
+		}
+
+		if len(pkgs) != 1 {
+			isystem0Err = errorf("%s: expected one package, loaded %d", importPath, len(pkgs))
+			return
+		}
+
+		pkg := pkgs[0]
+		if len(pkg.Errors) != 0 {
+			var a []string
+			for _, v := range pkg.Errors {
+				a = append(a, v.Error())
+			}
+			isystem0Err = errorf("%s", strings.Join(a, "\n"))
+			return
+		}
+
+		for _, fn := range pkg.GoFiles {
+			dir, _ := filepath.Split(fn)
+			switch goos {
+			case "linux":
+				isystem0 = filepath.Join(dir, "include", "musl", goarch)
+				_, isystem0Err = os.Stat(isystem0)
+			}
+		}
+	})
+	return isystem0, isystem0Err
 }
 
 type writer interface {
