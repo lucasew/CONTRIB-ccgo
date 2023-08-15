@@ -4664,6 +4664,7 @@ assets/github.com/vnmakarov/mir/c-tests/lacc/pointer-immediate.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/preprocess-expression.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/preprocess.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/preprocessor-expression.c
+assets/github.com/vnmakarov/mir/c-tests/lacc/printstr.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/promote-unsigned.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/prototype-scope-enum.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/ptrdiff.c

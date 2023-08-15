@@ -323,6 +323,7 @@ func (t *Task) main() (err error) {
 		}
 	}
 
+	t.D = append(t.D, "-D__CCGO__")
 	t.cfgArgs = append(t.cfgArgs, t.D...)
 	t.cfgArgs = append(t.cfgArgs, t.U...)
 	t.cfgArgs = append(t.cfgArgs,
