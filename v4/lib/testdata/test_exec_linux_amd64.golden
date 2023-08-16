@@ -22,7 +22,9 @@ assets/CompCert-3.6/test/c/sha3.c
 assets/CompCert-3.6/test/c/siphash24.c
 assets/CompCert-3.6/test/c/spectral.c
 assets/CompCert-3.6/test/c/vmach.c
+assets/benchmarksgame-team.pages.debian.net/binary-trees-5.c
 assets/benchmarksgame-team.pages.debian.net/binary-trees.c
+assets/benchmarksgame-team.pages.debian.net/fannkuchredux-2.c
 assets/benchmarksgame-team.pages.debian.net/fannkuchredux-3.c
 assets/benchmarksgame-team.pages.debian.net/fannkuchredux-5.c
 assets/benchmarksgame-team.pages.debian.net/fannkuchredux.c
@@ -4708,6 +4710,7 @@ assets/github.com/vnmakarov/mir/c-tests/lacc/tag.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/tail-compare-jump.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/token.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/tokenize-partial-keyword.c
+assets/github.com/vnmakarov/mir/c-tests/lacc/typedef-function.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/typedef.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/unary-minus-float.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/unary-plus.c
