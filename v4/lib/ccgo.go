@@ -11,6 +11,8 @@ package ccgo // import "modernc.org/ccgo/v4/lib"
 //TODO Tucontext_t - Tucontext_t5
 //TODO acosh u does not need to be pinned
 //TODO tests += staticcheck
+//TODO volatile handling
+//TODO volatile handling of 'volatile struct vs s;', [0], pg. 73
 
 //  [0]: http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf
 

@@ -47,7 +47,6 @@ assets/benchmarksgame-team.pages.debian.net/reverse-complement-6.c
 assets/benchmarksgame-team.pages.debian.net/spectral-norm-3.c
 assets/benchmarksgame-team.pages.debian.net/spectral-norm.c
 assets/ccgo/bug/arr.c
-assets/ccgo/bug/atomic.c
 assets/ccgo/bug/bitfield.c
 assets/ccgo/bug/complit.c
 assets/ccgo/bug/condfn.c

@@ -9,6 +9,7 @@ var testExecKnownFails = map[string]struct{}{
 
 	// Won't fix
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-4.c`:                         {}, // Unsupported vector type
+	`assets/benchmarksgame-team.pages.debian.net/reverse-complement-2.c`:                 {}, // gcc fails as well
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20031003-1.c`:                  {}, // Out-of-range float to int conversion, result not specified.
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/941014-2.c`:                    {}, // Prints value at uninitialized memory.
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/20031003-1.c`:  {}, // Out-of-range float to int conversion, result not specified.
@@ -22,7 +23,6 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/github.com/vnmakarov/mir/c-tests/new/issue23.c`:                              {}, // Output is long double specific.
 
 	//TODO later musl version
-	`assets/benchmarksgame-team.pages.debian.net/reverse-complement-2.c`:             {}, // EXEC FAIL: unexpected fault address 0x22e7fff
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr79327.c`:                 {}, // EXEC FAIL: SIGABRT: abort musl v0.6.0 does not support printf 'h' verb.
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr79327.c`: {}, // EXEC FAIL: SIGABRT: abort
 
@@ -77,10 +77,13 @@ var testExecKnownFails = map[string]struct{}{
 	// COMPILE FAIL - does not compile.
 
 	`assets/benchmarksgame-team.pages.debian.net/fasta-4.c`:                                             {}, // COMPILE FAIL: fasta-4.c.go:630:3: undefined: "fwrite_unlocked" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:)
+	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-3.c`:                                        {}, // COMPILE FAIL: mandelbrot-3.c:27:21: unsupported vector type: v2df (type.go:60:verifyTyp: type.go:65:typ0: type.go:458:isValidType1:)
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-8.c`:                                        {}, // COMPILE FAIL: mandelbrot-8.c:16:30: unsupported vector type: Vec (expr.go:1489:unaryExpression: type.go:425:isValidType: type.go:458:isValidType1:)
+	`assets/benchmarksgame-team.pages.debian.net/mandelbrot.c`:                                          {}, // COMPILE FAIL: mandelbrot.c:23:15: unsupported vector type: v2df (type.go:60:verifyTyp: type.go:65:typ0: type.go:458:isValidType1:)
 	`assets/benchmarksgame-team.pages.debian.net/nbody-4.c`:                                             {}, // COMPILE FAIL: nbody-4.c.go:2089:17: undefined: "main" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
 	`assets/benchmarksgame-team.pages.debian.net/nbody-8.c`:                                             {}, // COMPILE FAIL: nbody-8.c.go:2130:17: undefined: "main" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
 	`assets/benchmarksgame-team.pages.debian.net/reverse-complement-4.c`:                                {}, // COMPILE FAIL: reverse-complement-4.c.go:629:22: undefined: "__builtin_memmove" external (ccgo.go:403:main: link.go:242:link: link.go:704:link:) (ccgo.go:403:main: link.go:242:link: link.go:707:link:)
+	`assets/ccgo/bug/atomic.c`:                                                                          {}, // COMPILE FAIL: TODO volatile 0x7fee60: "i" (expr.go:488:expr0: expr.go:1836:postfixExpression: expr.go:70:expr:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20000211-1.c`:                                 {}, // COMPILE FAIL: TODO (decl.go:687:initDeclarator: type.go:18:typedef: type.go:328:typ0:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20000326-2.c`:                                 {}, // COMPILE FAIL: TODO BlockItemLabel (decl.go:337:functionDefinition0: stmt.go:286:compoundStatement: stmt.go:320:blockItem:)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20000405-3.c`:                                 {}, // COMPILE FAIL: 20000405-3.c:1:1: unsupported alignment 32 of struct foo {entry array of 40 pointer to void} (type.go:512:structLiteral: type.go:65:typ0: type.go:444:isValidType1:)

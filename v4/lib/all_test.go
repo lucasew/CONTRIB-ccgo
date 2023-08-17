@@ -515,12 +515,12 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 	bin := "cbin_" + enforceBinaryExt(ofn)
 	switch {
 	case !execute:
-		if _, err = shell(false, hostCC, "-c", "-w", path, "-lm"); err != nil {
+		if _, err = shell(false, hostCC, "-c", "-w", path, "-lm", "-lpthread"); err != nil {
 			cCompilerFailed = true
 			trccc(path, err)
 		}
 	default:
-		if _, err = shell(false, hostCC, "-o", bin, "-w", path, "-lm"); err != nil {
+		if _, err = shell(false, hostCC, "-o", bin, "-w", path, "-lm", "-lpthread"); err != nil {
 			trccc(path, err)
 			cCompilerFailed = true
 		}
@@ -996,7 +996,7 @@ out:
 			csp = fmt.Sprintf("-I%s", s)
 		}
 
-		ccOut, err := exec.Command(hostCC, "-o", binaryName, "main.c", csp).CombinedOutput()
+		ccOut, err := exec.Command(hostCC, "-o", binaryName, "main.c", csp, "-lm", "-lpthread").CombinedOutput()
 		if err != nil {
 			t.Logf("%s\n%s\ncc: %v", extra, ccOut, err)
 			continue

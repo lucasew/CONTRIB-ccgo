@@ -66,6 +66,9 @@ func (c *ctx) expr(w writer, n cc.ExpressionNode, to cc.Type, toMode mode) *buf 
 	if to == nil {
 		to = n.Type()
 	}
+	if c.isVolatileOrAtomicExpr(n) {
+		c.err(errorf("TODO %v: %q", n.Position, cc.NodeSource(n)))
+	}
 	// trc("%d: %v: EXPR  pre call EXPR1 -> %s %s (%s) %T", cnt.Add(1), c.pos(n), to, toMode, cc.NodeSource(n), n)
 	r, from, fromMode := c.expr0(w, n, to, toMode)
 	// trc("%d: %v: EXPR post call EXPR0 from %v %v -> to %v %v (%s) %T", cnt.Add(1), c.pos(n), from, fromMode, to, toMode, cc.NodeSource(n), n)
@@ -1827,12 +1830,13 @@ out:
 				c.err(errorf("TODO %v", mode)) // -
 			}
 		default:
+			d := c.declaratorOf(n.PostfixExpression)
 			switch mode {
 			case exprVoid:
 				b.w("%s++", c.expr(w, n.PostfixExpression, nil, exprDefault))
 			case exprDefault:
 				v := c.f.newAutovar(n, n.PostfixExpression.Type())
-				switch d := c.declaratorOf(n.PostfixExpression); {
+				switch {
 				case d != nil:
 					ds := c.expr(w, n.PostfixExpression, nil, exprDefault)
 					w.w("%s = %s;", v, ds)
@@ -2537,7 +2541,7 @@ func (c *ctx) declaratorOf(n cc.ExpressionNode) *cc.Declarator {
 					return y
 				case *cc.Parameter:
 					return y.Declarator
-				case nil:
+				case *cc.Enumerator, nil:
 					return nil
 				default:
 					c.err(errorf("TODO %T", y))
@@ -2629,6 +2633,50 @@ func (c *ctx) declaratorOf(n cc.ExpressionNode) *cc.Declarator {
 			default:
 				return nil
 			}
+		case *cc.EqualityExpression:
+			switch x.Case {
+			case cc.EqualityExpressionRel:
+				n = x.RelationalExpression
+			default:
+				return nil
+			}
+		case *cc.RelationalExpression:
+			switch x.Case {
+			case cc.RelationalExpressionShift:
+				n = x.ShiftExpression
+			default:
+				return nil
+			}
+		case *cc.LogicalOrExpression:
+			switch x.Case {
+			case cc.LogicalOrExpressionLAnd:
+				n = x.LogicalAndExpression
+			default:
+				return nil
+			}
+		case *cc.AssignmentExpression:
+			switch x.Case {
+			case cc.AssignmentExpressionCond:
+				n = x.ConditionalExpression
+			default:
+				return nil
+			}
+		case *cc.LogicalAndExpression:
+			switch x.Case {
+			case cc.LogicalAndExpressionOr:
+				n = x.InclusiveOrExpression
+			default:
+				return nil
+			}
+		case *cc.ExclusiveOrExpression:
+			switch x.Case {
+			case cc.ExclusiveOrExpressionAnd:
+				n = x.AndExpression
+			default:
+				return nil
+			}
+		case *cc.ConstantExpression:
+			n = x.ConditionalExpression
 		default:
 			panic(todo("%T", n))
 		}
@@ -2863,6 +2911,11 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 				}
 			}
 		}
+
+		if c.isVolatileOrAtomicExpr(n.UnaryExpression) {
+			// trc("%v: TODO %q", n.Position(), cc.NodeSource(n))
+			c.err(errorf("TODO %v", mode))
+		}
 		switch mode {
 		case exprDefault, exprSelect:
 			rt, rmode = n.Type(), mode
@@ -2892,6 +2945,11 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 		cc.AssignmentExpressionAnd, // UnaryExpression "&=" AssignmentExpression
 		cc.AssignmentExpressionXor, // UnaryExpression "^=" AssignmentExpression
 		cc.AssignmentExpressionOr:  // UnaryExpression "|=" AssignmentExpression
+
+		if c.isVolatileOrAtomicExpr(n.UnaryExpression) {
+			// trc("%v: TODO %q", n.Position(), cc.NodeSource(n))
+			c.err(errorf("TODO %v", mode))
+		}
 
 		rt, rmode = n.Type(), mode
 		op := n.Token.SrcStr()
@@ -3159,16 +3217,6 @@ out:
 					rt = x.Type().Pointer()
 					switch {
 					case x.Type().Kind() == cc.Function:
-						// v := fmt.Sprintf("%sf%d", tag(ccgo), c.id())
-						// switch {
-						// case c.f != nil:
-						// 	w.w("%s := %s;", v, linkName)
-						// default:
-						// 	w.w("var %s = %s;", v, linkName)
-						// }
-						// b.w("(*(*%suintptr)(%s))", tag(preserve), unsafeAddr(v)) // Free pass from .pin
-
-						// b.w("(*(*%suintptr)(%sunsafe.%[1]sPointer(&struct{f func%[3]s}{%s})))", tag(preserve), tag(importQualifier), c.signature(x.Type().(*cc.FunctionType), false, false, true), linkName)
 						b.w("%s%s(%s)", tag(preserve), ccgoFP, linkName)
 					default:
 						switch _, ok := c.isVLA(x.Type()); {
@@ -3650,4 +3698,13 @@ func (c *ctx) stringCharConst(b byte, t cc.Type) string {
 	default:
 		return fmt.Sprint(b)
 	}
+}
+
+func (c *ctx) isVolatileOrAtomicExpr(n cc.ExpressionNode) bool {
+	if n.Type().Attributes().IsVolatile() {
+		return false
+	}
+
+	d := c.declaratorOf(n)
+	return d != nil && d.IsAtomic()
 }
