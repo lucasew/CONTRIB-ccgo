@@ -11,7 +11,6 @@ package ccgo // import "modernc.org/ccgo/v4/lib"
 //TODO Tucontext_t - Tucontext_t5
 //TODO acosh u does not need to be pinned
 //TODO tests += staticcheck
-//TODO volatile handling
 //TODO volatile handling of 'volatile struct vs s;', [0], pg. 73
 
 //  [0]: http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf
@@ -25,7 +24,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"modernc.org/cc/v4"
@@ -51,7 +49,6 @@ type Task struct {
 	compiledfFiles        map[string]string // *.c -> *.c.go
 	defs                  string
 	execCC                string // -exec-cc
-	experimentPin         int    // -experiment-pin <int>
 	fs                    fs.FS
 	goABI                 *gc.ABI
 	goarch                string
@@ -201,7 +198,6 @@ func (t *Task) main() (err error) {
 	set.Arg("O", true, func(arg, val string) error { t.O = fmt.Sprintf("%s%s", arg, val); t.opt0 = val == "0"; return nil })
 	set.Arg("U", true, func(arg, val string) error { t.U = append(t.U, fmt.Sprintf("%s%s", arg, val)); return nil })
 	set.Arg("exec-cc", false, func(arg, val string) error { t.execCC = val; return nil })
-	set.Arg("experiment-pin", false, func(arg, val string) error { t.experimentPin, err = strconv.Atoi(val); return err })
 	set.Arg("hide", false, func(arg, val string) error {
 		for _, v := range strings.Split(val, ",") {
 			t.hidden.add(v)

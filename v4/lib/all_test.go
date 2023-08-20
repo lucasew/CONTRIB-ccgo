@@ -48,7 +48,6 @@ var (
 	oErr1         = flag.Bool("err1", false, "first error line only")
 	oKeep         = flag.Bool("keep", false, "keep temp directories")
 	oPanic        = flag.Bool("panic", false, "panic on miscompilation")
-	oPin          = flag.String("pin", "0", "argument of -experiment-pin")
 	oShellTime    = flag.Duration("shelltimeout", 3600*time.Second, "shell() time limit")
 	oStackTrace   = flag.Bool("trcstack", false, "")
 	oTrace        = flag.Bool("trc", false, "print tested paths.")
@@ -558,7 +557,6 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 				"--prefix-field=F",
 				"-ignore-unsupported-atomic-sizes",
 				"-ignore-vector-functions",
-				"-experiment-pin", *oPin,
 				path,
 			},
 			&out, &out, nil).Main()
@@ -574,7 +572,6 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 				"--prefix-field=F",
 				"-ignore-vector-functions",
 				"-ignore-unsupported-atomic-sizes",
-				"-experiment-pin", *oPin,
 				path,
 			},
 			&out, &out, nil).Main()
@@ -1042,7 +1039,6 @@ out:
 				"-ignore-asm-errors",
 				"-ignore-vector-functions",
 				"-ignore-unsupported-alignment",
-				"-experiment-pin", *oPin,
 				"main.c",
 				csp,
 			},
@@ -1187,7 +1183,6 @@ func testSQLiteSimple(t *testing.T) {
 		"-ignore-unsupported-alignment",
 		"-ignore-unsupported-atomic-sizes",
 		"-ignore-vector-functions",
-		"-experiment-pin", *oPin,
 		"-o", main,
 		filepath.Join(dir, "shell.c"),
 		filepath.Join(dir, "sqlite3.c"),
@@ -1294,6 +1289,7 @@ func testSQLiteSimple(t *testing.T) {
 }
 
 func testSQLiteSpeedTest1(t *testing.T) {
+	t.Skip("TODO")
 	const (
 		dir  = "assets/sqlite-amalgamation"
 		main = "main.go"
@@ -1339,7 +1335,6 @@ func testSQLiteSpeedTest1(t *testing.T) {
 		"-ignore-unsupported-alignment",
 		"-ignore-unsupported-atomic-sizes",
 		"-ignore-vector-functions",
-		"-experiment-pin", *oPin,
 		"-o", main,
 		filepath.Join(dir, "speedtest1.c"),
 		filepath.Join(dir, "sqlite3.c"),

@@ -248,7 +248,7 @@ func (c *ctx) initializerArray(w writer, n cc.Node, a []*cc.Initializer, t *cc.A
 			}
 		}
 	}
-	b.w("}")
+	b.w("\n}")
 	return &b
 }
 
@@ -351,7 +351,7 @@ func (c *ctx) initializerStruct(w writer, n cc.Node, a []*cc.Initializer, t *cc.
 			for len(flds) != 0 && flds[0].OuterGroupOffset() == f.OuterGroupOffset() {
 				flds = flds[1:]
 			}
-			b.w("%s__ccgo%d: ", tag(field), f.OuterGroupOffset())
+			b.w("\n%s__ccgo%d: ", tag(field), f.OuterGroupOffset())
 			sort.Slice(v, func(i, j int) bool {
 				a, b := v[i].Field(), v[j].Field()
 				return a.Offset()*8+int64(a.OffsetBits()) < b.Offset()*8+int64(b.OffsetBits())
@@ -375,9 +375,9 @@ func (c *ctx) initializerStruct(w writer, n cc.Node, a []*cc.Initializer, t *cc.
 		}
 		// trc("f %q %s off %#0x v[0].Type() %v", f.Name(), f.Type(), f.Offset(), v[0].Type())
 		flds = flds[1:]
-		b.w("%s%s: %s, ", tag(field), c.fieldName(t, f), c.initializer(w, n, v, f.Type(), off0+f.Offset(), false))
+		b.w("\n%s%s: %s, ", tag(field), c.fieldName(t, f), c.initializer(w, n, v, f.Type(), off0+f.Offset(), false))
 	}
-	b.w("}")
+	b.w("\n}")
 	return &b
 }
 

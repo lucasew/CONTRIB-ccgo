@@ -209,17 +209,8 @@ func (c *ctx) compoundStatement(w writer, n *cc.CompoundStatement, fnBlock bool,
 			if c.f.maxVaListSize != 0 {
 				v += c.f.maxVaListSize + 8
 			}
-			switch {
-			case c.task.experimentPin != 0:
-				w.w("var %spinner %sruntime.%sPinner;", tag(ccgo), tag(importQualifier), tag(preserve))
-				w.w("%sbpp := &[%d]int64{};", tag(ccgo), v/8)
-				w.w("%spinner.%sPin(%[1]sbpp);", tag(ccgo), tag(preserve))
-				w.w("defer %spinner.%sUnpin();", tag(ccgo), tag(preserve))
-				w.w("%sbp := %suintptr(%s);", tag(ccgo), tag(preserve), unsafePointer(fmt.Sprintf("&%sbpp[0]", tag(ccgo))))
-			default:
-				w.w("%sbp := %[1]stls.%sAlloc(%d); /* tlsAllocs %v maxVaListSize %v */", tag(ccgo), tag(preserve), v, c.f.tlsAllocs, c.f.maxVaListSize)
-				w.w("defer %stls.%sFree(%d);", tag(ccgo), tag(preserve), v)
-			}
+			w.w("%sbp := %[1]stls.%sAlloc(%d); /* tlsAllocs %v maxVaListSize %v */", tag(ccgo), tag(preserve), v, c.f.tlsAllocs, c.f.maxVaListSize)
+			w.w("defer %stls.%sFree(%d);", tag(ccgo), tag(preserve), v)
 			for _, v := range c.f.t.Parameters() {
 				if d := v.Declarator; d != nil && c.f.declInfos.info(d).pinned() {
 					w.w("*(*%s)(%s) = %s_%s;", c.typ(n, d.Type()), unsafePointer(bpOff(c.f.declInfos.info(d).bpOff)), tag(ccgo), d.Name())

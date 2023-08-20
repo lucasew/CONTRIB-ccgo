@@ -726,16 +726,6 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 			l.w("\n\t%s \"reflect\"", nm)
 		}
 		rtDummy := ""
-		if l.task.experimentPin != 0 {
-			switch nm := l.runtimeName; nm {
-			case "runtime":
-				l.w("\n\t\"runtime\"")
-				rtDummy = "\t_ runtime.Pinner\n"
-			default:
-				l.w("\n\t%s \"runtime\"", nm)
-				rtDummy = fmt.Sprintf("\t_ %s.Pinner\n", nm)
-			}
-		}
 		switch nm := l.unsafeName; nm {
 		case "unsafe":
 			l.w("\n\t\"unsafe\"")
