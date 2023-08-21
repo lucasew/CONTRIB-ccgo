@@ -1983,7 +1983,8 @@ func (c *ctx) mulOverflow(w writer, n *cc.PostfixExpression, t cc.Type, mode mod
 		return &b, t, mode
 	}
 
-	b.w("%s__builtin_mul_overflow%s(%stls, %s, %s, %s)", tag(external), c.helper(n, args[0].Type()), tag(ccgo), c.expr(w, args[0], nil, exprDefault), c.expr(w, args[1], args[0].Type(), exprDefault), c.expr(w, args[2], nil, exprDefault))
+	to := args[2].Type().(*cc.PointerType).Elem()
+	b.w("%s__builtin_mul_overflow%s(%stls, %s, %s, %s)", tag(external), c.helper(n, to), tag(ccgo), c.expr(w, args[0], to, exprDefault), c.expr(w, args[1], to, exprDefault), c.expr(w, args[2], nil, exprDefault))
 	return &b, c.ast.Int, exprDefault
 }
 
@@ -2016,7 +2017,8 @@ func (c *ctx) addOverflow(w writer, n *cc.PostfixExpression, t cc.Type, mode mod
 		return &b, t, mode
 	}
 
-	b.w("%s__builtin_add_overflow%s(%stls, %s, %s, %s)", tag(external), c.helper(n, args[0].Type()), tag(ccgo), c.expr(w, args[0], nil, exprDefault), c.expr(w, args[1], args[0].Type(), exprDefault), c.expr(w, args[2], nil, exprDefault))
+	to := args[2].Type().(*cc.PointerType).Elem()
+	b.w("%s__builtin_add_overflow%s(%stls, %s, %s, %s)", tag(external), c.helper(n, to), tag(ccgo), c.expr(w, args[0], to, exprDefault), c.expr(w, args[1], to, exprDefault), c.expr(w, args[2], nil, exprDefault))
 	return &b, c.ast.Int, exprDefault
 }
 
@@ -2049,7 +2051,8 @@ func (c *ctx) subOverflow(w writer, n *cc.PostfixExpression, t cc.Type, mode mod
 		return &b, t, mode
 	}
 
-	b.w("%s__builtin_sub_overflow%s(%stls, %s, %s, %s)", tag(external), c.helper(n, args[0].Type()), tag(ccgo), c.expr(w, args[0], nil, exprDefault), c.expr(w, args[1], args[0].Type(), exprDefault), c.expr(w, args[2], nil, exprDefault))
+	to := args[2].Type().(*cc.PointerType).Elem()
+	b.w("%s__builtin_sub_overflow%s(%stls, %s, %s, %s)", tag(external), c.helper(n, to), tag(ccgo), c.expr(w, args[0], to, exprDefault), c.expr(w, args[1], to, exprDefault), c.expr(w, args[2], nil, exprDefault))
 	return &b, c.ast.Int, exprDefault
 }
 

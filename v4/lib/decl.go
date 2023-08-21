@@ -798,6 +798,7 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 			case info != nil && info.pinned():
 				switch {
 				case t.Kind() == cc.Union && n.Initializer.Type().Size() == t.Size():
+					w.w("%s%s*(*%s)(%s) = %[3]s{};", sep, c.posComment(n), c.typ(d, t), unsafePointer(bpOff(info.bpOff)))
 					u := c.unbracedInitilizer(n.Initializer)
 					w.w("%s%s*(*%s)(%s) = %s;", sep, c.posComment(n), c.typ(d, u.Type()), unsafePointer(bpOff(info.bpOff)), c.initializerOuter(w, u, u.Type()))
 				default:
@@ -806,6 +807,10 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 							return unsafePointer(bpOff(info.bpOff + off))
 						},
 						n.Initializer, t); b != nil {
+						switch t.Kind() {
+						case cc.Struct, cc.Union, cc.Array:
+							w.w("%s%s*(*%s)(%s) = %[3]s{};", sep, c.posComment(n), c.typ(d, t), unsafePointer(bpOff(info.bpOff)))
+						}
 						w.w("%s%s%s;", sep, c.posComment(n), b)
 						break
 					}

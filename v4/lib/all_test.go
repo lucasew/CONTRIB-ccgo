@@ -1116,7 +1116,6 @@ func TestSQLite(t *testing.T) {
 }
 
 func testSQLiteSimple(t *testing.T) {
-	t.Skip("TODO")
 	const (
 		dir  = "assets/sqlite-amalgamation"
 		main = "main.go"
@@ -1289,7 +1288,6 @@ func testSQLiteSimple(t *testing.T) {
 }
 
 func testSQLiteSpeedTest1(t *testing.T) {
-	t.Skip("TODO")
 	const (
 		dir  = "assets/sqlite-amalgamation"
 		main = "main.go"
