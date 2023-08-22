@@ -1143,6 +1143,10 @@ func testSQLiteSimple(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if out, err := shell(true, "go", "mod", "init", "example.com/ccgo/v4/lib/sqlitea"); err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+
 	switch s := *oXWork; {
 	case s != "":
 		if out, err := shell(true, "go", "work", "init"); err != nil {
@@ -1192,10 +1196,6 @@ func testSQLiteSimple(t *testing.T) {
 	}
 	if *oDebug {
 		ccgoArgs = append(ccgoArgs, "-DSQLITE_DEBUG_OS_TRACE", "-DSQLITE_FORCE_OS_TRACE", "-DSQLITE_LOCK_TRACE")
-	}
-
-	if out, err := shell(true, "go", "mod", "init", "example.com/ccgo/v4/lib/sqlite1"); err != nil {
-		t.Fatalf("%v\n%s", err, out)
 	}
 
 	if !func() (r bool) {
@@ -1344,7 +1344,7 @@ func testSQLiteSpeedTest1(t *testing.T) {
 	if *oDebug {
 		ccgoArgs = append(ccgoArgs, "-DSQLITE_DEBUG_OS_TRACE", "-DSQLITE_FORCE_OS_TRACE", "-DSQLITE_LOCK_TRACE")
 	}
-	if out, err := shell(true, "go", "mod", "init", "example.com/ccgo/v4/lib/sqlite1"); err != nil {
+	if out, err := shell(true, "go", "mod", "init", "example.com/ccgo/v4/lib/sqliteb"); err != nil {
 		t.Fatalf("%v\n%s", err, out)
 	}
 

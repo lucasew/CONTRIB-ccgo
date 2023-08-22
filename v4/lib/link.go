@@ -1160,7 +1160,7 @@ func %s(f interface{}) uintptr {
 }
 
 func (l *linker) prologue(nm string) {
-	l.w(`// %s%s/%s by '%s %s'%s.
+	l.w(`// %s%s/%s by '%s %s'%s
 
 //go:build %[2]s && %[3]s
 // +build %[2]s,%[3]s

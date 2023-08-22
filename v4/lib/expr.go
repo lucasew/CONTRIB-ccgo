@@ -2764,7 +2764,9 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, mode mode
 		}
 		switch v.Type().Undecay().Kind() {
 		case cc.Function:
-			mode = exprUintptr
+			if d := c.declaratorOf(v); d != nil && d.IsFuncDef() {
+				mode = exprUintptr
+			}
 		}
 		xargs = append(xargs, c.topExpr(w, v, t, mode))
 		xtypes = append(xtypes, t)

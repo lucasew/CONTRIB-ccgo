@@ -149,7 +149,7 @@ func (c *ctx) mustConsume(n cc.ExpressionNode) (r bool) {
 	case nil:
 		return false
 	default:
-		trc("%v: %T %v, %s: %v", n.Position(), n, n.Type().Kind(), cc.NodeSource(n), r) //TODO-DBG
+		//trc("%v: %T %v, %s: %v", n.Position(), n, n.Type().Kind(), cc.NodeSource(n), r) //TODO-DBG
 		panic(todo("%T", x))
 	}
 }
@@ -696,7 +696,8 @@ func (c *ctx) iterationStatementFlat(w writer, n *cc.IterationStatement) {
 		//	stmt
 		//	goto cont
 		// brk:
-		w.w("%s: if !(%s) { goto %s };", cont, c.expr(w, n.ExpressionList, nil, exprBool), brk)
+		w.w("%s:", cont)
+		w.w("if !(%s) { goto %s };", c.expr(w, n.ExpressionList, nil, exprBool), brk)
 		c.unbracedStatement(w, n.Statement)
 		w.w("goto %s; %s:", cont, brk)
 	case cc.IterationStatementDo: // "do" Statement "while" '(' ExpressionList ')' ';'
