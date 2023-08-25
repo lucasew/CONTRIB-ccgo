@@ -157,6 +157,8 @@ func (discard) w(s string, args ...interface{}) {}
 type buf struct {
 	b []byte
 	n cc.Node
+
+	volatileOrAtomicHandled bool
 }
 
 func (b *buf) Write(p []byte) (int, error) { b.b = append(b.b, p...); return len(p), nil }

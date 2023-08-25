@@ -25,7 +25,7 @@ func (c *ctx) helper(n cc.Node, t cc.Type) string {
 		t = t.(*cc.EnumType).UnderlyingType()
 	}
 	if !cc.IsScalarType(t) {
-		c.err(errorf("%v: internal error: %s", n.Position(), t))
+		c.err(errorf("%v: helper: unsupported type: %s", n.Position(), t))
 	}
 	c.typ0(&b, n, t, false, false, false)
 	s := b.String()

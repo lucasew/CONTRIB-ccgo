@@ -66,12 +66,13 @@ func (c *ctx) expr(w writer, n cc.ExpressionNode, to cc.Type, toMode mode) *buf 
 	if to == nil {
 		to = n.Type()
 	}
-	if c.isVolatileOrAtomicExpr(n) {
-		c.err(errorf("TODO %v: %q", n.Position, cc.NodeSource(n)))
-	}
 	// trc("%d: %v: EXPR  pre call EXPR1 -> %s %s (%s) %T", cnt.Add(1), c.pos(n), to, toMode, cc.NodeSource(n), n)
 	r, from, fromMode := c.expr0(w, n, to, toMode)
 	// trc("%d: %v: EXPR post call EXPR0 from %v %v -> to %v %v (%s) %T", cnt.Add(1), c.pos(n), from, fromMode, to, toMode, cc.NodeSource(n), n)
+	if c.isVolatileOrAtomicExpr(n) && !r.volatileOrAtomicHandled {
+		c.err(errorf("TODO %v: %q %T %s, toMode %v", n.Position(), cc.NodeSource(n), n, n.Type(), toMode))
+	}
+
 	if from == nil || fromMode == 0 {
 		// trc("IN %v: from %v, %v to %v %v, src '%s', buf '%s'", c.pos(n), from, fromMode, to, toMode, cc.NodeSource(n), r.bytes())
 		c.err(errorf("TODO %T %v %v -> %v %v", n, from, fromMode, to, toMode))
@@ -512,7 +513,8 @@ func (c *ctx) andExpression(w writer, n *cc.AndExpression, t cc.Type, mode mode)
 	case cc.AndExpressionEq: // EqualityExpression
 		c.err(errorf("TODO %v", n.Case))
 	case cc.AndExpressionAnd: // AndExpression '&' EqualityExpression
-		b.w("(%s & %s)", c.expr(w, n.AndExpression, n.Type(), exprDefault), c.expr(w, n.EqualityExpression, n.Type(), exprDefault))
+		x, y := c.binopArgs(w, n.AndExpression, n.EqualityExpression, n.Type())
+		b.w("(%s & %s)", x, y)
 		rt, rmode = n.Type(), exprDefault
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
@@ -532,7 +534,8 @@ func (c *ctx) exclusiveOrExpression(w writer, n *cc.ExclusiveOrExpression, t cc.
 	case cc.ExclusiveOrExpressionAnd: // AndExpression
 		c.err(errorf("TODO %v", n.Case))
 	case cc.ExclusiveOrExpressionXor: // ExclusiveOrExpression '^' AndExpression
-		b.w("(%s ^ %s)", c.expr(w, n.ExclusiveOrExpression, n.Type(), exprDefault), c.expr(w, n.AndExpression, n.Type(), exprDefault))
+		x, y := c.binopArgs(w, n.ExclusiveOrExpression, n.AndExpression, n.Type())
+		b.w("(%s ^ %s)", x, y)
 		rt, rmode = n.Type(), exprDefault
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
@@ -552,7 +555,8 @@ func (c *ctx) inclusiveOrExpression(w writer, n *cc.InclusiveOrExpression, t cc.
 	case cc.InclusiveOrExpressionXor: // ExclusiveOrExpression
 		c.err(errorf("TODO %v", n.Case))
 	case cc.InclusiveOrExpressionOr: // InclusiveOrExpression '|' ExclusiveOrExpression
-		b.w("(%s | %s)", c.expr(w, n.InclusiveOrExpression, n.Type(), exprDefault), c.expr(w, n.ExclusiveOrExpression, n.Type(), exprDefault))
+		x, y := c.binopArgs(w, n.InclusiveOrExpression, n.ExclusiveOrExpression, n.Type())
+		b.w("(%s | %s)", x, y)
 		rt, rmode = n.Type(), exprDefault
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
@@ -764,7 +768,10 @@ func (c *ctx) canIgnore(n cc.ExpressionNode) bool {
 func (c *ctx) conditionalExpression(w writer, n *cc.ConditionalExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
 	c.exprNestLevel--
 
-	defer func() { c.exprNestLevel++ }()
+	defer func() {
+		r.volatileOrAtomicHandled = true
+		c.exprNestLevel++
+	}()
 
 	var b buf
 	switch n.Case {
@@ -1106,7 +1113,23 @@ func (c *ctx) additiveExpression(w writer, n *cc.AdditiveExpression, t cc.Type, 
 }
 
 func (c *ctx) binopArgs(w writer, a, b cc.ExpressionNode, t cc.Type) (x, y *buf) {
-	return c.expr(w, a, t, exprDefault), c.expr(w, b, t, exprDefault)
+	return c.checkVolatileExpr(w, a, t, exprDefault), c.checkVolatileExpr(w, b, t, exprDefault)
+}
+
+func (c *ctx) checkVolatileExpr(w writer, n cc.ExpressionNode, t cc.Type, mode mode) (r *buf) {
+	switch mode {
+	case exprDefault:
+		if x, ok := n.(*cc.UnaryExpression); ok && x.Case == cc.UnaryExpressionMinus {
+			return c.expr(w, n, t, mode)
+		}
+
+		if c.isVolatileOrAtomicExpr(n) {
+			defer func() { r.volatileOrAtomicHandled = true }()
+			b := c.atomicLoad(w, n, c.topExpr(w, n, n.Type().Pointer(), exprUintptr), n.Type())
+			return c.convert(n, w, b, n.Type(), t, mode, mode)
+		}
+	}
+	return c.expr(w, n, t, mode)
 }
 
 func (c *ctx) equalityExpression(w writer, n *cc.EqualityExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
@@ -1123,10 +1146,12 @@ func (c *ctx) equalityExpression(w writer, n *cc.EqualityExpression, t cc.Type, 
 	ct := c.usualArithmeticConversions(n.EqualityExpression.Type(), n.RelationalExpression.Type())
 	switch n.Case {
 	case cc.EqualityExpressionEq: // EqualityExpression "==" RelationalExpression
-		b.w("(%s == %s)", c.expr(w, n.EqualityExpression, ct, exprDefault), c.expr(w, n.RelationalExpression, ct, exprDefault))
+		x, y := c.binopArgs(w, n.EqualityExpression, n.RelationalExpression, ct)
+		b.w("(%s == %s)", x, y)
 		rt, rmode = n.Type(), exprBool
 	case cc.EqualityExpressionNeq: // EqualityExpression "!=" RelationalExpression
-		b.w("(%s != %s)", c.expr(w, n.EqualityExpression, ct, exprDefault), c.expr(w, n.RelationalExpression, ct, exprDefault))
+		x, y := c.binopArgs(w, n.EqualityExpression, n.RelationalExpression, ct)
+		b.w("(%s != %s)", x, y)
 		rt, rmode = n.Type(), exprBool
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
@@ -1149,13 +1174,17 @@ func (c *ctx) relationExpression(w writer, n *cc.RelationalExpression, t cc.Type
 	rt, rmode = n.Type(), exprBool
 	switch n.Case {
 	case cc.RelationalExpressionLt: // RelationalExpression '<' ShiftExpression
-		b.w("(%s < %s)", c.expr(w, n.RelationalExpression, ct, exprDefault), c.expr(w, n.ShiftExpression, ct, exprDefault))
+		x, y := c.binopArgs(w, n.RelationalExpression, n.ShiftExpression, ct)
+		b.w("(%s < %s)", x, y)
 	case cc.RelationalExpressionGt: // RelationalExpression '>' ShiftExpression
-		b.w("(%s > %s)", c.expr(w, n.RelationalExpression, ct, exprDefault), c.expr(w, n.ShiftExpression, ct, exprDefault))
+		x, y := c.binopArgs(w, n.RelationalExpression, n.ShiftExpression, ct)
+		b.w("(%s > %s)", x, y)
 	case cc.RelationalExpressionLeq: // RelationalExpression "<=" ShiftExpression
-		b.w("(%s <= %s)", c.expr(w, n.RelationalExpression, ct, exprDefault), c.expr(w, n.ShiftExpression, ct, exprDefault))
+		x, y := c.binopArgs(w, n.RelationalExpression, n.ShiftExpression, ct)
+		b.w("(%s <= %s)", x, y)
 	case cc.RelationalExpressionGeq: // RelationalExpression ">=" ShiftExpression
-		b.w("(%s >= %s)", c.expr(w, n.RelationalExpression, ct, exprDefault), c.expr(w, n.ShiftExpression, ct, exprDefault))
+		x, y := c.binopArgs(w, n.RelationalExpression, n.ShiftExpression, ct)
+		b.w("(%s >= %s)", x, y)
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
 	}
@@ -1294,8 +1323,22 @@ out:
 		default:
 			switch mode {
 			case exprVoid:
+				if c.isVolatileOrAtomicExpr(n.UnaryExpression) {
+					bp := c.expr(w, n.UnaryExpression, n.UnaryExpression.Type().Pointer(), exprUintptr)
+					b.w("%sPreIncAtomic%sP(%s, 1)", c.task.tlsQualifier, c.helper(n, n.UnaryExpression.Type()), bp)
+					defer func() { r.volatileOrAtomicHandled = true }()
+					break
+				}
+
 				b.w("%s++", c.expr(w, n.UnaryExpression, nil, exprDefault))
 			case exprDefault:
+				if c.isVolatileOrAtomicExpr(n.UnaryExpression) {
+					bp := c.expr(w, n.UnaryExpression, n.UnaryExpression.Type().Pointer(), exprUintptr)
+					b.w("%sPreIncAtomic%sP(%s, 1)", c.task.tlsQualifier, c.helper(n, n.UnaryExpression.Type()), bp)
+					defer func() { r.volatileOrAtomicHandled = true }()
+					break
+				}
+
 				switch d := c.declaratorOf(n.UnaryExpression); {
 				case d != nil:
 					v := c.f.newAutovar(n, n.UnaryExpression.Type())
@@ -1344,8 +1387,22 @@ out:
 		default:
 			switch mode {
 			case exprVoid:
+				if c.isVolatileOrAtomicExpr(n.UnaryExpression) {
+					bp := c.expr(w, n.UnaryExpression, n.UnaryExpression.Type().Pointer(), exprUintptr)
+					b.w("%sPreIncAtomic%sP(%s, -1)", c.task.tlsQualifier, c.helper(n, n.UnaryExpression.Type()), bp)
+					defer func() { r.volatileOrAtomicHandled = true }()
+					break
+				}
+
 				b.w("%s--", c.expr(w, n.UnaryExpression, nil, exprDefault))
 			case exprDefault:
+				if c.isVolatileOrAtomicExpr(n.UnaryExpression) {
+					bp := c.expr(w, n.PostfixExpression, n.UnaryExpression.Type().Pointer(), exprUintptr)
+					b.w("%sPreIncAtomic%sP(%s, -1)", c.task.tlsQualifier, c.helper(n, n.UnaryExpression.Type()), bp)
+					defer func() { r.volatileOrAtomicHandled = true }()
+					break
+				}
+
 				switch d := c.declaratorOf(n.UnaryExpression); {
 				case d != nil:
 					v := c.f.newAutovar(n, n.UnaryExpression.Type())
@@ -1377,6 +1434,15 @@ out:
 		rt, rmode = n.Type(), exprUintptr
 		b.w("%s", c.expr(w, n.CastExpression, rt, exprUintptr))
 	case cc.UnaryExpressionDeref: // '*' CastExpression
+		if c.isVolatileOrAtomicExpr(n) {
+			switch {
+			case n.Type().Kind() == cc.Void:
+				defer func() { r.volatileOrAtomicHandled = true }()
+			case mode == exprDefault, mode == exprVoid:
+				defer func() { r.volatileOrAtomicHandled = true }()
+				return c.atomicLoad(w, n, c.topExpr(w, n.CastExpression, n.CastExpression.Type(), exprDefault), n.Type()), n.Type(), mode
+			}
+		}
 		// trc("%v: nt %v, ct %v, '%s' %v", n.Token.Position(), n.Type(), n.CastExpression.Type(), cc.NodeSource(n), mode)
 		if ce, ok := n.CastExpression.(*cc.CastExpression); ok && ce.Case == cc.CastExpressionCast {
 			if pfe, ok := ce.CastExpression.(*cc.PostfixExpression); ok && pfe.Case == cc.PostfixExpressionCall {
@@ -1419,6 +1485,7 @@ out:
 			rt, rmode = n.Type(), mode
 			b.w("((*%s)(%s))", c.typ(n, n.CastExpression.Type().(*cc.PointerType).Elem()), unsafePointer(c.expr(w, n.CastExpression, nil, exprDefault)))
 		case exprUintptr:
+			defer func() { r.volatileOrAtomicHandled = true }()
 			rt, rmode = n.CastExpression.Type(), mode
 			b.w("%s", c.expr(w, n.CastExpression, nil, exprDefault))
 		case exprCall:
@@ -1430,7 +1497,8 @@ out:
 		}
 	case cc.UnaryExpressionPlus: // '+' CastExpression
 		rt, rmode = n.Type(), exprDefault
-		b.w("(+(%s))", c.expr(w, n.CastExpression, n.Type(), exprDefault))
+		defer func() { r.volatileOrAtomicHandled = true }()
+		b.w("(+(%s))", c.checkVolatileExpr(w, n.CastExpression, n.Type(), exprDefault))
 	case cc.UnaryExpressionMinus: // '-' CastExpression
 		rt, rmode = n.Type(), exprDefault
 		if c.exprNestLevel == 1 && cc.IsSignedInteger(n.CastExpression.Type()) && cc.IsSignedInteger(t) {
@@ -1439,13 +1507,16 @@ out:
 			defer func() { c.exprNestLevel++ }()
 		}
 
-		b.w("(-(%s))", c.expr(w, n.CastExpression, n.Type(), exprDefault))
+		defer func() { r.volatileOrAtomicHandled = true }()
+		b.w("(-(%s))", c.checkVolatileExpr(w, n.CastExpression, n.Type(), exprDefault))
 	case cc.UnaryExpressionCpl: // '~' CastExpression
 		rt, rmode = n.Type(), exprDefault
-		b.w("(^(%s))", c.expr(w, n.CastExpression, n.Type(), exprDefault))
+		defer func() { r.volatileOrAtomicHandled = true }()
+		b.w("(^(%s))", c.checkVolatileExpr(w, n.CastExpression, n.Type(), exprDefault))
 	case cc.UnaryExpressionNot: // '!' CastExpression
 		rt, rmode = n.Type(), exprBool
-		b.w("(!(%s))", c.expr(w, n.CastExpression, nil, exprBool))
+		defer func() { r.volatileOrAtomicHandled = true }()
+		b.w("(!(%s))", c.checkVolatileExpr(w, n.CastExpression, nil, exprBool))
 	case cc.UnaryExpressionSizeofExpr: // "sizeof" UnaryExpression
 		if t.Kind() == cc.Void {
 			t = n.Type()
@@ -1593,13 +1664,39 @@ func (c *ctx) isUnionComplitSelect(n cc.ExpressionNode) (bool, *cc.PostfixExpres
 	return y.TypeName.Type().Kind() == cc.Union, x
 }
 
-func (c *ctx) postfixExpressionIndex(w writer, p, index cc.ExpressionNode, pt *cc.PointerType, nt, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
-	// trc("%v: %s[%s] %v", c.pos(p), cc.NodeSource(p), cc.NodeSource(index), mode)
-	// defer func() { trc("%v: %s[%s] %v -> %q", c.pos(p), cc.NodeSource(p), cc.NodeSource(index), mode, r.bytes()) }()
+func (c *ctx) postfixExpressionIndex(w writer, n, p, index cc.ExpressionNode, pt *cc.PointerType, nt, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
 	var b buf
 	elem := pt.Elem()
 	mul := c.mul(p)
 	rt, rmode = nt, mode
+	switch x := p.(type) {
+	case *cc.PostfixExpression:
+		switch x.Case {
+		case cc.PostfixExpressionSelect:
+			if c.isVolatileOrAtomicExpr(x.PostfixExpression) {
+				switch mode {
+				case exprDefault:
+					f := x.Field()
+					if f.IsBitfield() {
+						break
+					}
+
+					defer func() { r.volatileOrAtomicHandled = true }()
+					bp := c.expr(w, x.PostfixExpression, x.PostfixExpression.Type().Pointer(), exprUintptr)
+					if off := f.Offset(); off != 0 {
+						bp.w("+%v*%s", off, mul)
+					}
+					b.w("%s", c.atomicLoad(w, n, bp, elem))
+					return &b, elem, mode
+				}
+			}
+		}
+	}
+	// trc("%v: %s[%s] %v", c.pos(p), cc.NodeSource(p), cc.NodeSource(index), mode)
+	// defer func() { trc("%v: %s[%s] %v -> %q", c.pos(p), cc.NodeSource(p), cc.NodeSource(index), mode, r.bytes()) }()
+	if c.isVolatileOrAtomicExpr(n) && mode == exprUintptr {
+		defer func() { r.volatileOrAtomicHandled = true }()
+	}
 	if f := c.isLastStructOrUnionField(p); f != nil && f.IsFlexibleArrayMember() {
 		// Flexible array member.
 		//
@@ -1724,11 +1821,11 @@ out:
 		c.err(errorf("TODO %v", n.Case))
 	case cc.PostfixExpressionIndex: // PostfixExpression '[' ExpressionList ']'
 		if x, ok := n.PostfixExpression.Type().(*cc.PointerType); ok {
-			return c.postfixExpressionIndex(w, n.PostfixExpression, n.ExpressionList, x, n.Type(), t, mode)
+			return c.postfixExpressionIndex(w, n, n.PostfixExpression, n.ExpressionList, x, n.Type(), t, mode)
 		}
 
 		if x, ok := n.ExpressionList.Type().(*cc.PointerType); ok {
-			return c.postfixExpressionIndex(w, n.ExpressionList, n.PostfixExpression, x, n.Type(), t, mode)
+			return c.postfixExpressionIndex(w, n, n.ExpressionList, n.PostfixExpression, x, n.Type(), t, mode)
 		}
 
 		c.err(errorf("TODO %v", n.Case))
@@ -1833,8 +1930,22 @@ out:
 			d := c.declaratorOf(n.PostfixExpression)
 			switch mode {
 			case exprVoid:
+				if c.isVolatileOrAtomicExpr(n.PostfixExpression) {
+					bp := c.expr(w, n.PostfixExpression, d.Type().Pointer(), exprUintptr)
+					b.w("%sPostIncAtomic%sP(%s, 1)", c.task.tlsQualifier, c.helper(n, d.Type()), bp)
+					defer func() { r.volatileOrAtomicHandled = true }()
+					break
+				}
+
 				b.w("%s++", c.expr(w, n.PostfixExpression, nil, exprDefault))
 			case exprDefault:
+				if c.isVolatileOrAtomicExpr(n.PostfixExpression) {
+					bp := c.expr(w, n.PostfixExpression, d.Type().Pointer(), exprUintptr)
+					b.w("%sPostIncAtomic%sP(%s, 1)", c.task.tlsQualifier, c.helper(n, d.Type()), bp)
+					defer func() { r.volatileOrAtomicHandled = true }()
+					break
+				}
+
 				v := c.f.newAutovar(n, n.PostfixExpression.Type())
 				switch {
 				case d != nil:
@@ -1886,8 +1997,22 @@ out:
 		default:
 			switch mode {
 			case exprVoid:
+				if c.isVolatileOrAtomicExpr(n.PostfixExpression) {
+					bp := c.expr(w, n.PostfixExpression, n.PostfixExpression.Type().Pointer(), exprUintptr)
+					b.w("%sPostIncAtomic%sP(%s, -1)", c.task.tlsQualifier, c.helper(n, n.PostfixExpression.Type()), bp)
+					defer func() { r.volatileOrAtomicHandled = true }()
+					break
+				}
+
 				b.w("%s--", c.expr(w, n.PostfixExpression, nil, exprDefault))
 			case exprDefault:
+				if c.isVolatileOrAtomicExpr(n.PostfixExpression) {
+					bp := c.expr(w, n.PostfixExpression, n.PostfixExpression.Type().Pointer(), exprUintptr)
+					b.w("%sPostIncAtomic%sP(%s, -1)", c.task.tlsQualifier, c.helper(n, n.PostfixExpression.Type()), bp)
+					defer func() { r.volatileOrAtomicHandled = true }()
+					break
+				}
+
 				v := c.f.newAutovar(n, n.PostfixExpression.Type())
 				switch d := c.declaratorOf(n.PostfixExpression); {
 				case d != nil:
@@ -2218,6 +2343,7 @@ func (c *ctx) postfixExpressionPSelect(w writer, n *cc.PostfixExpression, t cc.T
 
 // PostfixExpression '.' IDENTIFIER
 func (c *ctx) postfixExpressionSelect(w writer, n *cc.PostfixExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
+	isVolatileOrAtomicExpr := c.isVolatileOrAtomicExpr(n.PostfixExpression)
 	var b buf
 	b.n = n
 	f := n.Field()
@@ -2307,7 +2433,20 @@ func (c *ctx) postfixExpressionSelect(w writer, n *cc.PostfixExpression, t cc.Ty
 		mode = exprDefault
 	}
 	switch mode {
-	case exprLvalue, exprDefault, exprSelect, exprIndex:
+	case exprDefault:
+		if isVolatileOrAtomicExpr {
+			f := n.Field()
+			rt, rmode = f.Type(), mode
+			p := c.expr(w, n.PostfixExpression, n.PostfixExpression.Type().Pointer(), exprUintptr)
+			if off := f.Offset(); off != 0 {
+				p.w("+%v", off)
+			}
+			b.w("%s", c.atomicLoad(w, n, p, rt))
+			break
+		}
+
+		fallthrough
+	case exprLvalue, exprSelect, exprIndex:
 		rt, rmode = n.Type(), mode
 		b.w("(%s.", c.expr(w, n.PostfixExpression, nil, exprSelect))
 		switch {
@@ -2705,6 +2844,7 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, mode mode
 				return
 			}
 		case *cc.FunctionType:
+			defer func() { r.volatileOrAtomicHandled = true }()
 			ft = x
 		default:
 			c.err(errorf("TODO %T", d.Type()))
@@ -2768,7 +2908,12 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, mode mode
 				mode = exprUintptr
 			}
 		}
-		xargs = append(xargs, c.topExpr(w, v, t, mode))
+		switch {
+		case c.isVolatileOrAtomicExpr(v):
+			xargs = append(xargs, c.checkVolatileExpr(w, v, t, mode))
+		default:
+			xargs = append(xargs, c.topExpr(w, v, t, mode))
+		}
 		xtypes = append(xtypes, t)
 	}
 	switch {
@@ -2867,12 +3012,73 @@ func (c *ctx) normalizeParams(params []*cc.Parameter) []*cc.Parameter {
 	return params
 }
 
+func (c *ctx) atomicStore(w writer, n cc.Node, p, v *buf, t cc.Type, mode mode) *buf {
+	var b buf
+	switch t.Kind() {
+	case cc.Struct, cc.Union:
+		switch t.Size() {
+		//TODO case 1,2,4,8:
+		default:
+			switch mode {
+			case exprVoid:
+				w.w("(*(*%s)(%s)) = %s;", c.typ(n, t), unsafePointer(p), v)
+			default:
+				nm := c.f.newAutovarName()
+				w.w("%s := %s;", nm, v)
+				w.w("(*(*%s)(%s)) = %s;", c.typ(n, t), unsafePointer(p), nm)
+				b.w("(%s)", nm)
+			}
+			return &b
+		}
+	}
+
+	b.w("%sAtomicStoreP%s(%s, %s)", c.task.tlsQualifier, c.helper(n, t), p, v)
+	return &b
+}
+
+func (c *ctx) atomicLoad(w writer, n cc.Node, p *buf, t cc.Type) *buf {
+	var b buf
+	switch t.Kind() {
+	case cc.Struct, cc.Union:
+		switch t.Size() {
+		case 1, 2, 4, 8:
+			if c.f != nil {
+				nm := c.f.newAutovarName()
+				w.w("%s := %sAtomicLoadPUint%d(%s);", nm, c.task.tlsQualifier, 8*t.Size(), p)
+				b.w("(*(*%s)(%s))", c.typ(n, t), unsafeAddr(nm))
+				return &b
+			}
+
+			fallthrough
+		default:
+			b.w("(*(*%s)(%s))", c.typ(n, t), unsafePointer(p))
+		}
+	}
+
+	b.w("%sAtomicLoadP%s(%s)", c.task.tlsQualifier, c.helper(n, t), p)
+	return &b
+}
+
 func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
 	var b buf
 	switch n.Case {
 	case cc.AssignmentExpressionCond: // ConditionalExpression
 		c.err(errorf("TODO %v", n.Case))
 	case cc.AssignmentExpressionAssign: // UnaryExpression '=' AssignmentExpression
+		lv, rv := c.isVolatileOrAtomicExpr(n.UnaryExpression), c.isVolatileOrAtomicExpr(n.AssignmentExpression)
+		ut := n.UnaryExpression.Type()
+		at := n.AssignmentExpression.Type()
+		switch {
+		case lv && !rv:
+			switch mode {
+			case exprVoid:
+				defer func() { r.volatileOrAtomicHandled = true }()
+				return c.atomicStore(w, n, c.topExpr(w, n.UnaryExpression, ut.Pointer(), exprUintptr), c.topExpr(w, n.AssignmentExpression, ut, exprDefault), ut, mode), t, mode
+			default:
+				trc("%v: TODO %v", n.Position(), mode)
+			}
+		}
+
 		switch x := n.UnaryExpression.(type) {
 		case *cc.PostfixExpression:
 			switch x.Case {
@@ -2917,25 +3123,46 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 			}
 		}
 
-		if c.isVolatileOrAtomicExpr(n.UnaryExpression) {
-			// trc("%v: TODO %q", n.Position(), cc.NodeSource(n))
-			c.err(errorf("TODO %v", mode))
-		}
 		switch mode {
 		case exprDefault, exprSelect:
 			rt, rmode = n.Type(), mode
 			v := c.f.newAutovar(n, n.UnaryExpression.Type())
-			w.w("%s = %s;", v, c.expr(w, n.AssignmentExpression, n.UnaryExpression.Type(), exprDefault))
+			w.w("%s = %s;", v, c.checkVolatileExpr(w, n.AssignmentExpression, n.UnaryExpression.Type(), exprDefault))
 			w.w("%s = %s;", c.expr(w, n.UnaryExpression, nil, exprDefault), v)
 			b.w("%s", v)
 		case exprVoid:
+			switch x := n.UnaryExpression.(type) {
+			case *cc.PostfixExpression:
+				switch x.Case {
+				case cc.PostfixExpressionSelect:
+					if c.isVolatileOrAtomicExpr(x.PostfixExpression) {
+						f := x.Field()
+						if f.IsBitfield() {
+							c.err(errorf("TODO %v", mode))
+							break
+						}
+
+						bp := c.expr(w, x.PostfixExpression, x.PostfixExpression.Type().Pointer(), exprUintptr)
+						if off := f.Offset(); off != 0 {
+							bp.w("+%v", off)
+						}
+						return c.atomicStore(w, n, bp, c.expr(w, n.AssignmentExpression, f.Type(), exprDefault), f.Type(), mode), n.Type(), mode
+					}
+				}
+			}
 			//TODO should write all to 'w' and return empty 'b'.
 			b.w("%s = ", c.expr(w, n.UnaryExpression, nil, exprLvalue))
 			c.exprNestLevel--
 
 			defer func() { c.exprNestLevel++ }()
 
-			b.w("%s", c.expr(w, n.AssignmentExpression, n.UnaryExpression.Type(), exprDefault))
+			switch {
+			case rv:
+				defer func() { r.volatileOrAtomicHandled = true }()
+				b.w("%s", c.atomicLoad(w, n, c.topExpr(w, n.AssignmentExpression, at.Pointer(), exprUintptr), ut))
+			default:
+				b.w("%s", c.expr(w, n.AssignmentExpression, n.UnaryExpression.Type(), exprDefault))
+			}
 			rt, rmode = n.Type(), exprVoid
 		default:
 			c.err(errorf("TODO %v", mode))
@@ -2950,11 +3177,6 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 		cc.AssignmentExpressionAnd, // UnaryExpression "&=" AssignmentExpression
 		cc.AssignmentExpressionXor, // UnaryExpression "^=" AssignmentExpression
 		cc.AssignmentExpressionOr:  // UnaryExpression "|=" AssignmentExpression
-
-		if c.isVolatileOrAtomicExpr(n.UnaryExpression) {
-			// trc("%v: TODO %q", n.Position(), cc.NodeSource(n))
-			c.err(errorf("TODO %v", mode))
-		}
 
 		rt, rmode = n.Type(), mode
 		op := n.Token.SrcStr()
@@ -3090,6 +3312,10 @@ func (c *ctx) expressionList(w writer, n *cc.ExpressionList, t cc.Type, mode mod
 }
 
 func (c *ctx) primaryExpression(w writer, n *cc.PrimaryExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
+	isVolatileOrAtomicExpr := c.isVolatileOrAtomicExpr(n)
+	if isVolatileOrAtomicExpr && mode == exprUintptr {
+		defer func() { r.volatileOrAtomicHandled = true }()
+	}
 	var b buf
 out:
 	switch n.Case {
@@ -3180,9 +3406,21 @@ out:
 					default:
 						switch {
 						case n.Type().Kind() != t.Kind() && t.Kind() != cc.Void && t.Kind() != cc.Ptr:
+							if isVolatileOrAtomicExpr {
+								rt = x.Type()
+								defer func() { r.volatileOrAtomicHandled = true }()
+								b.w("(%s(%s))", c.verifyTyp(n, t), c.atomicLoad(w, n, c.expr(w, n, rt.Pointer(), exprUintptr), rt))
+								break
+							}
+
 							b.w("(%s(%s))", c.verifyTyp(n, t), linkName)
-							rt = t
 						default:
+							if isVolatileOrAtomicExpr {
+								rt = x.Type()
+								defer func() { r.volatileOrAtomicHandled = true }()
+								return c.atomicLoad(w, n, c.expr(w, n, rt.Pointer(), exprUintptr), rt), rt, mode
+							}
+
 							b.w("(%s)", linkName)
 						}
 					}
@@ -3592,7 +3830,6 @@ func (c *ctx) macro(n *cc.PrimaryExpression) (nm, lit string) {
 }
 
 func (c *ctx) primaryExpressionIntConst(w writer, n *cc.PrimaryExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
-	// trc("%v: %s %T %T %s c.exprNestLevel %v", n.Position(), t, n.Value(), n.Value().Convert(t), cc.NodeSource(n), c.exprNestLevel) //TODO-DBG
 	rt, rmode = t, exprDefault
 	var b buf
 	src := n.Token.SrcStr()
@@ -3706,8 +3943,9 @@ func (c *ctx) stringCharConst(b byte, t cc.Type) string {
 }
 
 func (c *ctx) isVolatileOrAtomicExpr(n cc.ExpressionNode) bool {
+	return false //TODO-
 	if n.Type().Attributes().IsVolatile() {
-		return false
+		return true
 	}
 
 	d := c.declaratorOf(n)

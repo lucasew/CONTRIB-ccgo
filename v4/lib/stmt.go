@@ -782,6 +782,11 @@ func (c *ctx) jumpStatement(w writer, n *cc.JumpStatement) {
 						nfo.result = c.f.newAutovar(nfo.fd, ft.Result())
 						nfo.exit = c.label()
 					}
+					if c.isVolatileOrAtomicExpr(n.ExpressionList) {
+						w.w("%s = %s;", nfo.result, c.atomicLoad(w, n, c.topExpr(w, n.ExpressionList, ft.Result().Pointer(), exprUintptr), ft.Result()))
+						break
+					}
+
 					w.w("%s = %s;", nfo.result, c.topExpr(w, n.ExpressionList, ft.Result(), exprDefault))
 				}
 				w.w("goto %s;", nfo.exit)
@@ -797,7 +802,7 @@ func (c *ctx) jumpStatement(w writer, n *cc.JumpStatement) {
 			case c.f.t.Result().Kind() == cc.Void:
 				w.w("%s; return;", c.expr(w, n.ExpressionList, nil, exprVoid))
 			default:
-				w.w("return %s;", c.topExpr(w, n.ExpressionList, c.f.t.Result(), exprDefault))
+				w.w("return %s;", c.checkVolatileExpr(w, n.ExpressionList, c.f.t.Result(), exprDefault))
 			}
 		default:
 			w.w("return;")
