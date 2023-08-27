@@ -40,6 +40,13 @@ var testExecKnownFails = map[string]struct{}{
 
 	// ==== BUILD FAIL - compiles but does not build.
 
+	//TODO volatile
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/postmod-1.c`:                 {}, // BUILD FAIL: exit status 1
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr38819.c`:                   {}, // BUILD FAIL: exit status 1
+	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/postmod-1.c`: {}, // BUILD FAIL: exit status 1
+	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr38819.c`:   {}, // BUILD FAIL: exit status 1
+
+	//TODO other
 	`assets/benchmarksgame-team.pages.debian.net/reverse-complement-4.c`: {}, // BUILD FAIL: exit status 1
 	`assets/ccgo/bug/sqlite.c`: {}, // BUILD FAIL: exit status 1
 	`assets/ccgo/bug/union3.c`: {}, // BUILD FAIL: exit status 1
@@ -95,6 +102,13 @@ var testExecKnownFails = map[string]struct{}{
 
 	// ==== COMPILE FAIL - does not compile.
 
+	//TODO volatile
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/builtin-prefetch-3.c`:                 {}, // COMPILE FAIL: TODO builtin-prefetch-3.c:67:24: "vol_str" 0xc0727154a0 *cc.PrimaryExpression struct S {a int; b short; c short; d array of 8 char; next pointer to struct S}, toMode exprLvalue (expr.go:1448:unaryExpression: expr.go:70:expr: expr.go:489:expr0: expr.go:1913:postfixExpression: expr.go:2541:postfixExpressionSelect: expr.go:73:expr:)
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr88739.c`:                            {}, // COMPILE FAIL: TODO pr88739.c:25:22: "v" 0xc0be64fe40 *cc.PrimaryExpression union U {f struct A; g array of 4 unsigned; h array of 8 unsigned short; i array of 16 unsigned char}, toMode exprLvalue (expr.go:2410:postfixExpressionSelect: expr.go:70:expr: expr.go:489:expr0: expr.go:1913:postfixExpression: expr.go:2541:postfixExpressionSelect: expr.go:73:expr:)
+	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/builtin-prefetch-3.c`: {}, // COMPILE FAIL: TODO gcc.c-torture/execute/builtin-prefetch-3.c:67:24: "vol_str" 0xc014e0c420 *cc.PrimaryExpression struct S {a int; b short; c short; d array of 8 char; next pointer to struct S}, toMode exprLvalue (expr.go:1448:unaryExpression: expr.go:70:expr: expr.go:489:expr0: expr.go:1913:postfixExpression: expr.go:2541:postfixExpressionSelect: expr.go:73:expr:)
+	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr88739.c`:            {}, // COMPILE FAIL: TODO gcc.c-torture/execute/pr88739.c:25:22: "v" 0xc00f9dbad0 *cc.PrimaryExpression union U {f struct A; g array of 4 unsigned; h array of 8 unsigned short; i array of 16 unsigned char}, toMode exprLvalue (expr.go:2410:postfixExpressionSelect: expr.go:70:expr: expr.go:489:expr0: expr.go:1913:postfixExpression: expr.go:2541:postfixExpressionSelect: expr.go:73:expr:)
+
+	//TODO other
 	`assets/benchmarksgame-team.pages.debian.net/fasta-4.c`:                                             {}, // COMPILE FAIL: fasta-4.c.go:119:3: undefined: "fwrite_unlocked" external (ccgo.go:468:main: link.go:241:link: link.go:694:link:)
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-3.c`:                                        {}, // COMPILE FAIL: mandelbrot-3.c:27:21: unsupported vector type: v2df (type.go:60:verifyTyp: type.go:65:typ0: type.go:458:isValidType1:)
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-8.c`:                                        {}, // COMPILE FAIL: mandelbrot-8.c:16:30: unsupported vector type: Vec (expr.go:1563:unaryExpression: type.go:425:isValidType: type.go:458:isValidType1:)
