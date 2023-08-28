@@ -782,11 +782,6 @@ func (c *ctx) jumpStatement(w writer, n *cc.JumpStatement) {
 						nfo.result = c.f.newAutovar(nfo.fd, ft.Result())
 						nfo.exit = c.label()
 					}
-					if c.isVolatileOrAtomicExpr(n.ExpressionList) {
-						w.w("%s = %s;", nfo.result, c.atomicLoad(w, n, c.topExpr(w, n.ExpressionList, ft.Result().Pointer(), exprUintptr), ft.Result()))
-						break
-					}
-
 					w.w("%s = %s;", nfo.result, c.topExpr(w, n.ExpressionList, ft.Result(), exprDefault))
 				}
 				w.w("goto %s;", nfo.exit)
