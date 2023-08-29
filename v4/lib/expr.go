@@ -3157,13 +3157,12 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 	case cc.AssignmentExpressionAssign: // UnaryExpression '=' AssignmentExpression
 		lv, rv := c.isVolatileOrAtomicExpr(n.UnaryExpression), c.isVolatileOrAtomicExpr(n.AssignmentExpression)
 		ut := n.UnaryExpression.Type()
-		at := n.AssignmentExpression.Type()
 		switch {
 		case lv && !rv:
 			switch mode {
 			case exprVoid, exprDefault:
 				defer func() { r.volatileOrAtomicHandled = true }()
-				return c.atomicStore(w, n, c.topExpr(w, n.UnaryExpression, ut.Pointer(), exprUintptr), c.topExpr(w, n.AssignmentExpression, ut, exprDefault), ut, mode), t, mode
+				return c.atomicStore(w, n, c.topExpr(w, n.UnaryExpression, ut.Pointer(), exprUintptr), c.topExpr(w, n.AssignmentExpression, ut, exprDefault), ut, mode), ut, mode
 			default:
 				trc("%v: TODO %q, t %s, mode %v, case %v", n.Position(), cc.NodeSource(n), t, mode, n.Case)
 			}
@@ -3238,21 +3237,31 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 						}
 						return c.atomicStore(w, n, bp, c.expr(w, n.AssignmentExpression, f.Type(), exprDefault), f.Type(), mode), n.Type(), mode
 					}
+				case cc.PostfixExpressionPSelect:
+					if c.isVolatileOrAtomicExpr(x) || c.isVolatileOrAtomicExpr(x.PostfixExpression) {
+						f := x.Field()
+						if f.IsBitfield() {
+							c.err(errorf("TODO %v", mode))
+							break
+						}
+
+						bp := c.expr(w, x.PostfixExpression, nil, exprDefault)
+						if off := f.Offset(); off != 0 {
+							bp.w("+%v", off)
+						}
+						defer func() { r.volatileOrAtomicHandled = true }()
+						return c.atomicStore(w, n, bp, c.expr(w, n.AssignmentExpression, f.Type(), exprDefault), f.Type(), mode), n.Type(), mode
+					}
 				}
 			}
+
 			//TODO should write all to 'w' and return empty 'b'.
 			b.w("%s = ", c.expr(w, n.UnaryExpression, nil, exprLvalue))
 			c.exprNestLevel--
 
 			defer func() { c.exprNestLevel++ }()
 
-			switch {
-			case rv:
-				defer func() { r.volatileOrAtomicHandled = true }()
-				b.w("%s", c.atomicLoad(w, n, c.topExpr(w, n.AssignmentExpression, at.Pointer(), exprUintptr), ut))
-			default:
-				b.w("%s", c.expr(w, n.AssignmentExpression, n.UnaryExpression.Type(), exprDefault))
-			}
+			b.w("%s", c.expr(w, n.AssignmentExpression, n.UnaryExpression.Type(), exprDefault))
 			rt, rmode = n.Type(), exprVoid
 		default:
 			c.err(errorf("TODO %v", mode))
@@ -4047,7 +4056,6 @@ func (c *ctx) stringCharConst(b byte, t cc.Type) string {
 }
 
 func (c *ctx) isVolatileOrAtomicExpr(n cc.ExpressionNode) bool {
-	return false //TODO-
 	if n.Type().Attributes().IsVolatile() {
 		return true
 	}

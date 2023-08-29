@@ -169,14 +169,24 @@ func (t *Task) execed(realCC string, cflags []string) (err error) {
 			return nil
 		case ".o", ".lo":
 			nm := arg + ".go"
+			nm2 := ""
+			if strings.HasSuffix(arg, ".lo") {
+				nm2 = arg[:len(arg)-len(".lo")] + ".o.go"
+			}
 			switch {
 			case t.fs != nil:
 				if _, err := t.fs.Open(nm); err != nil {
-					return nil
+					nm = nm2
+					if _, err := t.fs.Open(nm); err != nil {
+						return nil
+					}
 				}
 			default:
 				if _, err := os.Stat(nm); err != nil {
-					return nil
+					nm = nm2
+					if _, err := os.Stat(nm); err != nil {
+						return nil
+					}
 				}
 			}
 			args.add(nm)

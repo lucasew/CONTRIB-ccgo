@@ -102,6 +102,7 @@ install:
 	go install -v -tags=ccgo.assert modernc.org/ccgo/v4 2>&1 | tee log-install
 
 work:
+	rm -f go.work*
 	go work init
 	go work use ..
 	go work use ../../../cc/v4
