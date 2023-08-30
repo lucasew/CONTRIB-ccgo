@@ -131,6 +131,7 @@ func (t *Task) execed(realCC string, cflags []string) (err error) {
 	set.Arg("D", true, func(arg, val string) error { args.add(arg + val); return nil })
 	set.Arg("I", true, func(arg, val string) error { args.add(arg + val); return nil })
 	set.Arg("O", true, func(arg, val string) error { args.add(arg + val); return nil })
+	set.Arg("U", true, func(arg, val string) error { args.add(arg + val); return nil })
 	set.Arg("idirafter", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("iquote", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("isystem", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
@@ -157,7 +158,10 @@ func (t *Task) execed(realCC string, cflags []string) (err error) {
 		}
 
 		if strings.HasPrefix(arg, "-") {
-			return fmt.Errorf("unexpected/unsupported option: %s", arg)
+			if dmesgs {
+				dmesg("", errorf("unexpected/unsupported option: %q", arg))
+			}
+			return errorf("unexpected/unsupported option: %s", arg)
 		}
 
 		switch filepath.Ext(arg) {

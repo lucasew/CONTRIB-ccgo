@@ -1195,6 +1195,7 @@ assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr39673-2.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr39779.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr39824.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr39834.c
+assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr39845.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr39886.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr39928-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr39928-2.c
@@ -2666,6 +2667,7 @@ assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr42248.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr42269-2.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr42512.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr42544.c
+assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr42614.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr42691.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr42721.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr42833.c
@@ -4103,6 +4105,7 @@ assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr42248.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr42269-2.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr42512.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr42544.c
+assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr42614.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr42691.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr42721.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr42833.c

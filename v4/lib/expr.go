@@ -832,19 +832,19 @@ func (c *ctx) conditionalExpression(w writer, n *cc.ConditionalExpression, t cc.
 			switch {
 			case c.canIgnore(n.ExpressionList):
 				w.w("if !(%s) {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
-				w.w("%s%s;", c.discardStr(n.ConditionalExpression), c.topExpr(w, n.ConditionalExpression, n.Type(), exprVoid))
+				w.w("%s;", c.discardStr2(n.ConditionalExpression, c.topExpr(w, n.ConditionalExpression, n.Type(), exprVoid)))
 				w.w("};")
 			default:
 				switch {
 				case c.canIgnore(n.ConditionalExpression):
 					w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
-					w.w("%s%s;", c.discardStr(n.ExpressionList), c.topExpr(w, n.ExpressionList, n.Type(), exprVoid))
+					w.w("%s;", c.discardStr2(n.ExpressionList, c.topExpr(w, n.ExpressionList, n.Type(), exprVoid)))
 					w.w("};")
 				default:
 					w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
-					w.w("%s%s;", c.discardStr(n.ExpressionList), c.topExpr(w, n.ExpressionList, n.Type(), exprVoid))
+					w.w("%s;", c.discardStr2(n.ExpressionList, c.topExpr(w, n.ExpressionList, n.Type(), exprVoid)))
 					w.w("} else {")
-					w.w("%s%s;", c.discardStr(n.ConditionalExpression), c.topExpr(w, n.ConditionalExpression, n.Type(), exprVoid))
+					w.w("%s;", c.discardStr2(n.ConditionalExpression, c.topExpr(w, n.ConditionalExpression, n.Type(), exprVoid)))
 					w.w("};")
 				}
 			}
@@ -1020,6 +1020,11 @@ func (c *ctx) castExpression(w writer, n *cc.CastExpression, t cc.Type, mode mod
 		}
 
 		rt, rmode = n.Type(), mode
+		if mode == exprVoid {
+			w.w("%s;", c.discardStr2(n.CastExpression, c.expr(w, n.CastExpression, rt, rmode)))
+			break
+		}
+
 		b.w("%s", c.expr(w, n.CastExpression, rt, rmode))
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
@@ -1327,7 +1332,13 @@ out:
 					w.w("\n%s = %s;", v, ds)
 					b.w("%s", v)
 				default:
-					c.err(errorf("%v: TODO", pos(n))) // -
+					pt := n.UnaryExpression.Type().Pointer()
+					v := c.f.newAutovar(n, n.UnaryExpression.Type())
+					v2 := c.f.newAutovar(n, pt)
+					w.w("%s = %s;", v2, c.expr(w, n.UnaryExpression, pt, exprUintptr))
+					w.w("(*(*%s)(%s)) += %d;", c.typ(n, n.UnaryExpression.Type()), unsafePointer(v2), sz)
+					w.w("%s = (*(*%s)(%s));", v, c.typ(n, n.UnaryExpression.Type()), unsafePointer(v2))
+					b.w("%s", v)
 				}
 			default:
 				c.err(errorf("TODO %v", mode)) // -
@@ -2346,6 +2357,14 @@ func (c *ctx) postfixExpressionPSelect(w writer, n *cc.PostfixExpression, t cc.T
 			default:
 				b.w("(*(*%s)(%s))", c.typ(n, f.Type()), unsafePointer(c.expr(w, n.PostfixExpression, nil, exprDefault)))
 			}
+		case exprUintptr:
+			rt, rmode = c.pvoid, mode
+			switch {
+			case f.Offset() != 0:
+				b.w("((%s)+%v)", c.expr(w, n.PostfixExpression, nil, exprDefault), f.Offset())
+			default:
+				b.w("(%s)", c.expr(w, n.PostfixExpression, nil, exprDefault))
+			}
 		default:
 			c.err(errorf("TODO %v", mode))
 		}
@@ -3028,7 +3047,7 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, mode mode
 			case d.ReadCount() == 1:
 				rp = string(xargs[i].b)
 			case d.ReadCount() == 0:
-				w.w("%s%s;", c.discardStr(args[i]), xargs[i])
+				w.w("%s;", c.discardStr2(args[i], xargs[i]))
 			// case d.WriteCount() != 0 || d.AddressTaken() || d.ReadCount() > 1:
 			// 	panic(todo("%v:", n.Position()))
 			default:
@@ -3155,10 +3174,10 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 	case cc.AssignmentExpressionCond: // ConditionalExpression
 		c.err(errorf("TODO %v", n.Case))
 	case cc.AssignmentExpressionAssign: // UnaryExpression '=' AssignmentExpression
-		lv, rv := c.isVolatileOrAtomicExpr(n.UnaryExpression), c.isVolatileOrAtomicExpr(n.AssignmentExpression)
+		lv := c.isVolatileOrAtomicExpr(n.UnaryExpression)
 		ut := n.UnaryExpression.Type()
 		switch {
-		case lv && !rv:
+		case lv:
 			switch mode {
 			case exprVoid, exprDefault:
 				defer func() { r.volatileOrAtomicHandled = true }()
@@ -3235,7 +3254,8 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 						if off := f.Offset(); off != 0 {
 							bp.w("+%v", off)
 						}
-						return c.atomicStore(w, n, bp, c.expr(w, n.AssignmentExpression, f.Type(), exprDefault), f.Type(), mode), n.Type(), mode
+						w.w("%s", c.atomicStore(w, n, bp, c.expr(w, n.AssignmentExpression, f.Type(), exprDefault), f.Type(), mode))
+						return &b, n.Type(), mode
 					}
 				case cc.PostfixExpressionPSelect:
 					if c.isVolatileOrAtomicExpr(x) || c.isVolatileOrAtomicExpr(x.PostfixExpression) {
@@ -3250,19 +3270,21 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 							bp.w("+%v", off)
 						}
 						defer func() { r.volatileOrAtomicHandled = true }()
-						return c.atomicStore(w, n, bp, c.expr(w, n.AssignmentExpression, f.Type(), exprDefault), f.Type(), mode), n.Type(), mode
+						w.w("%s", c.atomicStore(w, n, bp, c.expr(w, n.AssignmentExpression, f.Type(), exprDefault), f.Type(), mode))
+						return &b, n.Type(), mode
 					}
 				}
 			}
 
-			//TODO should write all to 'w' and return empty 'b'.
 			b.w("%s = ", c.expr(w, n.UnaryExpression, nil, exprLvalue))
 			c.exprNestLevel--
 
 			defer func() { c.exprNestLevel++ }()
 
 			b.w("%s", c.expr(w, n.AssignmentExpression, n.UnaryExpression.Type(), exprDefault))
-			rt, rmode = n.Type(), exprVoid
+			w.w("%s;", &b)
+			b.reset()
+			return &b, n.Type(), exprVoid
 		default:
 			c.err(errorf("TODO %v", mode))
 			// panic(todo(""))

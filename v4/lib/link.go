@@ -584,15 +584,18 @@ func (l *linker) w(s string, args ...interface{}) {
 }
 
 func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object) (err error) {
-	if dmesgs {
-		dmesg("link(%q, %q)", ofn, linkFiles)
-	}
+	// if dmesgs {
+	// 	dmesg("link(%q, %q)", ofn, linkFiles)
+	// }
 	// Force a link error for things not really supported or that only panic at runtime.
 	var tld nameSet
 	// Build the symbol table. First try normal definitions.
 	for _, linkFile := range linkFiles {
 		object := objects[linkFile]
 		for nm := range object.externs { // object defines nm
+			if dmesgs {
+				dmesg("extern %s declared in %s", nm, object.id)
+			}
 			if _, ok := l.externs[nm]; !ok { // extern is unresolved
 				l.externs[nm] = object
 				if dmesgs {
@@ -1327,13 +1330,13 @@ func (l *linker) print0(w writer, fi *fnInfo, n interface{}) {
 			}
 
 			if to := l.weakAliases[id]; to != "" {
-				if dmesgs {
-					dmesg("redirect id %q nm %q to %q", id, nm, to)
-				}
+				// if dmesgs {
+				// 	dmesg("redirect id %q nm %q to %q", id, nm, to)
+				// }
 				nm = fi.name(to)
-				if dmesgs {
-					dmesg("new nm %q", nm)
-				}
+				// if dmesgs {
+				// 	dmesg("new nm %q", nm)
+				// }
 			}
 			if obj.kind == objectPkg {
 				w.w("%s.%s", obj.qualifier, nm)

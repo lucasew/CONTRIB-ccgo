@@ -282,7 +282,10 @@ func (t *Task) main() (err error) {
 
 	if err := set.Parse(t.args[1:], func(arg string) error {
 		if strings.HasPrefix(arg, "-") {
-			return errorf(" unrecognized command-line option '%s'", arg)
+			if dmesgs {
+				dmesg("", errorf("unexpected/unsupported option: %q", arg))
+			}
+			return errorf("unexpected/unsupported option: %s", arg)
 		}
 
 		if t.ignoreFile.has(arg) {
@@ -502,7 +505,13 @@ func (t *Task) compile(optO string) error {
 		ifn := ifn
 		ofn := optO
 		if ofn == "" {
-			ofn = filepath.Base(ifn) + ".go"
+			switch filepath.Ext(ifn) {
+			case ".c":
+				ofn = filepath.Base(ifn)
+				ofn = ofn[:len(ofn)-len(".c")] + ".o.go"
+			default:
+				ofn = filepath.Base(ifn) + ".go"
+			}
 		}
 		t.compiledfFiles[ifn] = ofn
 		p.exec(func() error { return newCtx(t, p.eh).compile(ifn, ofn) })

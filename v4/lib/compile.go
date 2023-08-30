@@ -136,11 +136,8 @@ func isystem(goos, goarch, importPath string) (string, error) {
 
 		for _, fn := range pkg.GoFiles {
 			dir, _ := filepath.Split(fn)
-			switch goos {
-			case "linux":
-				isystem0 = filepath.Join(dir, "include", "musl", goarch)
-				_, isystem0Err = os.Stat(isystem0)
-			}
+			isystem0 = filepath.Join(dir, "include", goos, goarch)
+			_, isystem0Err = os.Stat(isystem0)
 		}
 	})
 	return isystem0, isystem0Err
@@ -163,6 +160,7 @@ type buf struct {
 
 func (b *buf) Write(p []byte) (int, error) { b.b = append(b.b, p...); return len(p), nil }
 func (b *buf) len() int                    { return len(b.b) }
+func (b *buf) reset()                      { *b = buf{} }
 
 func (b *buf) w(s string, args ...interface{}) {
 	//trc("%v: %q %s", origin(2), s, args)

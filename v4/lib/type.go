@@ -681,9 +681,9 @@ func typeID(in map[string]gc.Node, out map[string]string, typ gc.Node) (r string
 
 	r = b.String()
 	// trc("`%s` -> type ID: `%s`", typ.Source(false), r)
-	if dmesgs && strings.Contains(string(typ.Source(false)), "ipc_perm") { //TODO-DBG
-		dmesg("DBG GOTYPEID: `%s` -> type ID: `%s`, %v", typ.Source(false), r, typ.Position())
-	}
+	// if dmesgs && strings.Contains(string(typ.Source(false)), "ipc_perm") { //TODO-DBG
+	// 	dmesg("DBG GOTYPEID: `%s` -> type ID: `%s`, %v", typ.Source(false), r, typ.Position())
+	// }
 	return r, nil
 }
 

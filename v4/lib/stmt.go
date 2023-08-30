@@ -22,34 +22,16 @@ func (c *ctx) statement(w writer, n *cc.Statement) {
 		w.w("%s%s", sep, c.posComment(n))
 		c.labeledStatement(w, n.LabeledStatement)
 	case cc.StatementCompound: // CompoundStatement
-		c.compoundStatement(w, n.CompoundStatement, false, "")
+		//TODO- c.compoundStatement(w, n.CompoundStatement, false, "")
+		c.unbracedStatement(w, n)
 	case cc.StatementExpr: // ExpressionStatement
-		var a buf
+		w.w("%s%s", sep, c.posComment(n))
 		e := n.ExpressionStatement.ExpressionList
 		if e == nil {
 			break
 		}
 
-		b := c.topExpr(&a, e, e.Type(), exprVoid)
-		if assert && b == nil {
-			panic(todo("%v:", pos(n)))
-		}
-
-		if a.len() == 0 && b.len() == 0 {
-			return
-		}
-
-		w.w("%s%s", sep, c.posComment(n))
-		if a.len() != 0 {
-			w.w("%s;", a.bytes())
-		}
-		if len(b.bytes()) != 0 && c.mustConsume(e) {
-			// w.w("/* %v: %T %v %s %q */", pos(n), e, e.Type().Kind(), cc.NodeSource(e), b.bytes())
-			w.w("%s_ = ", tag(preserve))
-		}
-		if b.len() != 0 {
-			w.w("%s;", b.bytes())
-		}
+		w.w("%s;", c.discardStr2(e, c.topExpr(w, e, nil, exprVoid)))
 	case cc.StatementSelection: // SelectionStatement
 		w.w("%s%s", sep, c.posComment(n))
 		c.selectionStatement(w, n.SelectionStatement)
@@ -77,9 +59,19 @@ func (c *ctx) mustConsume(n cc.ExpressionNode) (r bool) {
 	// defer func() { trc("%v: %T %v %s: %v", n.Position(), n, n.Type().Kind(), cc.NodeSource(n), r) }()
 	switch x := n.(type) {
 	case *cc.AdditiveExpression:
-		return true
+		switch x.Case {
+		case cc.AdditiveExpressionMul:
+			return c.mustConsume(x.MultiplicativeExpression)
+		default:
+			return true
+		}
 	case *cc.AndExpression:
-		return true
+		switch x.Case {
+		case cc.AndExpressionEq:
+			return c.mustConsume(x.EqualityExpression)
+		default:
+			return true
+		}
 	case *cc.AssignmentExpression:
 		switch x.Case {
 		case cc.AssignmentExpressionCond:
@@ -102,9 +94,19 @@ func (c *ctx) mustConsume(n cc.ExpressionNode) (r bool) {
 			return true
 		}
 	case *cc.EqualityExpression:
-		return true
+		switch x.Case {
+		case cc.EqualityExpressionRel:
+			return c.mustConsume(x.RelationalExpression)
+		default:
+			return true
+		}
 	case *cc.ExclusiveOrExpression:
-		return true
+		switch x.Case {
+		case cc.ExclusiveOrExpressionAnd:
+			return c.mustConsume(x.AndExpression)
+		default:
+			return true
+		}
 	case *cc.ExpressionList:
 		for ; ; x = x.ExpressionList {
 			if x.ExpressionList == nil {
@@ -112,13 +114,33 @@ func (c *ctx) mustConsume(n cc.ExpressionNode) (r bool) {
 			}
 		}
 	case *cc.InclusiveOrExpression:
-		return true
+		switch x.Case {
+		case cc.InclusiveOrExpressionXor:
+			return c.mustConsume(x.ExclusiveOrExpression)
+		default:
+			return true
+		}
 	case *cc.LogicalAndExpression:
-		return true
+		switch x.Case {
+		case cc.LogicalAndExpressionOr:
+			return c.mustConsume(x.InclusiveOrExpression)
+		default:
+			return true
+		}
 	case *cc.LogicalOrExpression:
-		return true
+		switch x.Case {
+		case cc.LogicalOrExpressionLAnd:
+			return c.mustConsume(x.LogicalAndExpression)
+		default:
+			return true
+		}
 	case *cc.MultiplicativeExpression:
-		return true
+		switch x.Case {
+		case cc.MultiplicativeExpressionCast:
+			return c.mustConsume(x.CastExpression)
+		default:
+			return true
+		}
 	case *cc.PostfixExpression:
 		switch x.Case {
 		case cc.PostfixExpressionCall, cc.PostfixExpressionDec, cc.PostfixExpressionInc:
@@ -136,9 +158,19 @@ func (c *ctx) mustConsume(n cc.ExpressionNode) (r bool) {
 			return true
 		}
 	case *cc.RelationalExpression:
-		return true
+		switch x.Case {
+		case cc.RelationalExpressionShift:
+			return c.mustConsume(x.ShiftExpression)
+		default:
+			return true
+		}
 	case *cc.ShiftExpression:
-		return true
+		switch x.Case {
+		case cc.ShiftExpressionAdd:
+			return c.mustConsume(x.AdditiveExpression)
+		default:
+			return true
+		}
 	case *cc.UnaryExpression:
 		switch x.Case {
 		case cc.UnaryExpressionDec, cc.UnaryExpressionInc:
@@ -414,7 +446,7 @@ func (c *ctx) selectionStatement(w writer, n *cc.SelectionStatement) {
 		defer c.setBreakCtx("")()
 
 		w.w("switch %s", c.expr(w, n.ExpressionList, cc.IntegerPromotion(n.ExpressionList.Type()), exprDefault))
-		c.statement(w, n.Statement)
+		c.bracedStatement(w, n.Statement)
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
 	}
@@ -497,22 +529,19 @@ func (c *ctx) selectionStatementFlat(w writer, n *cc.SelectionStatement) {
 }
 
 func (c *ctx) bracedStatement(w writer, n *cc.Statement) {
-	switch n.Case {
-	case cc.StatementCompound:
-		c.statement(w, n)
-	default:
-		w.w("{")
-		c.statement(w, n)
-		w.w("};")
-	}
+	w.w("{")
+	c.unbracedStatement(w, n)
+	w.w("};")
 }
 
 func (c *ctx) unbracedStatement(w writer, n *cc.Statement) {
 	switch n.Case {
 	case cc.StatementCompound:
+		w.w("%s", sep(n))
 		for l := n.CompoundStatement.BlockItemList; l != nil; l = l.BlockItemList {
 			c.blockItem(w, l.BlockItem)
 		}
+		w.w("%s", sep(n.CompoundStatement.Token2))
 	default:
 		c.statement(w, n)
 	}
@@ -575,6 +604,15 @@ func (c *ctx) iterationStatement(w writer, n *cc.IterationStatement) {
 		var b2 []byte
 		var b4 string
 		b := c.expr(&a, n.ExpressionList, nil, exprVoid)
+		if b.len() == 0 && a.len() != 0 {
+			s := string(a.bytes())
+			s = strings.TrimSpace(s)
+			s = strings.TrimRight(s, ";")
+			if !strings.Contains(s, ";") {
+				b.w("%s", s)
+				a.reset()
+			}
+		}
 		if n.ExpressionList2 != nil {
 			b2 = c.expr(&a2, n.ExpressionList2, nil, exprBool).bytes()
 		}
@@ -784,10 +822,11 @@ func (c *ctx) jumpStatement(w writer, n *cc.JumpStatement) {
 					}
 					w.w("%s = %s;", nfo.result, c.topExpr(w, n.ExpressionList, ft.Result(), exprDefault))
 				}
-				w.w("goto %s;", nfo.exit)
-			default:
-				panic(todo(""))
 			}
+			if nfo.exit == "" {
+				nfo.exit = c.label()
+			}
+			w.w("goto %s;", nfo.exit)
 			return
 		}
 
