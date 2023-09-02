@@ -34,6 +34,14 @@ const (
 	ccgoFP = "__ccgo_fp"
 )
 
+func (c *ctx) nonTopExpr(w writer, n cc.ExpressionNode, to cc.Type, toMode mode) *buf {
+	c.exprNestLevel++
+
+	defer func() { c.exprNestLevel-- }()
+
+	return c.expr(w, n, to, toMode)
+}
+
 func (c *ctx) topExpr(w writer, n cc.ExpressionNode, to cc.Type, toMode mode) *buf {
 	sv := c.exprNestLevel
 
@@ -2930,6 +2938,8 @@ func (c *ctx) declaratorOf(n cc.ExpressionNode) *cc.Declarator {
 }
 
 func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, mode mode) (r *buf, rt cc.Type, rmode mode) {
+	// trc("%v: %q", n.Position(), cc.NodeSource(n))
+	// w.w("\n/* %v: %q */\n", n.Position(), cc.NodeSource(n)) //TODO-DBG
 	var b buf
 	var ft *cc.FunctionType
 	var d *cc.Declarator
@@ -3944,6 +3954,26 @@ func (c *ctx) primaryExpressionCharConst(w writer, n *cc.PrimaryExpression, t cc
 	return &b, rt, rmode
 }
 
+func (c *ctx) normalizedMacroReplacementList(m *cc.Macro) string {
+	var r []cc.Token
+	for _, v := range m.ReplacementList() {
+		switch v.Ch {
+		case ' ', '\n', '\t', '\r', '\f':
+			// nop
+		default:
+			r = append(r, v)
+		}
+	}
+	for len(r) != 0 && r[0].Ch == '(' && r[len(r)-1].Ch == ')' {
+		r = r[1 : len(r)-1]
+	}
+	if len(r) == 1 {
+		return r[0].SrcStr()
+	}
+
+	return ""
+}
+
 func (c *ctx) macro(n *cc.PrimaryExpression) (nm, lit string) {
 	m := n.Macro()
 	if m == nil {
@@ -3955,12 +3985,10 @@ func (c *ctx) macro(n *cc.PrimaryExpression) (nm, lit string) {
 		return "", ""
 	}
 
-	switch rl := m.ReplacementList(); len(rl) {
-	case 1:
-		return nm, rl[0].SrcStr()
-	case 3:
-		return nm, rl[1].SrcStr()
+	if lit := c.normalizedMacroReplacementList(m); lit != "" {
+		return nm, lit
 	}
+
 	return "", ""
 }
 
@@ -3995,6 +4023,7 @@ func (c *ctx) primaryExpressionIntConst(w writer, n *cc.PrimaryExpression, t cc.
 	}
 
 	if nm, s := c.macro(n); s == lit {
+		// trc("%v: %q %q -> %s%s", n.Position(), cc.NodeSource(n), lit, tag(macro), nm) //TODO-DBG
 		lit = fmt.Sprintf("%s%s", tag(macro), nm)
 	}
 	if t.Kind() == cc.Void {
@@ -4002,9 +4031,9 @@ func (c *ctx) primaryExpressionIntConst(w writer, n *cc.PrimaryExpression, t cc.
 		return &b, rt, rmode
 	}
 
+	cv := v.Convert(t)
 	switch {
 	case c.exprNestLevel == 1:
-		cv := v.Convert(t)
 		if cv == v {
 			switch {
 			case c.f != nil && c.isZero(v):

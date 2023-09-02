@@ -566,8 +566,7 @@ func (c *ctx) verifyTypes() {
 func (c *ctx) defines(w writer) {
 	var a []*cc.Macro
 	for _, v := range c.ast.Macros {
-		rl := v.ReplacementList()
-		if v.IsConst && len(rl) == 1 || len(rl) == 3 && rl[0].Ch == '(' && rl[2].Ch == ')' {
+		if v.IsConst && c.normalizedMacroReplacementList(v) != "" {
 			a = append(a, v)
 		}
 	}
@@ -577,36 +576,27 @@ func (c *ctx) defines(w writer) {
 
 	sort.Slice(a, func(i, j int) bool { return a[i].Name.SrcStr() < a[j].Name.SrcStr() })
 	for _, m := range a {
-		var r string
-		switch rl := m.ReplacementList(); len(rl) {
-		case 1:
-			r = m.ReplacementList()[0].SrcStr()
-		case 3:
-			r = m.ReplacementList()[1].SrcStr()
-		default:
-			c.err(errorf("%v: internal error: %v", m.Position()))
-			continue
-		}
-
+		nm := m.Name.SrcStr()
+		r := c.normalizedMacroReplacementList(m)
 		if !c.task.header && c.task.prefixDefineSet {
 			w.w("%s%sconst %s%s = %q;", sep(m.Name), c.posComment(m), tag(define), m.Name.Src(), r)
 		}
 		if c.task.header && r != "INFINITY" {
 			if _, err := strconv.ParseUint(r, 0, 64); err == nil {
 				w.w("%s%sconst %s%s = %s;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), r)
-				c.macrosEmited.add(m.Name.SrcStr())
+				c.macrosEmited.add(nm)
 				continue
 			}
 
 			if _, err := strconv.ParseFloat(r, 64); err == nil {
 				w.w("%s%sconst %s%s = %s;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), r)
-				c.macrosEmited.add(m.Name.SrcStr())
+				c.macrosEmited.add(nm)
 				continue
 			}
 
 			if _, err := strconv.Unquote(r); err == nil {
 				w.w("%s%sconst %s%s = %s;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), r)
-				c.macrosEmited.add(m.Name.SrcStr())
+				c.macrosEmited.add(nm)
 				continue
 			}
 		}
@@ -614,18 +604,18 @@ func (c *ctx) defines(w writer) {
 		switch x := m.Value().(type) {
 		case cc.Int64Value:
 			w.w("%s%sconst %s%s = %v;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), x)
-			c.macrosEmited.add(m.Name.SrcStr())
+			c.macrosEmited.add(nm)
 		case cc.UInt64Value:
 			w.w("%s%sconst %s%s = %v;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), x)
-			c.macrosEmited.add(m.Name.SrcStr())
+			c.macrosEmited.add(nm)
 		case cc.Float64Value:
 			if s := fmt.Sprint(x); s == r {
 				w.w("%s%sconst %s%s = %s;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), s)
-				c.macrosEmited.add(m.Name.SrcStr())
+				c.macrosEmited.add(nm)
 			}
 		case cc.StringValue:
 			w.w("%s%sconst %s%s = %q;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), x[:len(x)-1])
-			c.macrosEmited.add(m.Name.SrcStr())
+			c.macrosEmited.add(nm)
 		}
 	}
 }

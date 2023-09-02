@@ -445,7 +445,7 @@ func (c *ctx) selectionStatement(w writer, n *cc.SelectionStatement) {
 		defer c.setSwitchCtx(nil)()
 		defer c.setBreakCtx("")()
 
-		w.w("switch %s", c.expr(w, n.ExpressionList, cc.IntegerPromotion(n.ExpressionList.Type()), exprDefault))
+		w.w("switch %s", c.nonTopExpr(w, n.ExpressionList, cc.IntegerPromotion(n.ExpressionList.Type()), exprDefault))
 		c.bracedStatement(w, n.Statement)
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
@@ -495,7 +495,7 @@ func (c *ctx) selectionStatementFlat(w writer, n *cc.SelectionStatement) {
 		//		statements in default
 		//	brk:
 		t := cc.IntegerPromotion(n.ExpressionList.Type())
-		w.w("switch %s {", c.expr(w, n.ExpressionList, t, exprDefault))
+		w.w("switch %s {", c.nonTopExpr(w, n.ExpressionList, t, exprDefault))
 		labels := map[*cc.LabeledStatement]string{}
 		for _, v := range n.LabeledStatements() {
 			switch v.Case {
