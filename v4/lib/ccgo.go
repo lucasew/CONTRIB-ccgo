@@ -6,12 +6,10 @@
 package ccgo // import "modernc.org/ccgo/v4/lib"
 
 //TODO TestSQLite linux/arm64
-//TODO SYS_getsid macro missing
 //TODO support hidden
 //TODO Tucontext_t - Tucontext_t5
 //TODO acosh u does not need to be pinned
 //TODO tests += staticcheck
-//TODO volatile handling of 'volatile struct vs s;', [0], pg. 73
 //TODO add inlining infinite recursion protection
 
 //  [0]: http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf
@@ -42,6 +40,7 @@ var (
 type Task struct {
 	D                     []string // -D
 	I                     []string // -I
+	L                     []string // -L
 	O                     string   // -O
 	U                     []string // -U
 	args                  []string // command name in args[0]
@@ -196,6 +195,7 @@ func (t *Task) main() (err error) {
 	set.Arg("-prefix-undefined", false, func(arg, val string) error { t.prefixUndefined = val; return nil })
 	set.Arg("D", true, func(arg, val string) error { t.D = append(t.D, fmt.Sprintf("%s%s", arg, val)); return nil })
 	set.Arg("I", true, func(arg, val string) error { t.I = append(t.I, val); return nil })
+	set.Arg("L", true, func(arg, val string) error { t.L = append(t.L, val); return nil })
 	set.Arg("O", true, func(arg, val string) error { t.O = fmt.Sprintf("%s%s", arg, val); t.opt0 = val == "0"; return nil })
 	set.Arg("U", true, func(arg, val string) error { t.U = append(t.U, fmt.Sprintf("%s%s", arg, val)); return nil })
 	set.Arg("exec-cc", false, func(arg, val string) error { t.execCC = val; return nil })
@@ -314,7 +314,7 @@ func (t *Task) main() (err error) {
 	}
 
 	if len(t.isystem) == 0 && !t.freeStanding {
-		isystem, err := isystem(t.goos, t.goarch, defaultLibc)
+		isystem, err := isystem(t.goos, t.goarch, defaultLibcPackage)
 		if err != nil {
 			return err
 		}
@@ -467,7 +467,10 @@ func (t *Task) main() (err error) {
 	}
 
 	if !t.nostdlib && !t.freeStanding {
-		t.linkFiles = append(t.linkFiles, fmt.Sprintf("-l=%s", defaultLibc))
+		t.linkFiles = append(t.linkFiles, "-l=c")
+	}
+	if len(t.L) == 0 {
+		t.L = []string{defaultLibs}
 	}
 	return t.link()
 }

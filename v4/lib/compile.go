@@ -27,7 +27,8 @@ import (
 type name int
 
 const (
-	defaultLibc = "modernc.org/libc/v2"
+	defaultLibs        = "modernc.org"
+	defaultLibcPackage = defaultLibs + "/libc/v2" // Import paths are always slash separated.
 
 	generatedFilePrefix = "Code generated for "
 	generatedFileSuffix = ", DO NOT EDIT."

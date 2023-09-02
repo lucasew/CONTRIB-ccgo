@@ -99,7 +99,7 @@ func (o *object) collectExternVars(file *gc.SourceFile) (seps map[*gc.VarSpec]st
 
 // link name -> type ID
 func (o *object) collectTypes(file *gc.SourceFile) (types map[string]string, err error) {
-	// trc("==== %s (%v:)", o.id, origin(0))
+	// tq	rc("==== %s (%v:)", o.id, origin(0))
 	var a []string
 	in := map[string]gc.Node{}
 	for _, decl := range file.TopLevelDecls {
@@ -200,13 +200,19 @@ func (t *Task) link() (err error) {
 		var object *object
 		switch {
 		case strings.HasPrefix(v, "-l="):
-			object, err = t.getPkgSymbols(v[len("-l="):])
-			if err != nil {
-				break
-			}
-
-			if object.pkgName == "libc" && libc == nil {
-				libc = object
+			for _, prefix := range t.L {
+				lib := "lib" + v[len("-l="):]
+				ip := prefix + "/" + lib
+				if prefix == defaultLibs && lib == "libc" {
+					ip = defaultLibcPackage
+				}
+				object, err = t.getPkgSymbols(ip)
+				if err == nil {
+					if object.pkgName == "libc" && libc == nil {
+						libc = object
+					}
+					break
+				}
 			}
 		default:
 			object, err = t.getFileSymbols(fset, v)
