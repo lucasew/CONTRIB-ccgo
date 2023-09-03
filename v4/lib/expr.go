@@ -2938,8 +2938,11 @@ func (c *ctx) declaratorOf(n cc.ExpressionNode) *cc.Declarator {
 }
 
 func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, mode mode) (r *buf, rt cc.Type, rmode mode) {
-	// trc("%v: %q", n.Position(), cc.NodeSource(n))
-	// w.w("\n/* %v: %q */\n", n.Position(), cc.NodeSource(n)) //TODO-DBG
+	// trc("%v: call %q, callee %q, mode %v, pe type %s", n.Token.Position(), cc.NodeSource(n), cc.NodeSource(n.PostfixExpression), mode, n.PostfixExpression.Type())
+	// defer func() {
+	// 	trc("call %q -> %q %v %v", cc.NodeSource(n), r, rt, rmode)
+	// }()
+	pet := n.PostfixExpression.Type()
 	var b buf
 	var ft *cc.FunctionType
 	var d *cc.Declarator
@@ -2964,15 +2967,37 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, mode mode
 			return
 		}
 	default:
-		pt, ok := n.PostfixExpression.Type().(*cc.PointerType)
+		pt, ok := pet.(*cc.PointerType)
 		if !ok {
-			c.err(errorf("TODO %T", n.PostfixExpression.Type()))
+			c.err(errorf("TODO %T", pet))
 			return
 		}
 
 		if ft, ok = pt.Elem().(*cc.FunctionType); !ok {
 			c.err(errorf("TODO %T", pt.Elem()))
 			return
+		}
+	}
+
+	if mode == exprCall {
+		var rft *cc.FunctionType
+		switch x := ft.Result().(type) {
+		case *cc.PointerType:
+			switch y := x.Elem().(type) {
+			case *cc.FunctionType:
+				rft = y
+			default:
+				c.err(errorf("TODO %T", y))
+			}
+		default:
+			c.err(errorf("TODO %T", x))
+		}
+		if rft != nil {
+			b.w("(*(*func%s)(%sunsafe.%sPointer(&struct{%[3]suintptr}{", c.signature(rft, false, false, true), tag(importQualifier), tag(preserve))
+
+			defer func() {
+				r.w("})))")
+			}()
 		}
 	}
 
@@ -3368,7 +3393,7 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 			}
 		}
 
-		defer func() { r.volatileOrAtomicHandled = true }()
+		defer func() { r.volatileOrAtomicHandled = true }() //TODO-
 		var k, v string
 		switch n.Case {
 		case cc.AssignmentExpressionAdd: // UnaryExpression "+=" AssignmentExpression
@@ -3390,6 +3415,17 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 		case exprDefault, exprVoid:
 			switch d := c.declaratorOf(n.UnaryExpression); {
 			case d != nil:
+				if c.isVolatileOrAtomicExpr(n.UnaryExpression) {
+					p := fmt.Sprintf("%sp%d", tag(ccgo), c.id())
+					c.f.registerAutoVar(p, c.typ(n, ut.Pointer()))
+					w.w("\n%s = %s;", p, c.expr(w, n.UnaryExpression, ut.Pointer(), exprUintptr))
+					var bp, v buf
+					bp.w("%s", p)
+					v.w("%s %s %s%s", c.topExpr(w, n.AssignmentExpression, ut, exprDefault), op, c.atomicLoad(w, n, &bp, ut), k)
+					defer func() { r.volatileOrAtomicHandled = true }()
+					return c.atomicStore(w, n, &bp, &v, ut, mode), ut, mode
+				}
+
 				v = fmt.Sprintf("%s", c.expr(w, n.UnaryExpression, nil, exprDefault))
 				switch {
 				case ct.Kind() == ut.Kind():

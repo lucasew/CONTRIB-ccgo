@@ -642,6 +642,7 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 			}
 
 			trc("`%s`: {}, // EXEC FAIL: %v", fullPath, firstError(err, true))
+			trc("----\n%s\n---", err)
 			p.err(err)
 			return firstError(err, *oErr1)
 		}

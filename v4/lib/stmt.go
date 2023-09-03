@@ -241,6 +241,7 @@ func (c *ctx) compoundStatement(w writer, n *cc.CompoundStatement, fnBlock bool,
 			if c.f.maxVaListSize != 0 {
 				v += c.f.maxVaListSize + 8
 			}
+			v = roundup(v, 16)
 			w.w("%sbp := %[1]stls.%sAlloc(%d); /* tlsAllocs %v maxVaListSize %v */", tag(ccgo), tag(preserve), v, c.f.tlsAllocs, c.f.maxVaListSize)
 			w.w("defer %stls.%sFree(%d);", tag(ccgo), tag(preserve), v)
 			for _, v := range c.f.t.Parameters() {

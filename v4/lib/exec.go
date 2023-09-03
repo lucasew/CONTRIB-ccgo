@@ -135,7 +135,7 @@ func (t *Task) execed(realCC string, cflags []string) (err error) {
 	set.Arg("idirafter", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("iquote", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("isystem", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
-	set.Arg("l", true, func(arg, val string) error { return nil })
+	set.Arg("l", true, func(arg, val string) error { args.add(arg + val); return nil })
 	set.Arg("o", true, func(arg, val string) error { args.add(arg, val+".go"); return nil })
 	set.Arg("std", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Opt("c", func(arg string) error { args.add(arg); return nil })

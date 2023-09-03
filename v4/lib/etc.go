@@ -408,7 +408,7 @@ func errorf(s string, args ...interface{}) error {
 		os.Stderr.Sync()
 	}
 	if dmesgs {
-		dmesg("ERRORF: %s (%v: %v: %v:)", s, origin(4), origin(3), origin(2))
+		dmesg("ERRORF: %s (%v: %v: %v: %v: %v: %v:)", s, origin(7), origin(6), origin(5), origin(4), origin(3), origin(2))
 	}
 	switch {
 	case extendedErrors:

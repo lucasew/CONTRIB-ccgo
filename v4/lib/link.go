@@ -196,6 +196,7 @@ func (t *Task) link() (err error) {
 	fset := token.NewFileSet()
 	objects := map[string]*object{}
 	var libc *object
+	var linkFiles []string
 	for _, v := range t.linkFiles {
 		var object *object
 		switch {
@@ -218,10 +219,18 @@ func (t *Task) link() (err error) {
 			object, err = t.getFileSymbols(fset, v)
 		}
 		if err != nil {
+			if t.isExeced {
+				if dmesgs {
+					dmesg("%q: ignoring %v", v, err)
+				}
+				continue
+			}
+
 			return err
 		}
 
-		if _, ok := objects[v]; !ok {
+		linkFiles = append(linkFiles, v)
+		if _, ok := objects[v]; !ok && object != nil {
 			objects[v] = object
 		}
 	}
@@ -244,13 +253,19 @@ func (t *Task) link() (err error) {
 			return err
 		}
 
-		return l.link(t.o, t.linkFiles, objects)
+		return l.link(t.o, linkFiles, objects)
 	default:
 		return errorf("TODO %v %v %v %v", t.args, t.inputFiles, t.compiledfFiles, t.linkFiles)
 	}
 }
 
 func (t *Task) getPkgSymbols(importPath string) (r *object, err error) {
+	if dmesgs {
+		defer func() {
+			dmesg("lib importPath %q: (%p, %v)", importPath, r, err)
+		}()
+	}
+
 	pkgs, err := packages.Load(
 		&packages.Config{
 			Mode: packages.NeedFiles,
