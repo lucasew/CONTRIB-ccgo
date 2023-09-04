@@ -169,6 +169,15 @@ func (o *object) collectConsts(file *gc.SourceFile) (consts map[string]string, e
 }
 
 func (t *Task) link() (err error) {
+	if dmesgs {
+		dmesg("%v: t.linkFiles %v", origin(1), t.linkFiles)
+		defer func() {
+			if err != nil {
+				dmesg("", errorf("", err))
+			}
+		}()
+	}
+
 	if len(t.inputFiles)+len(t.linkFiles) == 0 {
 		return errorf("no input files")
 	}
@@ -198,10 +207,27 @@ func (t *Task) link() (err error) {
 	var libc *object
 	var linkFiles []string
 	for _, v := range t.linkFiles {
+		if dmesgs {
+			dmesg("%v: link file %s", origin(1), v)
+		}
 		var object *object
 		switch {
 		case strings.HasPrefix(v, "-l="):
 			for _, prefix := range t.L {
+				switch {
+				case strings.HasPrefix(prefix, "/"): // -L/foo/bar
+					continue
+				case strings.HasPrefix(prefix, "."): // -L.
+					continue
+				case strings.Contains(prefix, "/"):
+					a := strings.Split(prefix, "/")
+					if !strings.Contains(a[0], ".") { // -Lfoo/bar
+						continue
+					}
+
+					// -Lexample.com/foo
+				}
+
 				lib := "lib" + v[len("-l="):]
 				ip := prefix + "/" + lib
 				if prefix == defaultLibs && lib == "libc" {
@@ -229,8 +255,12 @@ func (t *Task) link() (err error) {
 			return err
 		}
 
+		if object == nil {
+			continue
+		}
+
 		linkFiles = append(linkFiles, v)
-		if _, ok := objects[v]; !ok && object != nil {
+		if _, ok := objects[v]; !ok {
 			objects[v] = object
 		}
 	}
@@ -255,14 +285,19 @@ func (t *Task) link() (err error) {
 
 		return l.link(t.o, linkFiles, objects)
 	default:
-		return errorf("TODO %v %v %v %v", t.args, t.inputFiles, t.compiledfFiles, t.linkFiles)
+		return errorf("TODO t.o %q, t.args %q, t.inputFiles %q,  t.compiledfFiles %q, t.linkFiles %q", t.o, t.args, t.inputFiles, t.compiledfFiles, t.linkFiles)
 	}
 }
 
 func (t *Task) getPkgSymbols(importPath string) (r *object, err error) {
 	if dmesgs {
 		defer func() {
-			dmesg("lib importPath %q: (%p, %v)", importPath, r, err)
+			switch {
+			case r != nil:
+				dmesg("lib importPath %q: (%q, %v)", importPath, r.id, err)
+			default:
+				dmesg("lib importPath %q: (%p, %v)", importPath, r, err)
+			}
 		}()
 	}
 
@@ -605,9 +640,14 @@ func (l *linker) w(s string, args ...interface{}) {
 }
 
 func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object) (err error) {
-	// if dmesgs {
-	// 	dmesg("link(%q, %q)", ofn, linkFiles)
-	// }
+	if dmesgs {
+		dmesg("link(%q, %q)", ofn, linkFiles)
+		defer func() {
+			if err != nil {
+				dmesg("", errorf("", err))
+			}
+		}()
+	}
 	// Force a link error for things not really supported or that only panic at runtime.
 	var tld nameSet
 	// Build the symbol table. First try normal definitions.
@@ -690,7 +730,7 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 			}
 		}
 	}
-	if len(undefs) != 0 && !l.task.header {
+	if len(undefs) != 0 && !l.task.header && !l.task.ignoreLinkErrors {
 		sort.Slice(undefs, func(i, j int) bool {
 			a, b := undefs[i].pos, undefs[j].pos
 			if a.Filename < b.Filename {
@@ -1255,7 +1295,7 @@ func (fi *fnInfo) name(linkName string) string {
 		}
 
 		r := fi.linker.rawName(linkName)
-		if fi.linker.undefsReported.add(r) {
+		if !fi.linker.task.ignoreLinkErrors && fi.linker.undefsReported.add(r) {
 			fi.linker.err(errorf("undefined: %q %v", r, symKind(linkName)))
 		}
 		return fi.linker.task.prefixUndefined + r
@@ -1344,7 +1384,7 @@ func (l *linker) print0(w writer, fi *fnInfo, n interface{}) {
 			if obj == nil {
 				r := l.rawName(nm)
 				w.w("%s%s", l.task.prefixUndefined, r)
-				if l.undefsReported.add(r) {
+				if !l.task.ignoreLinkErrors && l.undefsReported.add(r) {
 					l.err(errorf("%v: undefined: %q %v", x.Position(), r, symKind(nm)))
 				}
 				return

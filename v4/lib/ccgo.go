@@ -22,6 +22,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -46,6 +47,7 @@ type Task struct {
 	args                  []string // command name in args[0]
 	cfg                   *cc.Config
 	cfgArgs               []string
+	cleanupDirs           []string
 	compiledfFiles        map[string]string // *.c -> *.c.go
 	defs                  string
 	execCC                string // -exec-cc
@@ -81,6 +83,8 @@ type Task struct {
 	prefixTaggedUnion     string // --prefix-taged-union <string>
 	prefixTypename        string // --prefix-typename <string>
 	prefixUndefined       string // --prefix-undefined <string>
+	realAR                string
+	realCC                string
 	std                   string // -std
 	stderr                io.Writer
 	stdout                io.Writer
@@ -89,14 +93,15 @@ type Task struct {
 	intSize int
 
 	E                            bool // -E
+	absolutePaths                bool // -absolute-paths
 	ansi                         bool // -ansi
 	c                            bool // -c
 	debugLinkerSave              bool // -debug-linker-save, causes pre type checking save of the linker result.
 	freeStanding                 bool // -ffreestanding
-	absolutePaths                bool // -absolute-paths
 	fullPaths                    bool // -full-paths
 	header                       bool // -header
 	ignoreAsmErrors              bool // -ignore-asm-errors
+	ignoreLinkErrors             bool // -ignore-link-errors
 	ignoreUnsupportedAligment    bool // -ignore-unsupported-alignment
 	ignoreUnsupportedAtomicSizes bool // -ignore-unsupported-atomic-sizes
 	ignoreVectorFunctions        bool // -ignore-vector-functions
@@ -108,6 +113,7 @@ type Task struct {
 	nostdlib                     bool // -nostdlib
 	opt0                         bool // -O0
 	packageNameSet               bool
+	pedanticErrros               bool // -pedantic-errors
 	positions                    bool // -positions
 	prefixDefineSet              bool // --prefix-define <string>
 	pthread                      bool // -pthread
@@ -151,7 +157,9 @@ func (t *Task) Main() (err error) {
 		if cflags := os.Getenv(cflagsEnvVar); cflags != "" {
 			flags = strutil.SplitFields(cflags, cflagsSep)
 		}
-		return t.execed(realCC, flags)
+		t.realCC = realCC
+		t.realAR = os.Getenv(AREnvVar)
+		return t.execed(t.realAR, t.realCC, flags)
 	}
 
 	return t.main()
@@ -175,6 +183,12 @@ func (t *Task) main() (err error) {
 	if t.goABI, err = gc.NewABI(t.goos, t.goarch); err != nil {
 		return errorf("%v", err)
 	}
+
+	defer func() {
+		for _, v := range t.cleanupDirs {
+			os.RemoveAll(v)
+		}
+	}()
 
 	set := opt.NewSet()
 	set.Arg("-package-name", false, func(arg, val string) error { t.packageName = val; t.packageNameSet = true; return nil })
@@ -248,6 +262,7 @@ func (t *Task) main() (err error) {
 	set.Opt("full-paths", func(arg string) error { t.fullPaths = true; return nil })
 	set.Opt("header", func(arg string) error { t.header = true; return nil })
 	set.Opt("ignore-asm-errors", func(arg string) error { t.ignoreAsmErrors = true; return nil })
+	set.Opt("ignore-link-errors", func(arg string) error { t.ignoreLinkErrors = true; return nil })
 	set.Opt("ignore-unsupported-alignment", func(arg string) error { t.ignoreUnsupportedAligment = true; return nil })
 	set.Opt("ignore-unsupported-atomic-sizes", func(arg string) error { t.ignoreUnsupportedAtomicSizes = true; return nil })
 	set.Opt("ignore-vector-functions", func(arg string) error { t.ignoreVectorFunctions = true; return nil })
@@ -256,6 +271,7 @@ func (t *Task) main() (err error) {
 	set.Opt("no-object-file-format", func(arg string) error { t.noObjFmt = true; return nil })
 	set.Opt("nostdinc", func(arg string) error { t.nostdinc = true; t.cfgArgs = append(t.cfgArgs, arg); return nil })
 	set.Opt("nostdlib", func(arg string) error { t.nostdlib = true; return nil })
+	set.Opt("pedantic-errors", func(arg string) error { t.pedanticErrros = true; return nil })
 	set.Opt("positions", func(arg string) error { t.positions = true; return nil })
 	set.Opt("pthread", func(arg string) error { t.pthread = true; t.cfgArgs = append(t.cfgArgs, arg); return nil })
 	set.Opt("verify-types", func(arg string) error { t.verifyTypes = true; return nil })
@@ -292,14 +308,22 @@ func (t *Task) main() (err error) {
 			return nil
 		}
 
-		if strings.HasSuffix(arg, ".c") || strings.HasSuffix(arg, ".h") {
+		switch {
+		case strings.HasSuffix(arg, ".c") || strings.HasSuffix(arg, ".h"):
 			t.inputFiles = append(t.inputFiles, arg)
 			t.linkFiles = append(t.linkFiles, arg)
 			return nil
-		}
-
-		if strings.HasSuffix(arg, ".go") {
+		case strings.HasSuffix(arg, ".go"):
 			t.linkFiles = append(t.linkFiles, arg)
+			return nil
+		case strings.HasSuffix(arg, ".a"):
+			nm := arg + "go" // foo.a -> foo.ago
+			list, err := t.arExtract(nm)
+			if err != nil {
+				return err
+			}
+
+			t.linkFiles = append(t.linkFiles, list...)
 			return nil
 		}
 
@@ -313,7 +337,7 @@ func (t *Task) main() (err error) {
 		}
 	}
 
-	if len(t.isystem) == 0 && !t.freeStanding {
+	if len(t.isystem) == 0 && !t.freeStanding && !t.nostdlib {
 		isystem, err := isystem(t.goos, t.goarch, defaultLibcPackage)
 		if err != nil {
 			return err
@@ -469,10 +493,54 @@ func (t *Task) main() (err error) {
 	if !t.nostdlib && !t.freeStanding {
 		t.linkFiles = append(t.linkFiles, "-l=c")
 	}
-	if len(t.L) == 0 {
-		t.L = []string{defaultLibs}
-	}
+	t.L = append(t.L, defaultLibs)
 	return t.link()
+}
+
+func (t *Task) arExtract(fn string) (r []string, err error) {
+	ar := t.realAR
+	if ar == "" {
+		ar = os.Getenv(AREnvVar)
+	}
+	if ar == "" {
+		ar, err = exec.LookPath("ar")
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	tmp, err := os.MkdirTemp("", "ccgo-tmp-")
+	if err != nil {
+		return nil, err
+	}
+
+	out, err := exec.Command(ar, "t", fn).CombinedOutput()
+	if err != nil {
+		return nil, errorf("%s: %s\nFAIL: %v", ar, out, err)
+	}
+
+	dirs := map[string]struct{}{}
+	for _, v := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		w := filepath.Join(tmp, v)
+		dir, _ := filepath.Split(w)
+		dirs[dir] = struct{}{}
+		r = append(r, w)
+	}
+	for k := range dirs {
+		if err := os.MkdirAll(k, 0770); err != nil {
+			return nil, errorf("", err)
+		}
+	}
+
+	t.cleanupDirs = append(t.cleanupDirs, tmp)
+	if out, err = exec.Command(ar, "x", "--output", tmp, fn).CombinedOutput(); err != nil {
+		return nil, errorf("%s: %s\nFAIL: %v", ar, out, err)
+	}
+
+	if dmesgs {
+		dmesg("ARLIST %s\n%v", fn, r)
+	}
+	return r, nil
 }
 
 func sourcesFor(cfg *cc.Config, fn string, t *Task) (r []cc.Source) {
