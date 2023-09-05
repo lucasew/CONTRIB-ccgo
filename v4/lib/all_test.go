@@ -298,21 +298,8 @@ func inDir(dir string, f func() error) (err error) {
 	return f()
 }
 
-type echoWriter struct {
-	mu     sync.Mutex
-	w      bytes.Buffer
-	silent bool
-}
-
-func (w *echoWriter) Write(b []byte) (int, error) {
-	w.mu.Lock()
-
-	defer w.mu.Unlock()
-
-	if !w.silent {
-		os.Stderr.Write(b)
-	}
-	return w.w.Write(b)
+func shell(echo bool, cmd string, args ...string) ([]byte, error) {
+	return shell0(*oShellTime, echo, cmd, args...)
 }
 
 func TestExec(t *testing.T) {
@@ -455,50 +442,6 @@ func trccc(path string, err error) {
 	if *oTraceCC {
 		fmt.Printf("%v: C compiler failed: %v\n", path, err)
 	}
-}
-
-func shell(echo bool, cmd string, args ...string) ([]byte, error) {
-	cmd, err := exec.LookPath(cmd)
-	if err != nil {
-		return nil, err
-	}
-
-	wd, err := absCwd()
-	if err != nil {
-		return nil, err
-	}
-
-	if echo {
-		fmt.Printf("execute %s %q in %s\n", cmd, args, wd)
-	}
-	var b echoWriter
-	b.silent = !echo
-	ctx, cancel := context.WithTimeout(context.Background(), *oShellTime)
-	defer cancel()
-	c := exec.CommandContext(ctx, cmd, args...)
-	c.Stdout = &b
-	c.Stderr = &b
-	c.WaitDelay = *oShellTime + time.Minute
-	err = c.Start()
-	if err != nil {
-		return nil, err
-	}
-
-	err = c.Wait()
-	return b.w.Bytes(), err
-}
-
-func absCwd() (string, error) {
-	wd, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-
-	if wd, err = filepath.Abs(wd); err != nil {
-		return "", err
-	}
-
-	return wd, nil
 }
 
 func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *golden, id int, args []string) (err error) {

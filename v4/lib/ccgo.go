@@ -39,12 +39,13 @@ var (
 
 // Task represents a compilation job.
 type Task struct {
-	D                     []string // -D
-	I                     []string // -I
-	L                     []string // -L
-	O                     string   // -O
-	U                     []string // -U
-	args                  []string // command name in args[0]
+	D                     []string        // -D
+	I                     []string        // -I
+	L                     []string        // -L
+	O                     string          // -O
+	U                     []string        // -U
+	archiveLinkFiles      map[string]bool // path: include it
+	args                  []string        // command name in args[0]
 	cfg                   *cc.Config
 	cfgArgs               []string
 	cleanupDirs           []string
@@ -85,6 +86,8 @@ type Task struct {
 	prefixUndefined       string // --prefix-undefined <string>
 	realAR                string
 	realCC                string
+	realMV                string
+	realRM                string
 	std                   string // -std
 	stderr                io.Writer
 	stdout                io.Writer
@@ -136,17 +139,18 @@ func NewTask(goos, goarch string, args []string, stdout, stderr io.Writer, fs fs
 		intSize = 4
 	}
 	return &Task{
-		D:              d,
-		args:           args,
-		compiledfFiles: map[string]string{},
-		fs:             fs,
-		goarch:         goarch,
-		goos:           goos,
-		intSize:        intSize,
-		prefixAnonType: "_",
-		stderr:         stderr,
-		stdout:         stdout,
-		tlsQualifier:   tag(importQualifier) + "libc.",
+		D:                d,
+		archiveLinkFiles: map[string]bool{},
+		args:             args,
+		compiledfFiles:   map[string]string{},
+		fs:               fs,
+		goarch:           goarch,
+		goos:             goos,
+		intSize:          intSize,
+		prefixAnonType:   "_",
+		stderr:           stderr,
+		stdout:           stdout,
+		tlsQualifier:     tag(importQualifier) + "libc.",
 	}
 }
 
@@ -157,9 +161,11 @@ func (t *Task) Main() (err error) {
 		if cflags := os.Getenv(cflagsEnvVar); cflags != "" {
 			flags = strutil.SplitFields(cflags, cflagsSep)
 		}
-		t.realCC = realCC
 		t.realAR = os.Getenv(AREnvVar)
-		return t.execed(t.realAR, t.realCC, flags)
+		t.realCC = realCC
+		t.realMV = os.Getenv(MVEnvVar)
+		t.realRM = os.Getenv(RMEnvVar)
+		return t.execed(flags)
 	}
 
 	return t.main()
@@ -232,11 +238,31 @@ func (t *Task) main() (err error) {
 	})
 	set.Arg("iquote", true, func(arg, val string) error { t.iquote = append(t.iquote, val); return nil })
 	set.Arg("isystem", true, func(arg, val string) error { t.isystem = append(t.isystem, val); return nil })
+
 	set.Arg("l", true, func(arg, val string) error {
+		lib := "lib" + val + ".ago"
+		for _, prefix := range t.L {
+			fn := filepath.Join(prefix, lib)
+			if _, err := os.Stat(fn); err != nil {
+				continue
+			}
+
+			list, err := t.arExtract(fn)
+			if err != nil {
+				continue
+			}
+			t.linkFiles = append(t.linkFiles, list...)
+			for _, v := range list {
+				t.archiveLinkFiles[v] = false
+			}
+			return nil
+		}
+
 		t.l = append(t.l, val)
 		t.linkFiles = append(t.linkFiles, arg+"="+val)
 		return nil
 	})
+
 	set.Arg("o", true, func(arg, val string) error { t.o = val; return nil })
 	set.Arg("std", true, func(arg, val string) error {
 		t.std = fmt.Sprintf("%s=%s", arg, val)
@@ -267,6 +293,20 @@ func (t *Task) main() (err error) {
 	set.Opt("ignore-unsupported-atomic-sizes", func(arg string) error { t.ignoreUnsupportedAtomicSizes = true; return nil })
 	set.Opt("ignore-vector-functions", func(arg string) error { t.ignoreVectorFunctions = true; return nil })
 	set.Opt("keep-object-files", func(arg string) error { t.keepObjectFiles = true; return nil })
+	set.Opt("m32", func(arg string) error {
+		if t.goABI.Types[gc.Pointer].Size != 4 {
+			return errorf("-m32 not supported on %s/%s", t.goos, t.goarch)
+		}
+
+		return nil
+	})
+	set.Opt("m64", func(arg string) error {
+		if t.goABI.Types[gc.Pointer].Size != 8 {
+			return errorf("-m64 not supported on %s/%s", t.goos, t.goarch)
+		}
+
+		return nil
+	})
 	set.Opt("mlong-double-64", func(arg string) error { t.cfgArgs = append(t.cfgArgs, arg); return nil })
 	set.Opt("no-object-file-format", func(arg string) error { t.noObjFmt = true; return nil })
 	set.Opt("nostdinc", func(arg string) error { t.nostdinc = true; t.cfgArgs = append(t.cfgArgs, arg); return nil })
@@ -324,6 +364,9 @@ func (t *Task) main() (err error) {
 			}
 
 			t.linkFiles = append(t.linkFiles, list...)
+			for _, v := range list {
+				t.archiveLinkFiles[v] = false
+			}
 			return nil
 		}
 
@@ -537,9 +580,6 @@ func (t *Task) arExtract(fn string) (r []string, err error) {
 		return nil, errorf("%s: %s\nFAIL: %v", ar, out, err)
 	}
 
-	if dmesgs {
-		dmesg("ARLIST %s\n%v", fn, r)
-	}
 	return r, nil
 }
 

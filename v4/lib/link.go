@@ -240,13 +240,6 @@ func (t *Task) link() (err error) {
 					}
 					break
 				}
-
-				if s := strings.TrimRight(ip, "0123456789."); s != ip {
-					object, err = t.getPkgSymbols(s)
-					if err == nil {
-						break
-					}
-				}
 			}
 		default:
 			object, err = t.getFileSymbols(fset, v)

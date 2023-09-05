@@ -5,9 +5,12 @@
 package ccgo // import "modernc.org/ccgo/v4/lib"
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"go/token"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -16,6 +19,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 	"unicode/utf8"
 
 	// "github.com/pbnjay/memory"
@@ -1039,4 +1043,65 @@ func walkC(n cc.Node, fn func(n cc.Node, mode int)) {
 		}
 	}
 	fn(n, walkPost)
+}
+
+func shell0(shellTime time.Duration, echo bool, cmd string, args ...string) ([]byte, error) {
+	cmd, err := exec.LookPath(cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	wd, err := absCwd()
+	if err != nil {
+		return nil, err
+	}
+
+	if echo {
+		fmt.Printf("execute %s %q in %s\n", cmd, args, wd)
+	}
+	var b echoWriter
+	b.silent = !echo
+	ctx, cancel := context.WithTimeout(context.Background(), shellTime)
+	defer cancel()
+	c := exec.CommandContext(ctx, cmd, args...)
+	c.Stdout = &b
+	c.Stderr = &b
+	c.WaitDelay = shellTime + time.Minute
+	err = c.Start()
+	if err != nil {
+		return nil, err
+	}
+
+	err = c.Wait()
+	return b.w.Bytes(), err
+}
+
+func absCwd() (string, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	if wd, err = filepath.Abs(wd); err != nil {
+		return "", err
+	}
+
+	return wd, nil
+}
+
+type echoWriter struct {
+	mu     sync.Mutex
+	w      bytes.Buffer
+	silent bool
+}
+
+func (w *echoWriter) Write(b []byte) (int, error) {
+	w.mu.Lock()
+
+	defer w.mu.Unlock()
+
+	if !w.silent {
+		os.Stderr.Write(b)
+	}
+	return w.w.Write(b)
 }

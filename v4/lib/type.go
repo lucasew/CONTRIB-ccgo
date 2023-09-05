@@ -574,8 +574,11 @@ func (c *ctx) defineStructType(w writer, sep string, n cc.Node, t *cc.StructType
 
 	nmt := t.Tag()
 	if nm := nmt.SrcStr(); nm != "" && t.LexicalScope().Parent == nil {
-		if c.pass == 0 && c.taggedStructs.add(nm) {
-			w.w("\n\n%s%stype %s%s = %s;", sep, c.posComment(n), tag(taggedStruct), nm, c.structLiteral(n, t))
+		rhs := c.structLiteral(n, t)
+		if !strings.HasPrefix(rhs, tag(typename)) || rhs[len(tag(typename)):] != nm {
+			if c.pass == 0 && c.taggedStructs.add(nm) {
+				w.w("\n\n%s%stype %s%s = %s;", sep, c.posComment(n), tag(taggedStruct), nm, rhs)
+			}
 		}
 	}
 	for _, v := range c.structEnums(t) {
@@ -590,11 +593,14 @@ func (c *ctx) defineUnionType(w writer, sep string, n cc.Node, t *cc.UnionType) 
 
 	nmt := t.Tag()
 	if nm := nmt.SrcStr(); nm != "" && t.LexicalScope().Parent == nil {
-		if !c.taggedUnions.add(nm) {
-			return
-		}
+		rhs := c.unionLiteral(n, t)
+		if !strings.HasPrefix(rhs, tag(typename)) || rhs[len(tag(typename)):] != nm {
+			if !c.taggedUnions.add(nm) {
+				return
+			}
 
-		w.w("\n\n%s%stype %s%s = %s;", sep, c.posComment(n), tag(taggedUnion), nm, c.unionLiteral(n, t))
+			w.w("\n\n%s%stype %s%s = %s;", sep, c.posComment(n), tag(taggedUnion), nm, rhs)
+		}
 	}
 	for _, v := range c.unionEnums(t) {
 		c.defineEnumType(w, "\n", n, v)

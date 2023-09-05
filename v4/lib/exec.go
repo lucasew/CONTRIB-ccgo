@@ -12,54 +12,75 @@ import (
 	"runtime"
 	"runtime/debug"
 	"strings"
+	"time"
 
 	"modernc.org/opt"
 	"modernc.org/strutil"
 )
 
 const (
-	AREnvVar = "CCGO_EXEC_AR"
-	// CCEnvVar contains the path to the C compiler ccgo acts as a proxy
-	// for when -exec is in effect.
+	// xxEnvVars contain the paths to the binaries ccgo acts as a proxy for when
+	// -exec is in effect.
+	AREnvVar     = "CCGO_EXEC_AR"
 	CCEnvVar     = "CCGO_EXEC_CC"
+	MVEnvVar     = "CCGO_EXEC_MV"
+	RMEnvVar     = "CCGO_EXEC_RM"
 	cflagsEnvVar = "CCGO_EXEC_CFLAGS"
 	cflagsSep    = "|"
 )
 
 func (t *Task) exec(args []string) (err error) {
 	if s := os.Getenv(CCEnvVar); s != "" {
-		return fmt.Errorf("-exec: env var %s already set: %q", CCEnvVar, s)
+		return errorf("-exec: env var %s already set: %q", CCEnvVar, s)
 	}
 
 	if t.execCC == "" {
-		return fmt.Errorf("-exec: missing -exec-cc option")
+		return errorf("-exec: missing -exec-cc option")
 	}
 
 	if len(args) == 0 {
-		return fmt.Errorf("-exec: missing command")
+		return errorf("-exec: missing command")
 	}
 
 	cc, err := exec.LookPath(t.execCC)
 	if err != nil {
-		return fmt.Errorf("-exec: %v", err)
+		return errorf("-exec: %v", err)
 	}
 
 	if err := os.Setenv(CCEnvVar, cc); err != nil {
-		return fmt.Errorf("cannot set env var %s: %v", CCEnvVar, err)
+		return errorf("cannot set env var %s: %v", CCEnvVar, err)
 	}
 
 	ar, err := exec.LookPath("ar")
 	if err != nil {
-		return fmt.Errorf("-exec: %v", err)
+		return errorf("-exec: %v", err)
 	}
 
 	if err := os.Setenv(AREnvVar, ar); err != nil {
-		return fmt.Errorf("cannot set env var %s: %v", AREnvVar, err)
+		return errorf("cannot set env var %s: %v", AREnvVar, err)
+	}
+
+	mv, err := exec.LookPath("mv")
+	if err != nil {
+		return errorf("-exec: %v", err)
+	}
+
+	if err := os.Setenv(MVEnvVar, mv); err != nil {
+		return errorf("cannot set env var %s: %v", MVEnvVar, err)
+	}
+
+	rm, err := exec.LookPath("rm")
+	if err != nil {
+		return errorf("-exec: %v", err)
+	}
+
+	if err := os.Setenv(RMEnvVar, rm); err != nil {
+		return errorf("cannot set env var %s: %v", RMEnvVar, err)
 	}
 
 	cflags := t.args[1 : (len(t.args))-len(args)-1] // -1 for the final "-exec"
 	if err := os.Setenv(cflagsEnvVar, strutil.JoinFields(cflags, cflagsSep)); err != nil {
-		return fmt.Errorf("cannot set env var %s: %v", cflagsEnvVar, err)
+		return errorf("cannot set env var %s: %v", cflagsEnvVar, err)
 	}
 
 	self, err := os.Executable()
@@ -76,7 +97,7 @@ func (t *Task) exec(args []string) (err error) {
 
 	switch runtime.GOOS {
 	case "windows":
-		return fmt.Errorf("-exec not yet supported on Windows")
+		return errorf("-exec not yet supported on Windows")
 	default:
 		symlink := filepath.Join(dirTemp, filepath.Base(cc))
 		path := os.Getenv("PATH")
@@ -89,12 +110,22 @@ func (t *Task) exec(args []string) (err error) {
 
 		out, err := exec.Command("ln", self, symlink).CombinedOutput()
 		if err != nil {
-			return fmt.Errorf("%s\n%v", out, err)
+			return errorf("%s\n%v", out, err)
 		}
 
 		symlink = filepath.Join(dirTemp, filepath.Base(ar))
 		if out, err = exec.Command("ln", self, symlink).CombinedOutput(); err != nil {
-			return fmt.Errorf("%s\n%v", out, err)
+			return errorf("%s\n%v", out, err)
+		}
+
+		symlink = filepath.Join(dirTemp, filepath.Base(mv))
+		if out, err = exec.Command("ln", self, symlink).CombinedOutput(); err != nil {
+			return errorf("%s\n%v", out, err)
+		}
+
+		symlink = filepath.Join(dirTemp, filepath.Base(rm))
+		if out, err = exec.Command("ln", self, symlink).CombinedOutput(); err != nil {
+			return errorf("%s\n%v", out, err)
 		}
 	}
 
@@ -108,7 +139,7 @@ type strSlice []string
 
 func (s *strSlice) add(v ...string) { *s = append(*s, v...) }
 
-func (t *Task) execed(realAR, realCC string, cflags []string) (err error) {
+func (t *Task) execed(cflags []string) (err error) {
 	if dmesgs {
 		wd, err := os.Getwd()
 		dmesg("%v: ==== ENTER: wd (%v, %v), CC=%q %s=%q(=realCC)\\\n%v", origin(1), wd, err, os.Getenv("CC"), CCEnvVar, os.Getenv(CCEnvVar), t.args)
@@ -116,7 +147,7 @@ func (t *Task) execed(realAR, realCC string, cflags []string) (err error) {
 
 	defer func() {
 		if e := recover(); e != nil && err == nil {
-			err = fmt.Errorf("PANIC: %v\n%s", e, debug.Stack())
+			err = errorf("PANIC: %v\n%s", e, debug.Stack())
 		}
 		if err != nil {
 			dmesg("%v: ==== EXIT FAIL: %v\n", origin(1), err)
@@ -127,27 +158,107 @@ func (t *Task) execed(realAR, realCC string, cflags []string) (err error) {
 	}()
 
 	if len(t.args) == 0 {
-		return fmt.Errorf("%v: internal error: real CC=%q, faked args=%q", origin(1), realCC, t.args)
+		return errorf("internal error: real CC=%q, faked args=%q", t.realCC, t.args)
 	}
 
 	switch filepath.Base(t.args[0]) {
-	case filepath.Base(realAR):
-		return t.ar(realAR)
-	case filepath.Base(realCC):
-		return t.cc(realCC, cflags)
+	case filepath.Base(t.realAR):
+		return t.ar()
+	case filepath.Base(t.realCC):
+		return t.cc(cflags)
+	case filepath.Base(t.realMV):
+		return t.mv()
+	case filepath.Base(t.realRM):
+		return t.rm()
 	default:
-		return fmt.Errorf("%v: internal error: real CC=%q, faked args=%q", origin(1), realCC, t.args)
+		return errorf("internal error: real CC=%q, faked args=%q", t.realCC, t.args)
 	}
 }
 
-func (t *Task) cc(realCC string, cflags []string) error {
-	cmd := exec.Command(realCC, t.args[1:]...)
+func (t *Task) mv() error {
+	cmd := exec.Command(t.realMV, t.args[1:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		if dmesgs {
-			dmesg("SKIP: %s returns %v", realCC, err.(*exec.ExitError).ExitCode())
+			dmesg("SKIP: %s returns %v", t.realMV, err.(*exec.ExitError).ExitCode())
+		}
+		return err
+	}
+
+	set := opt.NewSet()
+	var args []string
+	if err := set.Parse(t.args[1:], func(arg string) error {
+		if strings.HasPrefix(arg, "-") {
+			if dmesgs {
+				dmesg("", errorf("unexpected/unsupported option: %q", arg))
+			}
+			return errorf("unexpected/unsupported option: %s", arg)
+		}
+
+		args = append(args, t.goFile(arg))
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	if len(args) != 2 {
+		return errorf("real MV=%q, faked args=%q", t.realMV, t.args)
+	}
+
+	if _, err := os.Stat(args[0]); err != nil {
+		return nil
+	}
+
+	shell0(60*time.Second, true, t.realMV, args[0], args[1])
+	return nil
+}
+
+func (t *Task) rm() error {
+	cmd := exec.Command(t.realRM, t.args[1:]...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		if dmesgs {
+			dmesg("SKIP: %s returns %v", t.realRM, err.(*exec.ExitError).ExitCode())
+		}
+		return err
+	}
+
+	set := opt.NewSet()
+	set.Opt("f", func(arg string) error { return nil })
+	return set.Parse(t.args[1:], func(arg string) error {
+		if strings.HasPrefix(arg, "-") {
+			if dmesgs {
+				dmesg("", errorf("unexpected/unsupported option: %q", arg))
+			}
+			return errorf("unexpected/unsupported option: %s", arg)
+		}
+
+		os.Remove(t.goFile(arg))
+		return nil
+	})
+}
+
+func (t *Task) goFile(s string) string {
+	switch filepath.Ext(s) {
+	case ".lo", ".o":
+		return s + ".go"
+	default:
+		return s + "go"
+	}
+}
+
+func (t *Task) cc(cflags []string) error {
+	cmd := exec.Command(t.realCC, t.args[1:]...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		if dmesgs {
+			dmesg("SKIP: %s returns %v", t.realCC, err.(*exec.ExitError).ExitCode())
 		}
 		return err
 	}
@@ -170,6 +281,8 @@ func (t *Task) cc(realCC string, cflags []string) error {
 	set.Opt("fno-builtin", func(arg string) error { args.add(arg); return nil })
 	set.Opt("g", func(arg string) error { return nil })
 	set.Opt("ignore-link-errors", func(arg string) error { args.add(arg); return nil })
+	set.Opt("m32", func(arg string) error { args.add(arg); return nil })
+	set.Opt("m64", func(arg string) error { args.add(arg); return nil })
 	set.Opt("mlong-double-64", func(arg string) error { args.add(arg); return nil })
 	set.Opt("nostdinc", func(arg string) error { args.add(arg); return nil })
 	set.Opt("nostdlib", func(arg string) error { args.add(arg); return nil })
@@ -231,12 +344,8 @@ func (t *Task) cc(realCC string, cflags []string) error {
 			return nil
 		}
 
-		return fmt.Errorf("unexpected/unsupported argument: %s", arg)
+		return errorf("unexpected/unsupported argument: %s", arg)
 	}); err != nil {
-		if _, ok := err.(opt.Skip); ok {
-			return nil
-		}
-
 		return err
 	}
 
@@ -249,14 +358,14 @@ func (t *Task) cc(realCC string, cflags []string) error {
 	return t.main()
 }
 
-func (t *Task) ar(realAR string) error {
-	cmd := exec.Command(realAR, t.args[1:]...)
+func (t *Task) ar() error {
+	cmd := exec.Command(t.realAR, t.args[1:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		if dmesgs {
-			dmesg("SKIP: %s returns %v", realAR, err.(*exec.ExitError).ExitCode())
+			dmesg("SKIP: %s returns %v", t.realAR, err.(*exec.ExitError).ExitCode())
 		}
 		return err
 	}
@@ -286,7 +395,7 @@ func (t *Task) ar(realAR string) error {
 				case "s": // add index
 					// nop
 				default:
-					return fmt.Errorf("%v: TODO #%d: %q: real AR=%q, faked args=%q", origin(1), argN, arg, realAR, t.args)
+					return errorf("TODO #%d: %q: real AR=%q, faked args=%q", argN, arg, t.realAR, t.args)
 				}
 			}
 			out += "P" // full paths
@@ -294,7 +403,7 @@ func (t *Task) ar(realAR string) error {
 			return nil
 		case 2: // archive name
 			if !strings.HasSuffix(arg, ".a") {
-				return fmt.Errorf("%v: TODO #%d: %q: real AR=%q, faked args=%q", origin(1), argN, arg, realAR, t.args)
+				return errorf("TODO #%d: %q: real AR=%q, faked args=%q", argN, arg, t.realAR, t.args)
 			}
 
 			args.add(arg + "go") // archive.ago
@@ -309,26 +418,22 @@ func (t *Task) ar(realAR string) error {
 				}
 				return nil
 			default:
-				return fmt.Errorf("%v: TODO #%d: %q: real AR=%q, faked args=%q", origin(1), argN, arg, realAR, t.args)
+				return errorf("TODO #%d: %q: real AR=%q, faked args=%q", argN, arg, t.realAR, t.args)
 			}
 		}
 
-		return fmt.Errorf("unexpected/unsupported argument: %s", arg)
+		return errorf("unexpected/unsupported argument: %s", arg)
 	}); err != nil {
-		if _, ok := err.(opt.Skip); ok {
-			return nil
-		}
-
 		return err
 	}
 
-	cmd = exec.Command(realAR, []string(args[1:])...)
+	cmd = exec.Command(t.realAR, []string(args[1:])...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		if dmesgs {
-			dmesg("SKIP2: %s returns %v", realAR, err.(*exec.ExitError).ExitCode())
+			dmesg("SKIP2: %s returns %v", t.realAR, err.(*exec.ExitError).ExitCode())
 		}
 		return err
 	}
