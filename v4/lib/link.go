@@ -169,14 +169,14 @@ func (o *object) collectConsts(file *gc.SourceFile) (consts map[string]string, e
 }
 
 func (t *Task) link() (err error) {
-	if dmesgs {
-		dmesg("%v: t.linkFiles %v", origin(1), t.linkFiles)
-		defer func() {
-			if err != nil {
-				dmesg("", errorf("", err))
-			}
-		}()
-	}
+	// if dmesgs {
+	// 	dmesg("%v: t.linkFiles %v", origin(1), t.linkFiles)
+	// 	defer func() {
+	// 		if err != nil {
+	// 			dmesg("", errorf("", err))
+	// 		}
+	// 	}()
+	// }
 
 	if len(t.inputFiles)+len(t.linkFiles) == 0 {
 		return errorf("no input files")
@@ -207,9 +207,9 @@ func (t *Task) link() (err error) {
 	var libc *object
 	var linkFiles []string
 	for _, v := range t.linkFiles {
-		if dmesgs {
-			dmesg("%v: link file %s", origin(1), v)
-		}
+		// if dmesgs {
+		// 	dmesg("%v: link file %s", origin(1), v)
+		// }
 		var object *object
 		switch {
 		case strings.HasPrefix(v, "-l="):
@@ -246,9 +246,9 @@ func (t *Task) link() (err error) {
 		}
 		if err != nil {
 			if t.isExeced {
-				if dmesgs {
-					dmesg("%q: ignoring %v", v, err)
-				}
+				// if dmesgs {
+				// 	dmesg("%q: ignoring %v", v, err)
+				// }
 				continue
 			}
 
@@ -290,16 +290,16 @@ func (t *Task) link() (err error) {
 }
 
 func (t *Task) getPkgSymbols(importPath string) (r *object, err error) {
-	if dmesgs {
-		defer func() {
-			switch {
-			case r != nil:
-				dmesg("lib importPath %q: (%q, %v)", importPath, r.id, err)
-			default:
-				dmesg("lib importPath %q: (%p, %v)", importPath, r, err)
-			}
-		}()
-	}
+	// if dmesgs {
+	// 	defer func() {
+	// 		switch {
+	// 		case r != nil:
+	// 			dmesg("lib importPath %q: (%q, %v)", importPath, r.id, err)
+	// 		default:
+	// 			dmesg("lib importPath %q: (%p, %v)", importPath, r, err)
+	// 		}
+	// 	}()
+	// }
 
 	pkgs, err := packages.Load(
 		&packages.Config{
@@ -640,28 +640,28 @@ func (l *linker) w(s string, args ...interface{}) {
 }
 
 func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object) (err error) {
-	if dmesgs {
-		dmesg("link(%q, %q)", ofn, linkFiles)
-		defer func() {
-			if err != nil {
-				dmesg("", errorf("", err))
-			}
-		}()
-	}
+	// if dmesgs {
+	// 	dmesg("link(%q, %q)", ofn, linkFiles)
+	// 	defer func() {
+	// 		if err != nil {
+	// 			dmesg("", errorf("", err))
+	// 		}
+	// 	}()
+	// }
 	// Force a link error for things not really supported or that only panic at runtime.
 	var tld nameSet
 	// Build the symbol table. First try normal definitions.
 	for _, linkFile := range linkFiles {
 		object := objects[linkFile]
 		for nm := range object.externs { // object defines nm
-			if dmesgs {
-				dmesg("extern %s declared in %s", nm, object.id)
-			}
+			// if dmesgs {
+			// 	dmesg("extern %s declared in %s", nm, object.id)
+			// }
 			if _, ok := l.externs[nm]; !ok { // extern is unresolved
 				l.externs[nm] = object
-				if dmesgs {
-					dmesg("extern %s resolved in %s", nm, object.id)
-				}
+				// if dmesgs {
+				// 	dmesg("extern %s resolved in %s", nm, object.id)
+				// }
 			}
 			tld.add(nm)
 		}
@@ -673,9 +673,9 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 			if _, ok := l.externs[nm]; !ok { // extern is still unresolved
 				l.externs[nm] = object
 				l.weakAliases[nm] = to
-				if dmesgs {
-					dmesg("extern %s weak resolved in %s", nm, object.id)
-				}
+				// if dmesgs {
+				// 	dmesg("extern %s weak resolved in %s", nm, object.id)
+				// }
 			}
 			tld.add(nm)
 		}

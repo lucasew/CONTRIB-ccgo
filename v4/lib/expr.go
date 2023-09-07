@@ -2431,6 +2431,9 @@ func (c *ctx) postfixExpressionPSelect(w writer, n *cc.PostfixExpression, t cc.T
 
 // PostfixExpression '.' IDENTIFIER
 func (c *ctx) postfixExpressionSelect(w writer, n *cc.PostfixExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
+	// defer func() {
+	// 	trc("%v: %q %s %v -> %q %s %v", n.Position(), cc.NodeSource(n), t, mode, r, rt, rmode)
+	// }()
 	var b buf
 	b.n = n
 	f := n.Field()
@@ -2487,23 +2490,9 @@ func (c *ctx) postfixExpressionSelect(w writer, n *cc.PostfixExpression, t cc.Ty
 				b.w("(*(*%s)(%s))", c.typ(n, f.Type()), unsafeAddr(c.expr(w, n.PostfixExpression, nil, exprSelect)))
 			}
 		case exprUintptr:
-			rt, rmode = n.Type().Pointer(), mode
-			switch {
-			case f.Offset() != 0:
-				if d := c.declaratorOf(n.PostfixExpression); d != nil {
-					b.w("(%s+%d)", c.pin(n, c.expr(w, n.PostfixExpression, n.PostfixExpression.Type().Pointer(), exprUintptr)), f.Offset())
-					break
-				}
-
-				b.w("%suintptr(%sunsafe.%[1]sAdd(%[3]s, %d))", tag(preserve), tag(importQualifier), unsafeAddr(c.expr(w, n.PostfixExpression, nil, exprSelect)), f.Offset())
-			default:
-				if d := c.declaratorOf(n.PostfixExpression); d != nil {
-					b.w("%s", c.pin(n, c.expr(w, n.PostfixExpression, n.PostfixExpression.Type().Pointer(), exprUintptr)))
-					break
-				}
-
-				b.w("%suintptr(%s)", tag(preserve), unsafeAddr(c.pin(n, c.expr(w, n.PostfixExpression, nil, exprSelect))))
-			}
+			pt := n.PostfixExpression.Type().Pointer()
+			b.w("((%s)%s)", c.expr(w, n.PostfixExpression, pt, mode), fldOff(f.Offset()))
+			return &b, f.Type().Pointer(), mode
 		case exprIndex:
 			switch x := n.Type().Undecay().(type) {
 			case *cc.ArrayType:
@@ -2568,15 +2557,9 @@ func (c *ctx) postfixExpressionSelect(w writer, n *cc.PostfixExpression, t cc.Ty
 		b.w(")")
 	case exprUintptr:
 		defer func() { r.volatileOrAtomicHandled = true }()
-		rt, rmode = n.Type().Pointer(), mode
-		b.w("%suintptr(%sunsafe.%[1]sPointer(&(%[3]s.", tag(preserve), tag(importQualifier), c.pin(n, c.expr(w, n.PostfixExpression, nil, exprLvalue)))
-		switch {
-		case f.Parent() != nil:
-			c.parentFields(&b, n.Token, f)
-		default:
-			b.w("%s%s", tag(field), c.fieldName(n.PostfixExpression.Type(), f))
-		}
-		b.w(")))")
+		pt := n.PostfixExpression.Type().Pointer()
+		b.w("((%s)%s)", c.expr(w, n.PostfixExpression, pt, mode), fldOff(f.Offset()))
+		return &b, f.Type().Pointer(), mode
 	case exprCall:
 		rt, rmode = n.Type().(*cc.PointerType), exprUintptr
 		b.w("(%s.", c.expr(w, n.PostfixExpression, nil, exprSelect))

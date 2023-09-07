@@ -8,7 +8,7 @@ package ccgo // import "modernc.org/ccgo/v4/lib"
 //TODO TestSQLite linux/arm64
 //TODO support hidden
 //TODO Tucontext_t - Tucontext_t5
-//TODO acosh u does not need to be pinned
+//TODO acosh u does not need to be pinned, need better escape analysis above "address taken"
 //TODO tests += staticcheck
 //TODO add inlining infinite recursion protection
 
