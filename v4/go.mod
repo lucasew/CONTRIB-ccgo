@@ -1,6 +1,6 @@
 module modernc.org/ccgo/v4
 
-go 1.21
+go 1.20
 
 require (
 	github.com/dustin/go-humanize v1.0.1

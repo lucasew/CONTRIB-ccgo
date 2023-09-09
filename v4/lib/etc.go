@@ -1105,3 +1105,15 @@ func (w *echoWriter) Write(b []byte) (int, error) {
 	}
 	return w.w.Write(b)
 }
+
+// IsExecEnv reports whether the environment is set up for executing the command after the -exec
+// option.
+func IsExecEnv() bool {
+	return os.Getenv(CCEnvVar) != "" || os.Getenv(GCCEnvVar) != "" || os.Getenv(ClangEnvVar) != ""
+}
+
+func clearExecEnv() {
+	for _, v := range execBins {
+		os.Setenv(v.envVar, "")
+	}
+}

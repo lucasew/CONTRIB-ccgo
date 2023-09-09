@@ -51,7 +51,6 @@ type Task struct {
 	cleanupDirs           []string
 	compiledfFiles        map[string]string // *.c -> *.c.go
 	defs                  string
-	execCC                string // -exec-cc
 	fs                    fs.FS
 	goABI                 *gc.ABI
 	goarch                string
@@ -84,10 +83,12 @@ type Task struct {
 	prefixTaggedUnion     string // --prefix-taged-union <string>
 	prefixTypename        string // --prefix-typename <string>
 	prefixUndefined       string // --prefix-undefined <string>
-	realAR                string
-	realCC                string
-	realMV                string
-	realRM                string
+	realAR                string // which ar
+	realCC                string // which cc
+	realGCC               string // which gcc
+	realClang             string // which clang
+	realMV                string // which mv
+	realRM                string // which rm
 	std                   string // -std
 	stderr                io.Writer
 	stdout                io.Writer
@@ -154,15 +155,24 @@ func NewTask(goos, goarch string, args []string, stdout, stderr io.Writer, fs fs
 	}
 }
 
+// Exec executes a task having the "-exec=foo" option.
+func (t *Task) Exec() (err error) {
+	defer clearExecEnv()
+
+	return t.Main()
+}
+
 // Main executes task.
 func (t *Task) Main() (err error) {
-	if realCC := os.Getenv(CCEnvVar); realCC != "" {
+	if IsExecEnv() {
 		var flags []string
 		if cflags := os.Getenv(cflagsEnvVar); cflags != "" {
 			flags = strutil.SplitFields(cflags, cflagsSep)
 		}
 		t.realAR = os.Getenv(AREnvVar)
-		t.realCC = realCC
+		t.realCC = os.Getenv(CCEnvVar)
+		t.realGCC = os.Getenv(GCCEnvVar)
+		t.realClang = os.Getenv(ClangEnvVar)
 		t.realMV = os.Getenv(MVEnvVar)
 		t.realRM = os.Getenv(RMEnvVar)
 		return t.execed(flags)
@@ -173,7 +183,8 @@ func (t *Task) Main() (err error) {
 
 func (t *Task) main() (err error) {
 	if dmesgs {
-		dmesg("%v: ==== enter %s CC=%q %s=%q(=realCC)", origin(1), t.args, os.Getenv("CC"), CCEnvVar, os.Getenv(CCEnvVar))
+		dmesg("%v: ==== task.main enter %s CC=%q %s=%q, %s=%q, %s=%q",
+			origin(1), t.args, os.Getenv("CC"), CCEnvVar, os.Getenv(CCEnvVar), GCCEnvVar, os.Getenv(GCCEnvVar), ClangEnvVar, os.Getenv(ClangEnvVar))
 		defer func() {
 			dmesg("%v: ==== exit: %v", origin(1), err)
 		}()
@@ -218,7 +229,6 @@ func (t *Task) main() (err error) {
 	set.Arg("L", true, func(arg, val string) error { t.L = append(t.L, val); return nil })
 	set.Arg("O", true, func(arg, val string) error { t.O = fmt.Sprintf("%s%s", arg, val); t.opt0 = val == "0"; return nil })
 	set.Arg("U", true, func(arg, val string) error { t.U = append(t.U, fmt.Sprintf("%s%s", arg, val)); return nil })
-	set.Arg("exec-cc", false, func(arg, val string) error { t.execCC = val; return nil })
 	set.Arg("hide", false, func(arg, val string) error {
 		for _, v := range strings.Split(val, ",") {
 			t.hidden.add(v)
@@ -443,10 +453,14 @@ func (t *Task) main() (err error) {
 		)
 	}
 
-	// trc("", t.cfgArgs)
 	sv := os.Getenv("CC")
-	if s := os.Getenv(CCEnvVar); s != "" {
-		os.Setenv("CC", s)
+	switch {
+	case os.Getenv(CCEnvVar) != "":
+		os.Setenv("CC", os.Getenv(CCEnvVar))
+	case os.Getenv(GCCEnvVar) != "":
+		os.Setenv("CC", os.Getenv(GCCEnvVar))
+	case os.Getenv(ClangEnvVar) != "":
+		os.Setenv("CC", os.Getenv(ClangEnvVar))
 	}
 	cfg, err := cc.NewConfig(t.goos, t.goarch, t.cfgArgs...)
 	os.Setenv("CC", sv)
