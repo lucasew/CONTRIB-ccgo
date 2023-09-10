@@ -765,7 +765,9 @@ func (c *ctx) iterationStatementFlat(w writer, n *cc.IterationStatement) {
 			w.w("if !(%s) { goto %s };", c.expr(w, n.ExpressionList2, nil, exprBool), brk)
 		}
 		c.unbracedStatement(w, n.Statement)
-		w.w("goto %s; %[1]s: %s; goto %s; goto %s; %[4]s:", cont, c.expr(w, n.ExpressionList3, nil, exprVoid), a, brk)
+		w.w("goto %s; %[1]s: ", cont)
+		w.w("%s;", c.expr(w, n.ExpressionList3, nil, exprVoid))
+		w.w("goto %s; goto %s; %[2]s:", a, brk)
 	case cc.IterationStatementForDecl: // "for" '(' Declaration ExpressionList ';' ExpressionList ')' Statement
 		//	decl
 		// a:	if !expr goto brk
@@ -778,7 +780,9 @@ func (c *ctx) iterationStatementFlat(w writer, n *cc.IterationStatement) {
 		c.declaration(w, n.Declaration, false)
 		w.w("%s: if !(%s) { goto %s };", a, c.expr(w, n.ExpressionList, nil, exprBool), brk)
 		c.unbracedStatement(w, n.Statement)
-		w.w("goto %s; %[1]s: %s; goto %s; %s:", cont, c.expr(w, n.ExpressionList2, nil, exprVoid), a, brk)
+		w.w("goto %s; %[1]s: ", cont)
+		w.w("%s;", c.expr(w, n.ExpressionList2, nil, exprVoid))
+		w.w("goto %s; %s:", a, brk)
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
 	}
