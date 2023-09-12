@@ -166,6 +166,8 @@ func (t *Task) mv() error {
 
 	set := opt.NewSet()
 	var args []string
+	files := 0
+	set.Opt("f", func(arg string) error { args = append(args, "-f"); return nil })
 	if err := set.Parse(t.args[1:], func(arg string) error {
 		if strings.HasPrefix(arg, "-") {
 			if dmesgs {
@@ -175,12 +177,13 @@ func (t *Task) mv() error {
 		}
 
 		args = append(args, t.goFile(arg))
+		files++
 		return nil
 	}); err != nil {
 		return err
 	}
 
-	if len(args) != 2 {
+	if files != 2 {
 		return errorf("real MV=%q, faked args=%q", t.realMV, t.args)
 	}
 
@@ -188,7 +191,7 @@ func (t *Task) mv() error {
 		return nil
 	}
 
-	shell0(60*time.Second, true, t.realMV, args[0], args[1])
+	shell0(60*time.Second, true, t.realMV, args...)
 	return nil
 }
 
@@ -366,7 +369,8 @@ func (t *Task) ar() error {
 				switch sc := string(c); sc {
 				case
 					"c", // create the archive
-					"r": // insert member
+					"r", // insert member
+					"u": // update
 
 					out += sc
 				case "s": // add index

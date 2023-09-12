@@ -887,11 +887,22 @@ func (c *ctx) discardStr(n cc.ExpressionNode) string {
 }
 
 func (c *ctx) discardStr2(n cc.ExpressionNode, b *buf) string {
-	if s := strings.TrimSpace(string(b.bytes())); s == "" {
+	s := c.strUnparen(strings.TrimSpace(string(b.bytes())))
+	if s == "" {
+		return ""
+	}
+	if _, err := strconv.ParseInt(s, 0, 64); err == nil {
 		return ""
 	}
 
 	return fmt.Sprintf("%s%s", c.discardStr(n), b)
+}
+
+func (c *ctx) strUnparen(s string) string {
+	for strings.HasPrefix(s, "(") && strings.HasSuffix(s, ")") {
+		s = s[1 : len(s)-1]
+	}
+	return s
 }
 
 func (c *ctx) isNonZero(v cc.Value) bool {
@@ -2236,7 +2247,7 @@ func (c *ctx) atomicLoadN(w writer, n *cc.PostfixExpression, t cc.Type, mode mod
 	switch {
 	case cc.IsIntegerType(rt):
 		switch rt.Size() {
-		case 4, 8:
+		case 1, 2, 4, 8:
 			b.w("%sAtomicLoadN%s(%s, %s)", c.task.tlsQualifier, c.helper(n, rt), c.expr(w, args[0], nil, exprDefault), c.expr(w, args[1], nil, exprDefault))
 		default:
 			if !c.task.ignoreUnsupportedAtomicSizes {

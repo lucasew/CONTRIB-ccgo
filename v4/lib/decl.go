@@ -382,49 +382,57 @@ func (c *ctx) cdoc(sep string, n cc.Node) string {
 		return ""
 	}
 
-	var b strings.Builder
-	// trc("%v: orig sep `%s`", s.Tok.Position(), sep)
 	comments := c.scanComments(sep, n)
-	if n := len(comments); n > 1 && comments[n-1] == "\n" && !strings.HasSuffix(comments[n-2], "\n") {
-		comments = comments[:n-1]
-	}
+	// trc("==== %v:", n.Position())
 	// for i, v := range comments {
-	// 	trc("%d: %q", i, v)
+	// 	trc("%v: %q", i, v)
 	// }
-	var docComment string
-	for i := len(comments) - 1; i >= 0; i-- {
-		if !strings.HasPrefix(comments[i], "/") {
-			if comments[i] == "\n" && i > 1 && strings.HasPrefix(comments[i-1], "/*") {
-				continue
-			}
+	for i, v := range comments {
+		comments[i] = strings.TrimSpace(v)
+	}
+	if len(comments) == 1 && comments[0] == "" {
+		return ""
+	}
 
-			// trc("index %v", i)
-			docComment = strings.Join(comments[i+1:], "")
-			if strings.TrimSpace(docComment) == "" {
-				break
-			}
-			// trc("docComment %q", docComment)
-			//TODO- var xxx string
-			if pref := strings.Join(comments[:i+1], ""); pref != "" {
-				//TODO- xxx = pref
-				b.WriteString(pref)
-				if !strings.HasSuffix(pref, "\n") {
-					b.WriteByte('\n')
-					//TODO- xxx += "\n"
-				}
-			}
-			// trc("prefix `%s`", xxx)
-			b.WriteString("// C documentation")
-			// trc("inject `%s`", "// C documentation")
+	// for i, v := range comments {
+	// 	trc("%v: %q", i, v)
+	// }
+	w := 0
+	for i, v := range comments {
+		switch {
+		case strings.HasPrefix(v, "//") && i >= 2 && comments[i-1] == "" && strings.HasPrefix(comments[i-2], "/*"):
+			comments[w-1] = v
+		default:
+			comments[w] = v
+			w++
+		}
+	}
+	comments = comments[:w]
+	// for i, v := range comments {
+	// 	trc("%v: %q", i, v)
+	// }
+	var b strings.Builder
+	for i := len(comments) - 2; i >= 0; i-- {
+		if comments[i] == "" {
+			fmt.Fprintf(&b, "%s\n\n", strings.Join(comments[:i], "\n"))
+			comments = comments[i+1:]
 			break
 		}
 	}
-	if strings.TrimSpace(docComment) != "" {
-		b.WriteString("\n//  ")
-		b.WriteString(strings.Join(strings.Split(docComment, "\n"), "\n//  "))
-		// trc("docComment `%s`", "\n//  "+strings.Join(strings.Split(docComment, "\n"), "\n//  "))
+	// for i, v := range comments {
+	// 	trc("%v: %q", i, v)
+	// }
+	if len(comments) == 0 {
+		return ""
 	}
-	b.WriteByte('\n')
+
+	fmt.Fprintf(&b, "\n\n// C documentation\n//")
+	for _, v := range comments {
+		for _, w := range strings.Split(v, "\n") {
+			fmt.Fprintf(&b, "\n//\t%s", w)
+		}
+	}
+	fmt.Fprintf(&b, "\n")
 	return b.String()
 }
 
