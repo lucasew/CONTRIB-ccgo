@@ -1084,7 +1084,7 @@ func (l *linker) isMeta(n gc.Node, linkName string) bool {
 }
 
 func (l *linker) funcDecl(n *gc.FunctionDecl) {
-	l.w("\n\n")
+	//TODO- l.w("\n\n")
 	info := l.newFnInfo(n)
 	var static []gc.Node
 	w := 0

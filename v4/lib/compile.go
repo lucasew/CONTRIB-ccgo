@@ -628,7 +628,7 @@ func (c *ctx) posComment(n cc.Node) string {
 		return ""
 	}
 
-	return fmt.Sprintf("\n//  %s:\n", c.pos(n))
+	return fmt.Sprintf("\n// %s:\n", c.pos(n))
 }
 
 func (c *ctx) pos(n cc.Node) (r token.Position) {

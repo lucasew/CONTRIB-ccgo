@@ -358,13 +358,7 @@ func (c *ctx) functionDefinition0(w writer, sep string, pos cc.Node, d *cc.Decla
 	c.f.nextID = 0
 	isMain := d.Linkage() == cc.External && d.Name() == "main"
 	// trc("==== %v: sep `%s`", d.Position(), sep) //TODO-DBG
-	s := strings.TrimLeft(sep, " \t\f") + c.posComment(pos)
-	// trc("s `%s`", s) //TODO-DBG
-	if !strings.HasSuffix(s, "\n") {
-		s += "\n"
-	}
-	// trc("s `%s`", s) //TODO-DBG
-	s = c.cdoc(s, d)
+	s := c.cdoc(sep, d)
 	switch {
 	case local:
 		// trc("s `%s`", s) //TODO-DBG
@@ -377,62 +371,89 @@ func (c *ctx) functionDefinition0(w writer, sep string, pos cc.Node, d *cc.Decla
 	w.w("\n\n")
 }
 
-func (c *ctx) cdoc(sep string, n cc.Node) string {
-	if sep == "" {
+func (c *ctx) cdoc(sep string, n cc.Node) (r string) {
+	// trc("==== %v: %q", n.Position(), sep)
+
+	// defer func() {
+	// 	trc("%v: -> %q", n.Position(), r)
+	// }()
+
+	if strings.TrimSpace(sep) == "" {
 		return ""
 	}
 
-	comments := c.scanComments(sep, n)
-	// trc("==== %v:", n.Position())
-	// for i, v := range comments {
-	// 	trc("%v: %q", i, v)
-	// }
-	for i, v := range comments {
-		comments[i] = strings.TrimSpace(v)
-	}
-	if len(comments) == 1 && comments[0] == "" {
-		return ""
-	}
-
-	// for i, v := range comments {
-	// 	trc("%v: %q", i, v)
-	// }
-	w := 0
-	for i, v := range comments {
-		switch {
-		case strings.HasPrefix(v, "//") && i >= 2 && comments[i-1] == "" && strings.HasPrefix(comments[i-2], "/*"):
-			comments[w-1] = v
-		default:
-			comments[w] = v
-			w++
+	defer func() {
+		if !strings.HasSuffix(r, "\n") {
+			r += "\n"
 		}
+		if s := strings.TrimSpace(c.posComment(n)); s != "" {
+			r = fmt.Sprintf("%s//\n%s\n", r, s)
+		}
+	}()
+
+	if strings.HasSuffix(sep, "\n\n") {
+		return sep
 	}
-	comments = comments[:w]
-	// for i, v := range comments {
-	// 	trc("%v: %q", i, v)
-	// }
+
 	var b strings.Builder
-	for i := len(comments) - 2; i >= 0; i-- {
-		if comments[i] == "" {
-			fmt.Fprintf(&b, "%s\n\n", strings.Join(comments[:i], "\n"))
-			comments = comments[i+1:]
-			break
-		}
-	}
-	// for i, v := range comments {
+
+	a := c.scanComments(sep, n)
+	// trc("----")
+	// for i, v := range a {
 	// 	trc("%v: %q", i, v)
 	// }
-	if len(comments) == 0 {
-		return ""
+	split := -1
+	for i, v := range a {
+		if strings.HasPrefix(v, "/*") {
+			continue
+		}
+
+		switch strings.Count(v, "\n") {
+		case 0:
+			// nop
+		case 1:
+			if strings.HasPrefix(v, "//") {
+				break
+			}
+
+			if i > 0 && strings.HasSuffix(a[i-1], "\n") {
+				split = i
+			}
+		default:
+			split = i
+		}
 	}
+	if split >= 0 {
+		// trc("split at %v", split)
+		b.WriteString(strings.Join(a[:split], ""))
+		a = a[split+1:]
+	}
+
+	if len(a) == 0 {
+		return b.String()
+	}
+
+	if !strings.HasPrefix(a[0], "//") && !strings.HasPrefix(a[0], "/*") && strings.Count(a[0], "\n") == 0 {
+		b.WriteString(strings.Join(a, ""))
+		return b.String()
+	}
+
+	// trc("----")
+	// for i, v := range a {
+	// 	trc("%v: %q", i, v)
+	// }
 
 	fmt.Fprintf(&b, "\n\n// C documentation\n//")
-	for _, v := range comments {
-		for _, w := range strings.Split(v, "\n") {
-			fmt.Fprintf(&b, "\n//\t%s", w)
+	for _, v := range a {
+		switch {
+		case strings.HasPrefix(v, "//"):
+			fmt.Fprintf(&b, "\n//\t%s", strings.TrimRight(v, "\n"))
+		case strings.HasPrefix(v, "/*"):
+			for _, w := range strings.Split(v, "\n") {
+				fmt.Fprintf(&b, "\n//\t%s", w)
+			}
 		}
 	}
-	fmt.Fprintf(&b, "\n")
 	return b.String()
 }
 
@@ -560,7 +581,12 @@ func (c *ctx) declaration(w writer, n *cc.Declaration, external bool) {
 				c.defineUnionType(w, sep, n, x)
 			}
 		default:
-			w.w("%s", sep(n))
+			switch {
+			case c.f != nil:
+				w.w("%s", sep(n))
+			default:
+				w.w("%s", c.cdoc(sep(n), n))
+			}
 			for l := n.InitDeclaratorList; l != nil; l = l.InitDeclaratorList {
 				c.initDeclarator(w, sep(l.InitDeclarator), l.InitDeclarator, external)
 			}

@@ -207,8 +207,10 @@ func (t *Task) rm() error {
 		return err
 	}
 
+	rf := false
 	set := opt.NewSet()
 	set.Opt("f", func(arg string) error { return nil })
+	set.Opt("rf", func(arg string) error { rf = true; return nil })
 	return set.Parse(t.args[1:], func(arg string) error {
 		if strings.HasPrefix(arg, "-") {
 			if dmesgs {
@@ -217,7 +219,12 @@ func (t *Task) rm() error {
 			return errorf("unexpected/unsupported option: %s", arg)
 		}
 
-		os.Remove(t.goFile(arg))
+		switch {
+		case rf:
+			// nop
+		default:
+			os.Remove(t.goFile(arg))
+		}
 		return nil
 	})
 }
