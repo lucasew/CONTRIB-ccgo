@@ -39,13 +39,13 @@ var (
 
 // Task represents a compilation job.
 type Task struct {
-	D                     []string        // -D
-	I                     []string        // -I
-	L                     []string        // -L
-	O                     string          // -O
-	U                     []string        // -U
-	archiveLinkFiles      map[string]bool // path: include it
-	args                  []string        // command name in args[0]
+	D                     []string            // -D
+	I                     []string            // -I
+	L                     []string            // -L
+	O                     string              // -O
+	U                     []string            // -U
+	archiveLinkFiles      map[string]struct{} // path:
+	args                  []string            // command name in args[0]
 	cfg                   *cc.Config
 	cfgArgs               []string
 	cleanupDirs           []string
@@ -141,7 +141,7 @@ func NewTask(goos, goarch string, args []string, stdout, stderr io.Writer, fs fs
 	}
 	return &Task{
 		D:                d,
-		archiveLinkFiles: map[string]bool{},
+		archiveLinkFiles: map[string]struct{}{},
 		args:             args,
 		compiledfFiles:   map[string]string{},
 		fs:               fs,
@@ -263,7 +263,7 @@ func (t *Task) main() (err error) {
 			}
 			t.linkFiles = append(t.linkFiles, list...)
 			for _, v := range list {
-				t.archiveLinkFiles[v] = false
+				t.archiveLinkFiles[v] = struct{}{}
 			}
 			return nil
 		}
@@ -375,7 +375,7 @@ func (t *Task) main() (err error) {
 
 			t.linkFiles = append(t.linkFiles, list...)
 			for _, v := range list {
-				t.archiveLinkFiles[v] = false
+				t.archiveLinkFiles[v] = struct{}{}
 			}
 			return nil
 		}

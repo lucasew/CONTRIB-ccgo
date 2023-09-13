@@ -43,7 +43,9 @@ type object struct {
 
 	kind int // {objectFile, objectPkg}
 
-	imported bool
+	imported    bool
+	isExtracted bool // from an .a file
+	isRequired  bool // from an .a file and needed
 }
 
 func newObject(kind int, id string) *object {
@@ -52,6 +54,15 @@ func newObject(kind int, id string) *object {
 		kind: kind,
 		id:   id,
 	}
+}
+
+func (o *object) requiredFor(nm string) {
+	o.isRequired = true
+	// if dmesgs {
+	// 	if o.isExtracted {
+	// 		dmesg("object %q.isRequired for %q", o.id, nm)
+	// 	}
+	// }
 }
 
 func (o *object) load() (file *gc.SourceFile, err error) {
@@ -259,6 +270,10 @@ func (t *Task) link() (err error) {
 			continue
 		}
 
+		_, object.isExtracted = t.archiveLinkFiles[v]
+		if dmesgs {
+			dmesg("object %q.isExtracted=%v", v, object.isExtracted)
+		}
 		linkFiles = append(linkFiles, v)
 		if _, ok := objects[v]; !ok {
 			objects[v] = object
@@ -659,6 +674,7 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 			// }
 			if _, ok := l.externs[nm]; !ok { // extern is unresolved
 				l.externs[nm] = object
+				object.requiredFor(nm)
 				// if dmesgs {
 				// 	dmesg("extern %s resolved in %s", nm, object.id)
 				// }
@@ -672,6 +688,7 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 		for nm, to := range object.meta.WeakAliases { // object defines a weak alias for nm
 			if _, ok := l.externs[nm]; !ok { // extern is still unresolved
 				l.externs[nm] = object
+				object.requiredFor(nm)
 				l.weakAliases[nm] = to
 				// if dmesgs {
 				// 	dmesg("extern %s weak resolved in %s", nm, object.id)
@@ -694,7 +711,12 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 	}
 	var undefs []undef
 	for _, linkFile := range linkFiles {
-		switch object := objects[linkFile]; {
+		object := objects[linkFile]
+		if object.isExtracted && !object.isRequired {
+			continue
+		}
+
+		switch {
 		case object.kind == objectFile:
 			file, err := object.load()
 			if err != nil {
@@ -834,6 +856,10 @@ var (
 			continue
 		}
 
+		if object.isExtracted && !object.isRequired {
+			continue
+		}
+
 		file, err := object.load()
 		if err != nil {
 			return errorf("loading %s: %v", object.id, err)
@@ -927,7 +953,9 @@ var (
 						l.print0(&b, fi, spec)
 						l.externVars[linkName] = &externVar{rendered: b.bytes(), spec: spec}
 					default:
-						return errorf("loading %s: multiple definitions of %s", object.id, l.rawName(linkName))
+						if !l.task.isExeced {
+							return errorf("loading %s: multiple definitions of %s", object.id, l.rawName(linkName))
+						}
 					}
 				default:
 					fi := l.newFnInfo(spec)
@@ -1084,7 +1112,6 @@ func (l *linker) isMeta(n gc.Node, linkName string) bool {
 }
 
 func (l *linker) funcDecl(n *gc.FunctionDecl) {
-	//TODO- l.w("\n\n")
 	info := l.newFnInfo(n)
 	var static []gc.Node
 	w := 0
@@ -1102,6 +1129,7 @@ func (l *linker) funcDecl(n *gc.FunctionDecl) {
 		case *gc.FunctionLit:
 			l.w("func init() ")
 			l.print(info, x.FunctionBody)
+			l.w("\n\n")
 		default:
 			l.print(info, v)
 		}

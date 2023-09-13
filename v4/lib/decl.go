@@ -687,12 +687,12 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 	}
 
 	if n.Asm != nil {
-		w.w("//TODO %s %s // %v:", cc.NodeSource(d), cc.NodeSource(n.Asm), c.pos(n))
+		w.w("//TODO %q // %v:\n", d.Name(), c.pos(n))
 		if d.LexicalScope().Parent == nil {
 			return
 		}
 
-		w.w("\n%spanic(0) // assembler statements not supported", tag(preserve))
+		w.w("%spanic(0) // assembler statements not supported", tag(preserve))
 	}
 
 	nm := d.Name()
@@ -796,6 +796,7 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 				switch d.Linkage() {
 				case cc.External, cc.Internal:
 					w.w("\n\nfunc init() %s", &b)
+					w.w("\n\n")
 				case cc.None:
 					w.w("\n\nvar %s_ = func() %s", tag(preserve), &b)
 				default:
