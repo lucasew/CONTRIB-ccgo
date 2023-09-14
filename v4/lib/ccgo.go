@@ -589,7 +589,9 @@ func (t *Task) arExtract(fn string) (r []string, err error) {
 		}
 	}
 
-	t.cleanupDirs = append(t.cleanupDirs, tmp)
+	if !t.keepObjectFiles {
+		t.cleanupDirs = append(t.cleanupDirs, tmp)
+	}
 	if out, err = exec.Command(ar, "x", "--output", tmp, fn).CombinedOutput(); err != nil {
 		return nil, errorf("%s: %s\nFAIL: %v", ar, out, err)
 	}

@@ -378,20 +378,24 @@ func (c *ctx) cdoc(sep string, n cc.Node) (r string) {
 	// 	trc("%v: -> %q", n.Position(), r)
 	// }()
 
-	if strings.TrimSpace(sep) == "" {
-		return ""
-	}
-
 	defer func() {
 		if !strings.HasSuffix(r, "\n") {
 			r += "\n"
 		}
 		if s := strings.TrimSpace(c.posComment(n)); s != "" {
-			r = fmt.Sprintf("%s//\n%s\n", r, s)
+			switch {
+			case r == "":
+				r = "\n" + s
+			default:
+				r = fmt.Sprintf("%s//\n%s\n", r, s)
+			}
+			if !strings.HasSuffix(r, "\n") {
+				r += "\n"
+			}
 		}
 	}()
 
-	if strings.HasSuffix(sep, "\n\n") {
+	if strings.TrimSpace(sep) == "" || strings.HasSuffix(sep, "\n\n") {
 		return sep
 	}
 
@@ -581,14 +585,13 @@ func (c *ctx) declaration(w writer, n *cc.Declaration, external bool) {
 				c.defineUnionType(w, sep, n, x)
 			}
 		default:
-			switch {
-			case c.f != nil:
-				w.w("%s", sep(n))
-			default:
-				w.w("%s", c.cdoc(sep(n), n))
+			sep0 := sep(n)
+			if c.f == nil {
+				sep0 = c.cdoc(sep0, n)
 			}
 			for l := n.InitDeclaratorList; l != nil; l = l.InitDeclaratorList {
-				c.initDeclarator(w, sep(l.InitDeclarator), l.InitDeclarator, external)
+				c.initDeclarator(w, sep0+sep(l.InitDeclarator), l.InitDeclarator, external)
+				sep0 = ""
 			}
 		}
 	case cc.DeclarationAssert: // StaticAssertDeclaration

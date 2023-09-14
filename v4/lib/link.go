@@ -271,9 +271,6 @@ func (t *Task) link() (err error) {
 		}
 
 		_, object.isExtracted = t.archiveLinkFiles[v]
-		if dmesgs {
-			dmesg("object %q.isExtracted=%v", v, object.isExtracted)
-		}
 		linkFiles = append(linkFiles, v)
 		if _, ok := objects[v]; !ok {
 			objects[v] = object
