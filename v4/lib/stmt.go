@@ -266,6 +266,9 @@ func (c *ctx) compoundStatement(w writer, n *cc.CompoundStatement, fnBlock bool,
 			}
 			w.w("}();")
 		}
+		if c.f.callsAlloca {
+			w.w("defer %stls.FreeAlloca();", tag(ccgo))
+		}
 	default:
 		if !flat {
 			w.w(" {\n %s%s", sep(n.Token), c.posComment(n))

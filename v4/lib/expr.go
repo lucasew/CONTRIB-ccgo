@@ -2943,6 +2943,12 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, mode mode
 	var inlineFD *cc.FunctionDefinition
 	switch d = c.declaratorOf(n.PostfixExpression); {
 	case d != nil:
+		switch d.Name() {
+		case "alloca", "__builtin_alloca":
+			if d.Linkage() == cc.External {
+				c.f.callsAlloca = true
+			}
+		}
 		if !c.task.hidden.has(d.Name()) {
 			inlineFD = c.inlineFuncs[d]
 		}

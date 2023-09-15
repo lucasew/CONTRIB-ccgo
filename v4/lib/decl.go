@@ -74,12 +74,14 @@ type fnCtx struct {
 	flatScopes       map[*cc.Scope]struct{}
 	inlineInfo       *inlineInfo
 	locals           map[*cc.Declarator]string // storage: static or automatic, linkage: none -> C renamed
+	maxVaListSize    int64
 	t                *cc.FunctionType
 	tlsAllocs        int64
 	vlaSizes         map[*cc.Declarator]string
 
-	maxVaListSize int64
-	nextID        int
+	nextID int
+
+	callsAlloca bool
 }
 
 func (c *ctx) newFnCtx(d *cc.Declarator, t *cc.FunctionType, n *cc.CompoundStatement) (r *fnCtx) {
