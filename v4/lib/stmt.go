@@ -592,121 +592,35 @@ func (c *ctx) iterationStatement(w writer, n *cc.IterationStatement) {
 			c.bracedStatement(w, n.Statement)
 		}
 	case cc.IterationStatementFor: // "for" '(' ExpressionList ';' ExpressionList ';' ExpressionList ')' Statement
-		var a, a2, a3 buf
-		var b2 []byte
-		var b4 string
-		b := c.expr(&a, n.ExpressionList, nil, exprVoid)
-		if b.len() == 0 && a.len() != 0 {
-			s := string(a.bytes())
-			s = strings.TrimSpace(s)
-			s = strings.TrimRight(s, ";")
-			if !strings.Contains(s, ";") {
-				b.w("%s", s)
-				a.reset()
-			}
-		}
-		if n.ExpressionList2 != nil {
-			b2 = c.expr(&a2, n.ExpressionList2, nil, exprBool).bytes()
-		}
-		b3 := c.expr(&a3, n.ExpressionList3, nil, exprVoid)
-		if b3.len() != 0 {
-			switch {
-			case c.mustConsume(n.ExpressionList3):
-				b4 = fmt.Sprintf("%s_ = %s", tag(preserve), b3)
-			default:
-				b4 = fmt.Sprintf("%s", b3)
-			}
-		}
-		if a3.len() != 0 {
-			cont = c.label()
-			defer c.setContinueCtx(cont)()
-		}
-		switch {
-		case a.len() == 0 && a2.len() == 0 && a3.len() == 0:
-			w.w("for %s; %s; %s {", b, b2, b3)
-			c.unbracedStatement(w, n.Statement)
-			w.w("};")
-		case a.len() == 0 && a2.len() == 0 && a3.len() != 0:
-			w.w("for %s; %s;  {", b, b2)
-			c.unbracedStatement(w, n.Statement)
-			w.w("\ngoto %s; %[1]s:", cont)
-			w.w("\n%s%s};", a3.bytes(), b4)
-		case a.len() == 0 && a2.len() != 0 && a3.len() == 0:
-			w.w("for %s; ; %s {", b, b3)
-			w.w("\n%s", a2.bytes())
-			w.w("\nif !(%s) { break };", b2)
-			c.unbracedStatement(w, n.Statement)
-			w.w("};")
-		case a.len() == 0 && a2.len() != 0 && a3.len() != 0:
-			w.w("for %s; ; {", b)
-			w.w("\n%s", a2.bytes())
-			w.w("\nif !(%s) { break };", b2)
-			c.unbracedStatement(w, n.Statement)
-			w.w("\ngoto %s; %[1]s:", cont)
-			w.w("\n%s%s};", a3.bytes(), b4)
-		case a.len() != 0 && a2.len() == 0 && a3.len() == 0:
-			w.w("%s%s", a.bytes(), b.bytes())
-			w.w("\nfor ;%s; %s{", b2, b3)
-			c.unbracedStatement(w, n.Statement)
-			w.w("};")
-		case a.len() != 0 && a2.len() == 0 && a3.len() != 0:
-			w.w("%s%s", a.bytes(), b.bytes())
-			w.w("\nfor %s {", b2)
-			c.unbracedStatement(w, n.Statement)
-			w.w("\ngoto %s; %[1]s:", cont)
-			w.w("\n%s%s};", a3.bytes(), b4)
-		case a.len() != 0 && a2.len() != 0 && a3.len() == 0:
-			w.w("%s%s", a.bytes(), b.bytes())
-			w.w("\nfor ; ; %s {", b3)
-			w.w("\n%s", a2.bytes())
-			w.w("\nif !(%s) { break };", b2)
-			c.unbracedStatement(w, n.Statement)
-			w.w("};")
-		case a.len() != 0 && a2.len() != 0 && a3.len() != 0:
-			w.w("%s%s", a.bytes(), b.bytes())
-			w.w("\nfor ; ; %s {", b3)
-			w.w("\n%s", a2.bytes())
-			w.w("\nif !(%s) { break };", b2)
-			c.unbracedStatement(w, n.Statement)
-			w.w("\ngoto %s; %[1]s:", cont)
-			w.w("\n%s%s};", a3.bytes(), b4)
-		}
-	case cc.IterationStatementForDecl: // "for" '(' Declaration ExpressionList ';' ExpressionList ')' Statement
-		c.declaration(w, n.Declaration, false)
-		var a, a2 buf
-		var b []byte
+		cont = c.label()
+		defer c.setContinueCtx(cont)()
 		if n.ExpressionList != nil {
-			b = c.expr(&a, n.ExpressionList, nil, exprBool).bytes()
+			w.w("%s;", c.expr(w, n.ExpressionList, nil, exprVoid))
 		}
-		b2 := c.expr(&a2, n.ExpressionList2, nil, exprVoid)
-		if a2.len() != 0 {
-			cont = c.label()
-			defer c.setContinueCtx(cont)()
+		w.w("for {")
+		if n.ExpressionList2 != nil {
+			w.w("if !%s { break };", c.expr(w, n.ExpressionList2, nil, exprBool))
 		}
-		switch {
-		case a.len() == 0 && a2.len() == 0:
-			w.w("for ; %s; %s {", b, b2)
-			c.unbracedStatement(w, n.Statement)
-			w.w("};")
-		case a.len() == 0 && a2.len() != 0:
-			w.w("for %s  {", b)
-			c.unbracedStatement(w, n.Statement)
-			w.w("\ngoto %s; %[1]s:", cont)
-			w.w("\n%s%s};", a2.bytes(), b2.bytes())
-		case a.len() != 0 && a2.len() == 0:
-			w.w("for ; ; %s {", b2)
-			w.w("\n%s", a.bytes())
-			w.w("\nif !(%s) { break };", b)
-			c.unbracedStatement(w, n.Statement)
-			w.w("};")
-		default: // case a.len() != 0 && a2.len() != 0:
-			w.w("for {")
-			w.w("\n%s", a.bytes())
-			w.w("\nif !(%s) { break };", b)
-			c.unbracedStatement(w, n.Statement)
-			w.w("\ngoto %s; %[1]s:", cont)
-			w.w("\n%s%s};", a2.bytes(), b2.bytes())
+		c.unbracedStatement(w, n.Statement)
+		w.w("\ngoto %s; %[1]s:", cont)
+		if n.ExpressionList3 != nil {
+			w.w("%s;", c.expr(w, n.ExpressionList3, nil, exprVoid))
 		}
+		w.w("};")
+	case cc.IterationStatementForDecl: // "for" '(' Declaration ExpressionList ';' ExpressionList ')' Statement
+		cont = c.label()
+		defer c.setContinueCtx(cont)()
+		c.declaration(w, n.Declaration, false)
+		w.w("for {")
+		if n.ExpressionList != nil {
+			w.w("if !%s { break };", c.expr(w, n.ExpressionList, nil, exprBool))
+		}
+		c.unbracedStatement(w, n.Statement)
+		w.w("\ngoto %s; %[1]s:", cont)
+		if n.ExpressionList2 != nil {
+			w.w("%s;", c.expr(w, n.ExpressionList2, nil, exprVoid))
+		}
+		w.w("};")
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
 	}
