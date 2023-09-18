@@ -609,14 +609,41 @@ func (c *ctx) logicalAndExpression(w writer, n *cc.LogicalAndExpression, t cc.Ty
 	}
 
 	var b buf
+	rt = c.ast.Int
 	switch n.Case {
 	case cc.LogicalAndExpressionOr: // InclusiveOrExpression
 		c.err(errorf("TODO %v", n.Case))
 	case cc.LogicalAndExpressionLAnd: // LogicalAndExpression "&&" InclusiveOrExpression
 		_, rmode = n.Type(), exprBool
+		lz := c.isSafeZero(n.LogicalAndExpression)
+		lnz := c.isSafeNonZero(n.LogicalAndExpression)
+		rz := c.isSafeZero(n.InclusiveOrExpression)
+		rnz := c.isSafeNonZero(n.InclusiveOrExpression)
+		switch {
+		case lz:
+			b.w("(false)")
+			return &b, rt, rmode
+		case !lz && !lnz && !rz && rnz:
+			b.w("%s", c.topExpr(w, n.LogicalAndExpression, nil, exprBool))
+			return &b, rt, rmode
+		case !lz && lnz && !rz && !rnz:
+			b.w("%s", c.topExpr(w, n.InclusiveOrExpression, nil, exprBool))
+			return &b, rt, rmode
+		}
+
 		var al, ar buf
 		bl := c.topExpr(&al, n.LogicalAndExpression, nil, exprBool)
 		br := c.topExpr(&ar, n.InclusiveOrExpression, nil, exprBool)
+		if bytes.Equal(bl.bytes(), br.bytes()) && c.canIgnore(n.LogicalAndExpression) && c.canIgnore(n.InclusiveOrExpression) {
+			switch {
+			case c.isZero(n.Value()):
+				b.w("(false)")
+				return &b, rt, rmode
+			case c.isNonZero(n.Value()):
+				b.w("(true)")
+				return &b, rt, rmode
+			}
+		}
 		switch {
 		default:
 			// case al.len() == 0 || ar.len() == 0:
@@ -648,7 +675,7 @@ func (c *ctx) logicalAndExpression(w writer, n *cc.LogicalAndExpression, t cc.Ty
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
 	}
-	return &b, c.ast.Int, rmode
+	return &b, rt, rmode
 }
 
 func (c *ctx) logicalOrExpression(w writer, n *cc.LogicalOrExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
@@ -769,6 +796,14 @@ func (c *ctx) canIgnore(n cc.ExpressionNode) bool {
 		}
 
 		return true
+	case *cc.EqualityExpression:
+		switch x.Case {
+		case
+			cc.EqualityExpressionEq,
+			cc.EqualityExpressionNeq:
+
+			return n.Value() != cc.Unknown
+		}
 	}
 	return false
 }
@@ -940,6 +975,10 @@ func (c *ctx) isNonZero(v cc.Value) bool {
 	default:
 		return false
 	}
+}
+
+func (c *ctx) isSafeNonZero(n cc.ExpressionNode) bool {
+	return c.isNonZero(n.Value()) && c.canIgnore(n)
 }
 
 func (c *ctx) isSafeZero(n cc.ExpressionNode) bool {
@@ -1180,15 +1219,26 @@ func (c *ctx) equalityExpression(w writer, n *cc.EqualityExpression, t cc.Type, 
 	}
 
 	ct := c.usualArithmeticConversions(n.EqualityExpression.Type(), n.RelationalExpression.Type())
+	rt, rmode = n.Type(), exprBool
+out:
 	switch n.Case {
 	case cc.EqualityExpressionEq: // EqualityExpression "==" RelationalExpression
+		if c.canIgnore(n.EqualityExpression) && c.canIgnore(n.RelationalExpression) && n.Value() != cc.Unknown {
+			switch {
+			case c.isZero(n.Value()):
+				b.w("(false)")
+				break out
+			case c.isNonZero(n.Value()):
+				b.w("(true)")
+				break out
+			}
+		}
+
 		x, y := c.binopArgs(w, n.EqualityExpression, n.RelationalExpression, ct)
 		b.w("(%s == %s)", x, y)
-		rt, rmode = n.Type(), exprBool
 	case cc.EqualityExpressionNeq: // EqualityExpression "!=" RelationalExpression
 		x, y := c.binopArgs(w, n.EqualityExpression, n.RelationalExpression, ct)
 		b.w("(%s != %s)", x, y)
-		rt, rmode = n.Type(), exprBool
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
 	}
