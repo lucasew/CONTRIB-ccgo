@@ -581,7 +581,7 @@ func (c *ctx) iterationStatement(w writer, n *cc.IterationStatement) {
 				defer c.setContinueCtx(cont)()
 				w.w("\ngoto %s; %[1]s: ", cont)
 				c.unbracedStatement(w, n.Statement)
-				w.w("\ngoto %s; %[1]s: ", brk)
+				w.w("\ngoto %s; %[1]s:/**/;//\n", brk)
 			default:
 				c.unbracedStatement(w, n.Statement)
 			}
