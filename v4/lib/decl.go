@@ -215,7 +215,7 @@ func (f *fnCtx) renameLocals() {
 }
 
 func (f *fnCtx) declareLocals() string {
-	var a []string
+	var a, use []string
 	m := map[string][]string{}
 	for k, v := range f.locals {
 		if k.IsParam() {
@@ -242,9 +242,18 @@ func (f *fnCtx) declareLocals() string {
 	for k, v := range m {
 		sort.Strings(v)
 		a = append(a, fmt.Sprintf("\nvar %s %s;", strings.Join(v, ", "), k))
+		use = append(use, v...)
 	}
+	var b strings.Builder
 	sort.Strings(a)
-	return strings.Join(a, "")
+	b.WriteString(strings.Join(a, ""))
+	if len(use) != 0 {
+		sort.Strings(use)
+		l := strings.Repeat(tag(preserve)+"_, ", len(use))
+		l = l[:len(l)-2]
+		fmt.Fprintf(&b, "\n\t%s = %s;", l, strings.Join(use, ", "))
+	}
+	return b.String()
 }
 
 func (f *fnCtx) id() int { f.nextID++; return f.nextID }
@@ -885,11 +894,6 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
-	}
-	if info != nil {
-		if d.StorageDuration() == cc.Automatic && d.ReadCount() == d.SizeofCount() && !info.pinned() {
-			w.w("\n%s_ = %s;", tag(preserve), linkName)
-		}
 	}
 }
 

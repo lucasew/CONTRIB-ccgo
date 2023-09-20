@@ -92,7 +92,7 @@ type Task struct {
 	std                   string // -std
 	stderr                io.Writer
 	stdout                io.Writer
-	tlsQualifier          string
+	tlsQualifier          string // eg. "libc."
 
 	intSize int
 

@@ -250,6 +250,7 @@ func (t *Task) cc(realCC string, cflags []string) error {
 		return err
 	}
 
+	optE := false
 	args := append(strSlice{t.args[0]}, cflags...)
 	set := opt.NewSet()
 	set.Arg("D", true, func(arg, val string) error { args.add(arg + val); return nil })
@@ -266,6 +267,7 @@ func (t *Task) cc(realCC string, cflags []string) error {
 	set.Arg("l", true, func(arg, val string) error { args.add(arg + val); return nil })
 	set.Arg("o", true, func(arg, val string) error { args.add(arg, val+".go"); return nil })
 	set.Arg("std", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
+	set.Opt("E", func(arg string) error { optE = true; return nil })
 	set.Opt("c", func(arg string) error { args.add(arg); return nil })
 	set.Opt("ffreestanding", func(arg string) error { args.add(arg); return nil })
 	set.Opt("fno-builtin", func(arg string) error { args.add(arg); return nil })
@@ -281,6 +283,10 @@ func (t *Task) cc(realCC string, cflags []string) error {
 	set.Opt("shared", func(arg string) error { args.add(arg); return nil })
 	files := 0
 	if err := set.Parse(t.args[1:], func(arg string) error {
+		if optE {
+			return nil
+		}
+
 		if strings.HasPrefix(arg, "-f") {
 			return nil
 		}
@@ -339,7 +345,7 @@ func (t *Task) cc(realCC string, cflags []string) error {
 		return err
 	}
 
-	if files == 0 {
+	if files == 0 || optE {
 		return nil
 	}
 

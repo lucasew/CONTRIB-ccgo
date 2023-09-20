@@ -601,6 +601,17 @@ func (c *ctx) shiftExpression(w writer, n *cc.ShiftExpression, t cc.Type, mode m
 	return &b, rt, rmode
 }
 
+func (c *ctx) nonConstBool(w writer, n cc.ExpressionNode) *buf {
+	var b buf
+	switch {
+	case n.Value() != cc.Unknown:
+		b.w("(%sBool(%s))", c.task.tlsQualifier, c.topExpr(w, n, nil, exprBool))
+	default:
+		b.w("(%s)", c.topExpr(w, n, nil, exprBool))
+	}
+	return &b
+}
+
 func (c *ctx) logicalAndExpression(w writer, n *cc.LogicalAndExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
 	if n.LogicalAndExpression != nil && n.InclusiveOrExpression != nil && (n.LogicalAndExpression.Value() == cc.Unknown || n.InclusiveOrExpression.Value() == cc.Unknown) {
 		c.exprNestLevel--
@@ -615,35 +626,9 @@ func (c *ctx) logicalAndExpression(w writer, n *cc.LogicalAndExpression, t cc.Ty
 		c.err(errorf("TODO %v", n.Case))
 	case cc.LogicalAndExpressionLAnd: // LogicalAndExpression "&&" InclusiveOrExpression
 		_, rmode = n.Type(), exprBool
-		lz := c.isSafeZero(n.LogicalAndExpression)
-		lnz := c.isSafeNonZero(n.LogicalAndExpression)
-		rz := c.isSafeZero(n.InclusiveOrExpression)
-		rnz := c.isSafeNonZero(n.InclusiveOrExpression)
-		switch {
-		case lz:
-			b.w("(false)")
-			return &b, rt, rmode
-		case !lz && !lnz && !rz && rnz:
-			b.w("%s", c.topExpr(w, n.LogicalAndExpression, nil, exprBool))
-			return &b, rt, rmode
-		case !lz && lnz && !rz && !rnz:
-			b.w("%s", c.topExpr(w, n.InclusiveOrExpression, nil, exprBool))
-			return &b, rt, rmode
-		}
-
 		var al, ar buf
-		bl := c.topExpr(&al, n.LogicalAndExpression, nil, exprBool)
-		br := c.topExpr(&ar, n.InclusiveOrExpression, nil, exprBool)
-		if bytes.Equal(bl.bytes(), br.bytes()) && c.canIgnore(n.LogicalAndExpression) && c.canIgnore(n.InclusiveOrExpression) {
-			switch {
-			case c.isZero(n.Value()):
-				b.w("(false)")
-				return &b, rt, rmode
-			case c.isNonZero(n.Value()):
-				b.w("(true)")
-				return &b, rt, rmode
-			}
-		}
+		bl := c.nonConstBool(&al, n.LogicalAndExpression)
+		br := c.nonConstBool(&ar, n.InclusiveOrExpression)
 		switch {
 		default:
 			// case al.len() == 0 || ar.len() == 0:
@@ -692,8 +677,8 @@ func (c *ctx) logicalOrExpression(w writer, n *cc.LogicalOrExpression, t cc.Type
 	case cc.LogicalOrExpressionLOr: // LogicalOrExpression "||" LogicalAndExpression
 		_, rmode = n.Type(), exprBool
 		var al, ar buf
-		bl := c.topExpr(&al, n.LogicalOrExpression, nil, exprBool)
-		br := c.topExpr(&ar, n.LogicalAndExpression, nil, exprBool)
+		bl := c.nonConstBool(&al, n.LogicalOrExpression)
+		br := c.nonConstBool(&ar, n.LogicalAndExpression)
 		switch {
 		default:
 			// case al.len() == 0 || ar.len() == 0:
@@ -796,14 +781,6 @@ func (c *ctx) canIgnore(n cc.ExpressionNode) bool {
 		}
 
 		return true
-	case *cc.EqualityExpression:
-		switch x.Case {
-		case
-			cc.EqualityExpressionEq,
-			cc.EqualityExpressionNeq:
-
-			return n.Value() != cc.Unknown
-		}
 	}
 	return false
 }
@@ -977,9 +954,9 @@ func (c *ctx) isNonZero(v cc.Value) bool {
 	}
 }
 
-func (c *ctx) isSafeNonZero(n cc.ExpressionNode) bool {
-	return c.isNonZero(n.Value()) && c.canIgnore(n)
-}
+// func (c *ctx) isSafeNonZero(n cc.ExpressionNode) bool {
+// 	return c.isNonZero(n.Value()) && c.canIgnore(n)
+// }
 
 func (c *ctx) isSafeZero(n cc.ExpressionNode) bool {
 	return c.isZero(n.Value()) && c.canIgnore(n)
@@ -3850,6 +3827,7 @@ func (c *ctx) primaryExpressionStringConst(w writer, n *cc.PrimaryExpression, t 
 		switch {
 		case c.isCharType(x.Elem()):
 			s := string(s.(cc.StringValue))
+		out:
 			switch t.Kind() {
 			case cc.Array:
 				to := t.(*cc.ArrayType)
@@ -3864,13 +3842,19 @@ func (c *ctx) primaryExpressionStringConst(w writer, n *cc.PrimaryExpression, t 
 				}
 				b.w("}")
 			case cc.Ptr:
-				t := t.(*cc.PointerType)
-				if c.isCharType(t.Elem()) || t.Elem().Kind() == cc.Void {
+				el := t.(*cc.PointerType)
+				switch sz := el.Elem().Size(); sz {
+				case 1:
 					b.w("%q", s)
-					break
+					break out
+				case 2, 4:
+					if s == "\x00" {
+						b.w("%q", strings.Repeat("\x00", int(sz)))
+						break out
+					}
 				}
 
-				c.err(errorf("%v: TODO", pos(n)))
+				c.err(errorf("%v: TODO %s %s %s %q", pos(n), x, t, el, s))
 			default:
 				if cc.IsIntegerType(t) {
 					b.w("(%s(%q))", c.typ(n, t), s)

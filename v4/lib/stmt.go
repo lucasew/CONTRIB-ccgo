@@ -573,19 +573,30 @@ func (c *ctx) iterationStatement(w writer, n *cc.IterationStatement) {
 		}
 	case cc.IterationStatementDo: // "do" Statement "while" '(' ExpressionList ')' ';'
 		if c.isSafeZero(n.ExpressionList) {
-			c.unbracedStatement(w, n.Statement)
+			switch {
+			case c.hasBreakOrContinue(n.Statement):
+				brk := c.label()
+				cont := c.label()
+				defer c.setBreakCtx(brk)()
+				defer c.setContinueCtx(cont)()
+				w.w("\ngoto %s; %[1]s: ", cont)
+				c.unbracedStatement(w, n.Statement)
+				w.w("\ngoto %s; %[1]s: ", brk)
+			default:
+				c.unbracedStatement(w, n.Statement)
+			}
 			break
 		}
 
 		var a buf
 		switch b := c.expr(&a, n.ExpressionList, nil, exprBool); {
 		case a.len() != 0:
-			w.w("for %sfirst := true; ; %[1]sfirst = false {", tag(ccgo))
-			w.w("\nif !first {")
-			w.w("%s", a.bytes())
-			w.w("\nif !(%s) { break };", b)
-			w.w("\n};")
+			cont = c.label()
+			defer c.setContinueCtx(cont)()
+			w.w("for {")
 			c.unbracedStatement(w, n.Statement)
+			w.w("\ngoto %s; %[1]s: ", cont)
+			w.w("%s;if !(%s) { break };", &a, b)
 			w.w("};")
 		default:
 			w.w("for %scond := true; %[1]scond; %[1]scond = %s", tag(ccgo), b)
@@ -624,6 +635,72 @@ func (c *ctx) iterationStatement(w writer, n *cc.IterationStatement) {
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
 	}
+}
+
+func (c *ctx) hasBreakOrContinue(n cc.Node) (r bool) {
+	if n == nil {
+		return false
+	}
+
+	switch x := n.(type) {
+	case *cc.Statement:
+		switch x.Case {
+		case cc.StatementLabeled: // LabeledStatement
+			return c.hasBreakOrContinue(x.LabeledStatement)
+		case cc.StatementCompound: // CompoundStatement
+			return c.hasBreakOrContinue(x.CompoundStatement)
+		case cc.StatementExpr: // ExpressionStatement
+			return c.hasBreakOrContinue(x.ExpressionStatement)
+		case cc.StatementSelection: // SelectionStatement
+			return c.hasBreakOrContinue(x.SelectionStatement)
+		case cc.StatementIteration: // IterationStatement
+			return c.hasBreakOrContinue(x.IterationStatement)
+		case cc.StatementJump: // JumpStatement
+			return c.hasBreakOrContinue(x.JumpStatement)
+		case cc.StatementAsm: // AsmStatement
+			return c.hasBreakOrContinue(x.AsmStatement)
+		default:
+			c.err(errorf("internal error %T %v", x, x.Case))
+			return false
+		}
+	case *cc.LabeledStatement:
+		return x.Statement != nil && c.hasBreakOrContinue(x.Statement)
+	case *cc.CompoundStatement:
+		for l := x.BlockItemList; l != nil; l = l.BlockItemList {
+			if c.hasBreakOrContinue(l.BlockItem) {
+				return true
+			}
+		}
+		return false
+	case *cc.ExpressionStatement:
+		return false
+	case *cc.SelectionStatement:
+		return x.Statement != nil && c.hasBreakOrContinue(x.Statement) ||
+			x.Statement2 != nil && c.hasBreakOrContinue(x.Statement2)
+	case *cc.IterationStatement:
+		return false
+	case *cc.JumpStatement:
+		switch x.Case {
+		case cc.JumpStatementContinue, cc.JumpStatementBreak:
+			return true
+		}
+	case *cc.AsmStatement:
+		return false
+	case *cc.BlockItem:
+		switch x.Case {
+		case cc.BlockItemDecl: // Declaration
+			return false
+		case cc.BlockItemLabel: // LabelDeclaration
+			return false
+		case cc.BlockItemStmt: // Statement
+			return c.hasBreakOrContinue(x.Statement)
+		case cc.BlockItemFuncDef: // DeclarationSpecifiers Declarator CompoundStatement
+			return false
+		default:
+			c.err(errorf("internal error %T %v", x, x.Case))
+		}
+	}
+	return false
 }
 
 func (c *ctx) iterationStatementFlat(w writer, n *cc.IterationStatement) {
