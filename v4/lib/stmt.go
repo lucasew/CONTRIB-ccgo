@@ -257,6 +257,10 @@ func (c *ctx) compoundStatement(w writer, n *cc.CompoundStatement, fnBlock bool,
 		if c.f.vlaSizes != nil {
 			var a []string
 			for d := range c.f.vlaSizes {
+				if _, ok := c.isVLA(d.Type()); !ok {
+					continue
+				}
+
 				a = append(a, c.f.locals[d])
 			}
 			sort.Strings(a)
