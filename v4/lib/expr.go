@@ -3471,7 +3471,12 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 						v = fmt.Sprintf("(*(*%s)(%s))", c.typ(n, ut), unsafePointer(p))
 						w.w("\n%s %s= %s%s;", v, op, c.topExpr(w, n.AssignmentExpression, ct, exprDefault), k)
 					default:
-						w.w("\n(*(*%s)(%s)) %s= %s%s;", c.typ(n, ut), unsafePointer(c.topExpr(w, n.UnaryExpression, ut.Pointer(), exprUintptr)), op, c.topExpr(w, n.AssignmentExpression, ct, exprDefault), k)
+						switch x, ok := n.UnaryExpression.(*cc.PostfixExpression); {
+						case ok && x.Case == cc.PostfixExpressionSelect:
+							w.w("\n%s %s= %s%s", c.expr(w, n.UnaryExpression, n.UnaryExpression.Type(), exprDefault), op, c.topExpr(w, n.AssignmentExpression, ct, exprDefault), k)
+						default:
+							w.w("\n(*(*%s)(%s)) %s= %s%s;", c.typ(n, ut), unsafePointer(c.topExpr(w, n.UnaryExpression, ut.Pointer(), exprUintptr)), op, c.topExpr(w, n.AssignmentExpression, ct, exprDefault), k)
+						}
 					}
 				default:
 					p := fmt.Sprintf("%sp%d", tag(ccgo), c.id())

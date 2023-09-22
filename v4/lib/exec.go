@@ -386,6 +386,7 @@ func (t *Task) ar() error {
 				switch sc := string(c); sc {
 				case
 					"c", // create the archive
+					"q", // quick append
 					"r", // insert member
 					"u": // update
 
