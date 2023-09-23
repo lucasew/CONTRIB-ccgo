@@ -24,6 +24,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"modernc.org/cc/v4"
@@ -566,7 +567,7 @@ func (t *Task) arExtract(fn string) (r []string, err error) {
 		}
 	}
 
-	tmp, err := os.MkdirTemp("", "ccgo-tmp-")
+	tmp, err := os.MkdirTemp("", "ccgo-tmp-ar-")
 	if err != nil {
 		return nil, err
 	}
@@ -576,6 +577,13 @@ func (t *Task) arExtract(fn string) (r []string, err error) {
 		return nil, errorf("%s: %s\nFAIL: %v", ar, out, err)
 	}
 
+	if dmesgs {
+		a := strings.Split(strings.TrimSpace(string(out)), "\n")
+		sort.Strings(a)
+		for _, v := range a {
+			dmesg("%s", v)
+		}
+	}
 	dirs := map[string]struct{}{}
 	for _, v := range strings.Split(strings.TrimSpace(string(out)), "\n") {
 		w := filepath.Join(tmp, v)
@@ -584,6 +592,9 @@ func (t *Task) arExtract(fn string) (r []string, err error) {
 		r = append(r, w)
 	}
 	for k := range dirs {
+		if dmesgs {
+			dmesg("mkdir %s", k)
+		}
 		if err := os.MkdirAll(k, 0770); err != nil {
 			return nil, errorf("", err)
 		}
@@ -591,6 +602,9 @@ func (t *Task) arExtract(fn string) (r []string, err error) {
 
 	if !t.keepObjectFiles {
 		t.cleanupDirs = append(t.cleanupDirs, tmp)
+	}
+	if dmesgs {
+		dmesg("%q", []string{ar, "x", "--output", tmp, fn})
 	}
 	if out, err = exec.Command(ar, "x", "--output", tmp, fn).CombinedOutput(); err != nil {
 		return nil, errorf("%s: %s\nFAIL: %v", ar, out, err)

@@ -565,7 +565,8 @@ type linker struct {
 	undefsReported        nameSet
 	unsafeName            string
 
-	closed bool
+	closed     bool
+	needFpFunc bool
 }
 
 func newLinker(task *Task, libc *object) (*linker, error) {
@@ -1224,13 +1225,15 @@ func (l *linker) epilogue() {
 		return
 	}
 
-	l.w(`
+	if l.needFpFunc {
+		l.w(`
 
 func %s(f interface{}) uintptr {
 	type iface [2]uintptr
 	return (*iface)(unsafe.Pointer(&f))[1]
 }
 `, ccgoFP)
+	}
 	var a []string
 	for k := range l.externVars {
 		a = append(a, k)
@@ -1394,6 +1397,9 @@ func (l *linker) print0(w writer, fi *fnInfo, n interface{}) {
 		switch x.Ch {
 		case gc.IDENTIFIER:
 			id := x.Src()
+			if id == tag(preserve)+ccgoFP {
+				l.needFpFunc = true
+			}
 			nm := fi.name(id)
 			if nm == "" {
 				w.w("%s", id)

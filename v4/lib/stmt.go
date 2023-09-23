@@ -242,7 +242,7 @@ func (c *ctx) compoundStatement(w writer, n *cc.CompoundStatement, fnBlock bool,
 				v += c.f.maxVaListSize + 8
 			}
 			v = roundup(v, 16)
-			w.w("%sbp := %[1]stls.%sAlloc(%d); /* tlsAllocs %v maxVaListSize %v */", tag(ccgo), tag(preserve), v, c.f.tlsAllocs, c.f.maxVaListSize)
+			w.w("%sbp := %[1]stls.%sAlloc(%d);", tag(ccgo), tag(preserve), v)
 			w.w("defer %stls.%sFree(%d);", tag(ccgo), tag(preserve), v)
 			for _, v := range c.f.t.Parameters() {
 				if d := v.Declarator; d != nil && c.f.declInfos.info(d).pinned() {
@@ -764,7 +764,8 @@ func (c *ctx) iterationStatementFlat(w writer, n *cc.IterationStatement) {
 		// brk:
 		a := c.label()
 		c.declaration(w, n.Declaration, false)
-		w.w("%s: if !(%s) { goto %s };", a, c.expr(w, n.ExpressionList, nil, exprBool), brk)
+		w.w("%s:", a)
+		w.w("if !(%s) { goto %s };", c.expr(w, n.ExpressionList, nil, exprBool), brk)
 		c.unbracedStatement(w, n.Statement)
 		w.w("goto %s; %[1]s: ", cont)
 		w.w("%s;", c.expr(w, n.ExpressionList2, nil, exprVoid))

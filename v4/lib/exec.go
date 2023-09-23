@@ -211,6 +211,7 @@ func (t *Task) rm() error {
 	set := opt.NewSet()
 	set.Opt("f", func(arg string) error { return nil })
 	set.Opt("rf", func(arg string) error { rf = true; return nil })
+	set.Opt("fr", func(arg string) error { rf = true; return nil })
 	return set.Parse(t.args[1:], func(arg string) error {
 		if strings.HasPrefix(arg, "-") {
 			if dmesgs {
@@ -397,7 +398,7 @@ func (t *Task) ar() error {
 					return errorf("TODO #%d: %q: real AR=%q, faked args=%q", argN, arg, t.realAR, t.args)
 				}
 			}
-			out += "P" // full paths
+			// out += "P" // full paths
 			args.add(out)
 			return nil
 		case 2: // archive name

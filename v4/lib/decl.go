@@ -734,8 +734,15 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 					break
 				}
 
-				w.w("\n\n%s%stype %s%s = %s;", sep, c.posComment(n), tag(typename), nm, c.typedef(d, d.Type()))
-				c.defineType(w, sep, n, d.Type())
+				switch nm {
+				case "__builtin_va_list",
+					"__predefined_size_t",
+					"__predefined_wchar_t",
+					"__predefined_ptrdiff_t":
+				default:
+					w.w("\n\n%s%stype %s%s = %s;", sep, c.posComment(n), tag(typename), nm, c.typedef(d, d.Type()))
+					c.defineType(w, sep, n, d.Type())
+				}
 			}
 			if !isExternal {
 				return
