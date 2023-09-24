@@ -24,7 +24,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	"modernc.org/cc/v4"
@@ -579,17 +578,6 @@ func (t *Task) arExtract(fn string) (r []string, err error) {
 		return nil, errorf("%s: %s\nFAIL: %v", ar, out, err)
 	}
 
-	a := strings.Split(strings.TrimSpace(string(out)), "\n")
-	sort.Strings(a)
-	m := map[string]struct{}{}
-	for _, v := range a {
-		v := filepath.Base(v)
-		if _, ok := m[v]; ok {
-			return nil, fmt.Errorf("duplicate basename: %s", v)
-		}
-
-		m[v] = struct{}{}
-	}
 	if !t.keepObjectFiles {
 		t.cleanupDirs = append(t.cleanupDirs, tmp)
 	}
