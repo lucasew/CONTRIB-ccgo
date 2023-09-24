@@ -311,7 +311,7 @@ func (t *Task) cc(realCC string, cflags []string) error {
 			args.add(arg)
 			files++
 			return nil
-		case ".s":
+		case ".s", ".S":
 			return nil
 		case ".o", ".lo":
 			nm := arg + ".go"
