@@ -75,9 +75,6 @@ func (c *ctx) typ0(b *strings.Builder, n cc.Node, t cc.Type, useTypenames, useTa
 		}
 	}
 
-	if cc.IsScalarType(t) {
-		useTypenames = false
-	}
 	if tn := t.Typedef(); tn != nil && useTypenames && tn.LexicalScope().Parent == nil {
 		fmt.Fprintf(b, "%s%s", tag(typename), tn.Name())
 		return

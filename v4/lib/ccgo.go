@@ -85,8 +85,8 @@ type Task struct {
 	prefixUndefined       string // --prefix-undefined <string>
 	realAR                string // which ar
 	realCC                string // which cc
-	realGCC               string // which gcc
 	realClang             string // which clang
+	realGCC               string // which gcc
 	realMV                string // which mv
 	realRM                string // which rm
 	std                   string // -std
