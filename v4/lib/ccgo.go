@@ -578,6 +578,14 @@ func (t *Task) arExtract(fn string) (r []string, err error) {
 		return nil, errorf("%s: %s\nFAIL: %v", ar, out, err)
 	}
 
+	m := map[string]struct{}{}
+	for _, v := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		w := filepath.Join(tmp, v)
+		if _, ok := m[w]; !ok {
+			r = append(r, w)
+		}
+		m[w] = struct{}{}
+	}
 	if !t.keepObjectFiles {
 		t.cleanupDirs = append(t.cleanupDirs, tmp)
 	}
