@@ -267,6 +267,7 @@ func (t *Task) cc(realCC string, cflags []string) error {
 	set.Arg("isystem", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("l", true, func(arg, val string) error { args.add(arg + val); return nil })
 	set.Arg("march", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
+	set.Arg("mtune", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("o", true, func(arg, val string) error { args.add(arg, val+".go"); return nil })
 	set.Arg("std", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Opt("E", func(arg string) error { optE = true; return nil })

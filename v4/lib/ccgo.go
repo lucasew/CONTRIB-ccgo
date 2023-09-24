@@ -332,6 +332,7 @@ func (t *Task) main() (err error) {
 	set.Arg("MQ", true, func(arg, val string) error { return nil })
 	set.Arg("MT", true, func(arg, val string) error { return nil })
 	set.Arg("march", true, func(arg, val string) error { return nil })
+	set.Arg("mtune", true, func(arg, val string) error { return nil })
 	set.Opt("M", func(arg string) error { return nil })
 	set.Opt("MD", func(arg string) error { return nil })
 	set.Opt("MM", func(arg string) error { return nil })
