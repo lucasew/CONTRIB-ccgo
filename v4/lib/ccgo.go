@@ -331,6 +331,7 @@ func (t *Task) main() (err error) {
 	set.Arg("MF", true, func(arg, val string) error { return nil })
 	set.Arg("MQ", true, func(arg, val string) error { return nil })
 	set.Arg("MT", true, func(arg, val string) error { return nil })
+	set.Arg("march", true, func(arg, val string) error { return nil })
 	set.Opt("M", func(arg string) error { return nil })
 	set.Opt("MD", func(arg string) error { return nil })
 	set.Opt("MM", func(arg string) error { return nil })
@@ -577,34 +578,19 @@ func (t *Task) arExtract(fn string) (r []string, err error) {
 		return nil, errorf("%s: %s\nFAIL: %v", ar, out, err)
 	}
 
-	if dmesgs {
-		a := strings.Split(strings.TrimSpace(string(out)), "\n")
-		sort.Strings(a)
-		for _, v := range a {
-			dmesg("%s", v)
+	a := strings.Split(strings.TrimSpace(string(out)), "\n")
+	sort.Strings(a)
+	m := map[string]struct{}{}
+	for _, v := range a {
+		v := filepath.Base(v)
+		if _, ok := m[v]; ok {
+			return nil, fmt.Errorf("duplicate basename: %s", v)
 		}
-	}
-	dirs := map[string]struct{}{}
-	for _, v := range strings.Split(strings.TrimSpace(string(out)), "\n") {
-		w := filepath.Join(tmp, v)
-		dir, _ := filepath.Split(w)
-		dirs[dir] = struct{}{}
-		r = append(r, w)
-	}
-	for k := range dirs {
-		if dmesgs {
-			dmesg("mkdir %s", k)
-		}
-		if err := os.MkdirAll(k, 0770); err != nil {
-			return nil, errorf("", err)
-		}
-	}
 
+		m[v] = struct{}{}
+	}
 	if !t.keepObjectFiles {
 		t.cleanupDirs = append(t.cleanupDirs, tmp)
-	}
-	if dmesgs {
-		dmesg("%q", []string{ar, "x", "--output", tmp, fn})
 	}
 	if out, err = exec.Command(ar, "x", "--output", tmp, fn).CombinedOutput(); err != nil {
 		return nil, errorf("%s: %s\nFAIL: %v", ar, out, err)

@@ -266,6 +266,7 @@ func (t *Task) cc(realCC string, cflags []string) error {
 	set.Arg("iquote", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("isystem", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("l", true, func(arg, val string) error { args.add(arg + val); return nil })
+	set.Arg("march", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("o", true, func(arg, val string) error { args.add(arg, val+".go"); return nil })
 	set.Arg("std", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Opt("E", func(arg string) error { optE = true; return nil })
@@ -398,7 +399,6 @@ func (t *Task) ar() error {
 					return errorf("TODO #%d: %q: real AR=%q, faked args=%q", argN, arg, t.realAR, t.args)
 				}
 			}
-			// out += "P" // full paths
 			args.add(out)
 			return nil
 		case 2: // archive name
