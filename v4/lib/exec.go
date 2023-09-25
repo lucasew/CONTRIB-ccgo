@@ -410,10 +410,16 @@ func (t *Task) ar() error {
 			args.add(arg + "go") // archive.ago
 			return nil
 		default:
+			basenames := map[string]string{} // base: path
 			switch filepath.Ext(arg) {
 			case ".lo", ".o":
 				nm := arg + ".go"
 				if _, err := os.Stat(nm); err == nil {
+					bn := filepath.Base(nm)
+					if ex, ok := basenames[bn]; ok {
+						return errorf("duplicate basename %s: %s", ex, nm)
+					}
+
 					members++
 					args.add(nm)
 				}
