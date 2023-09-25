@@ -362,7 +362,7 @@ func (c *ctx) functionDefinition0(w writer, sep string, pos cc.Node, d *cc.Decla
 	})
 	for _, d := range a {
 		info := c.f.declInfos[d]
-		info.bpOff = roundup(c.f.tlsAllocs, int64(d.Type().Align()))
+		info.bpOff = roundup(c.f.tlsAllocs, bpAlign(d.Type()))
 		c.f.tlsAllocs = info.bpOff + d.Type().Size()
 	}
 	c.pass = 2

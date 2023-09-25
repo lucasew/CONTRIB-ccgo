@@ -2119,7 +2119,7 @@ out:
 			var bp int64
 			switch c.pass {
 			case 1:
-				bp = roundup(c.f.tlsAllocs, int64(t.Align()))
+				bp = roundup(c.f.tlsAllocs, bpAlign(t))
 				c.f.compoundLiterals[n] = bp
 				c.f.tlsAllocs += t.Size()
 			case 2:
@@ -2135,7 +2135,7 @@ out:
 			var bp int64
 			switch c.pass {
 			case 1:
-				bp = roundup(c.f.tlsAllocs, int64(t.Align()))
+				bp = roundup(c.f.tlsAllocs, bpAlign(t))
 				c.f.compoundLiterals[n] = bp
 				c.f.tlsAllocs += t.Size()
 			case 2:

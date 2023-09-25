@@ -1117,3 +1117,11 @@ func clearExecEnv() {
 		os.Setenv(v.envVar, "")
 	}
 }
+
+func bpAlign(t cc.Type) (r int64) {
+	r = int64(t.Align())
+	if sz := t.Size(); sz > r && sz <= 8 {
+		r = sz
+	}
+	return r
+}
