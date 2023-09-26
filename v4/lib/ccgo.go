@@ -87,6 +87,7 @@ type Task struct {
 	realCC                string // which cc
 	realClang             string // which clang
 	realGCC               string // which gcc
+	realLN                string // which ln
 	realMV                string // which mv
 	realRM                string // which rm
 	std                   string // -std
@@ -171,8 +172,9 @@ func (t *Task) Main() (err error) {
 		}
 		t.realAR = os.Getenv(AREnvVar)
 		t.realCC = os.Getenv(CCEnvVar)
-		t.realGCC = os.Getenv(GCCEnvVar)
 		t.realClang = os.Getenv(ClangEnvVar)
+		t.realGCC = os.Getenv(GCCEnvVar)
+		t.realLN = os.Getenv(LNEnvVar)
 		t.realMV = os.Getenv(MVEnvVar)
 		t.realRM = os.Getenv(RMEnvVar)
 		return t.execed(flags)

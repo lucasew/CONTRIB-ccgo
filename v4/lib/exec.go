@@ -25,6 +25,7 @@ const (
 	CCEnvVar     = "CCGO_EXEC_CC"
 	ClangEnvVar  = "CCGO_EXEC_CLANG"
 	GCCEnvVar    = "CCGO_EXEC_GCC"
+	LNEnvVar     = "CCGO_EXEC_LN"
 	MVEnvVar     = "CCGO_EXEC_MV"
 	RMEnvVar     = "CCGO_EXEC_RM"
 	cflagsEnvVar = "CCGO_EXEC_CFLAGS"
@@ -37,6 +38,7 @@ var (
 		{"cc", CCEnvVar},
 		{"clang", ClangEnvVar},
 		{"gcc", GCCEnvVar},
+		{"ln", LNEnvVar},
 		{"mv", MVEnvVar},
 		{"rm", RMEnvVar},
 	}
@@ -93,9 +95,10 @@ func (t *Task) exec(args []string) (err error) {
 			return err
 		}
 
+		ln := os.Getenv(LNEnvVar)
 		for _, v := range execBins {
 			symlink := filepath.Join(dirTemp, v.nm)
-			out, err := exec.Command("ln", self, symlink).CombinedOutput()
+			out, err := exec.Command(ln, self, symlink).CombinedOutput()
 			if err != nil {
 				return errorf("%s\n%v", out, err)
 			}
@@ -147,9 +150,52 @@ func (t *Task) execed(cflags []string) (err error) {
 		return t.mv()
 	case filepath.Base(t.realRM):
 		return t.rm()
+	case filepath.Base(t.realLN):
+		return t.ln()
 	default:
 		return errorf("internal error: real CC=%q, GCC=%q, Clang=%q, faked args=%q", t.realCC, t.realGCC, t.realClang, t.args)
 	}
+}
+
+func (t *Task) ln() error {
+	cmd := exec.Command(t.realLN, t.args[1:]...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		if dmesgs {
+			dmesg("SKIP: %s returns %v", t.realLN, err.(*exec.ExitError).ExitCode())
+		}
+		return err
+	}
+	set := opt.NewSet()
+	var args []string
+	files := 0
+	set.Opt("s", func(arg string) error { args = append(args, "-s"); return nil })
+	if err := set.Parse(t.args[1:], func(arg string) error {
+		if strings.HasPrefix(arg, "-") {
+			if dmesgs {
+				dmesg("", errorf("unexpected/unsupported option: %q", arg))
+			}
+			return errorf("unexpected/unsupported option: %s", arg)
+		}
+
+		args = append(args, t.goFile(arg))
+		files++
+		return nil
+	}); err != nil {
+		return err
+	}
+	if files != 2 {
+		return errorf("real LN=%q, faked args=%q", t.realLN, t.args)
+	}
+
+	if _, err := os.Stat(args[0]); err != nil {
+		return nil
+	}
+
+	shell0(60*time.Second, true, t.realLN, args...)
+	return nil
 }
 
 func (t *Task) mv() error {
