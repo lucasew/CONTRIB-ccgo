@@ -312,7 +312,6 @@ func (t *Task) getPkgSymbols(importPath string) (r *object, err error) {
 	// 		}
 	// 	}()
 	// }
-
 	pkgs, err := packages.Load(
 		&packages.Config{
 			Mode: packages.NeedFiles,

@@ -271,7 +271,7 @@ func (c *ctx) compoundStatement(w writer, n *cc.CompoundStatement, fnBlock bool,
 			w.w("}();")
 		}
 		if c.f.callsAlloca {
-			w.w("defer %stls.FreeAlloca();", tag(ccgo))
+			w.w("defer %stls.FreeAlloca()();", tag(ccgo))
 		}
 	default:
 		if !flat {

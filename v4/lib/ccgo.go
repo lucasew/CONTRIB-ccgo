@@ -362,6 +362,7 @@ func (t *Task) main() (err error) {
 			return nil
 		}
 
+		nm := arg
 		switch {
 		case strings.HasSuffix(arg, ".c") || strings.HasSuffix(arg, ".h"):
 			t.inputFiles = append(t.inputFiles, arg)
@@ -371,7 +372,9 @@ func (t *Task) main() (err error) {
 			t.linkFiles = append(t.linkFiles, arg)
 			return nil
 		case strings.HasSuffix(arg, ".a"):
-			nm := arg + "go" // foo.a -> foo.ago
+			nm += "go" // foo.a -> foo.ago
+			fallthrough
+		case strings.HasSuffix(arg, ".ago"):
 			list, err := t.arExtract(nm)
 			if err != nil {
 				return err
