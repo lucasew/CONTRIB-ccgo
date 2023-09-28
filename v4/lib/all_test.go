@@ -345,7 +345,7 @@ func TestExec(t *testing.T) {
 				}
 			}
 		default:
-			if out, err := shell(true, "go", "get", defaultLibcPackage+"@master"); err != nil { //TODO- &master
+			if out, err := shell(true, "go", "get", defaultLibcPackage+"@latest"); err != nil {
 				return fmt.Errorf("%s\vFAIL: %v", out, err)
 			}
 		}
@@ -805,7 +805,7 @@ func TestCSmith(t *testing.T) {
 			}
 		}
 	default:
-		if out, err := shell(true, "go", "get", defaultLibcPackage+"@master"); err != nil { //TODO- @master
+		if out, err := shell(true, "go", "get", defaultLibcPackage+"@latest"); err != nil { //TODO- @latest
 			t.Fatalf("%s\vFAIL: %v", out, err)
 		}
 	}
@@ -1108,7 +1108,7 @@ func testSQLiteSimple(t *testing.T) {
 			}
 		}
 	default:
-		if out, err := shell(true, "go", "get", defaultLibcPackage+"@master"); err != nil { //TODO- &master
+		if out, err := shell(true, "go", "get", defaultLibcPackage+"@latest"); err != nil {
 			t.Fatalf("%s\vFAIL: %v", out, err)
 		}
 	}
@@ -1309,7 +1309,7 @@ func testSQLiteSpeedTest1(t *testing.T) {
 			}
 		}
 	default:
-		if out, err := shell(true, "go", "get", defaultLibcPackage+"@master"); err != nil { //TODO- &master
+		if out, err := shell(true, "go", "get", defaultLibcPackage+"@latest"); err != nil {
 			t.Fatalf("%s\vFAIL: %v", out, err)
 		}
 	}
