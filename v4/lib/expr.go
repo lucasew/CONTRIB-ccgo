@@ -1786,9 +1786,15 @@ func (c *ctx) postfixExpressionIndex(w writer, n, p, index cc.ExpressionNode, pt
 	}
 	if c.isVolatileOrAtomicExpr(n) && mode == exprDefault {
 		defer func() { r.volatileOrAtomicHandled = true }()
-		bp := c.expr(w, p, p.Type().Pointer(), exprUintptr)
-		bp.w("+%s%s", c.expr(w, index, c.pvoid, exprDefault), mul)
-		return c.atomicLoad(w, n, bp, elem), elem, mode
+		switch p.Type().Kind() {
+		case cc.Ptr:
+			bp := c.expr(w, p, nil, exprDefault)
+			bp.w("+%s%s", c.expr(w, index, c.pvoid, exprDefault), mul)
+			return c.atomicLoad(w, n, bp, elem), elem, mode
+		default:
+			c.err(errorf("TODO %s %s", p.Type(), p.Type().Kind()))
+			return &b, t, mode
+		}
 	}
 
 	switch mode {
@@ -4182,10 +4188,5 @@ func (c *ctx) stringCharConst(b byte, t cc.Type) string {
 }
 
 func (c *ctx) isVolatileOrAtomicExpr(n cc.ExpressionNode) bool {
-	if n.Type().Attributes().IsVolatile() {
-		return true
-	}
-
-	d := c.declaratorOf(n)
-	return d != nil && d.IsAtomic()
+	return n.Type().Attributes().IsVolatile()
 }
