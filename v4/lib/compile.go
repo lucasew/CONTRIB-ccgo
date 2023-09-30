@@ -139,6 +139,9 @@ func isystem(goos, goarch, importPath string) (string, error) {
 			dir, _ := filepath.Split(fn)
 			isystem0 = filepath.Join(dir, "include", goos, goarch)
 			_, isystem0Err = os.Stat(isystem0)
+			if isystem0Err == nil {
+				break
+			}
 		}
 	})
 	return isystem0, isystem0Err
