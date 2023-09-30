@@ -1210,7 +1210,7 @@ func (c *ctx) checkVolatileExpr(w writer, n cc.ExpressionNode, t cc.Type, mode m
 		b := c.atomicLoad(w, n, c.topExpr(w, n, n.Type().Pointer(), exprUintptr), n.Type())
 		return c.convert(n, w, b, n.Type(), t, mode, mode)
 	}
-	c.err(errorf("%v: TODO n=%q t=%s mode=%v", n.Position(), cc.NodeSource(n), t, mode))
+	// c.err(errorf("%v: TODO n=%q t=%s mode=%v", n.Position(), cc.NodeSource(n), t, mode))
 	return c.expr(w, n, t, mode)
 }
 
