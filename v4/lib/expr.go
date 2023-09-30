@@ -32,6 +32,7 @@ const (
 
 const (
 	ccgoFP = "__ccgo_fp"
+	ccgoTS = "__ccgo_ts"
 )
 
 func (c *ctx) nonTopExpr(w writer, n cc.ExpressionNode, to cc.Type, toMode mode) *buf {
@@ -77,8 +78,10 @@ func (c *ctx) expr(w writer, n cc.ExpressionNode, to cc.Type, toMode mode) *buf 
 	// trc("%v: %q EXPR  pre call EXPR0 -> %s %s (%s) %T, isVolatileOrAtomicExpr %v", c.pos(n), cc.NodeSource(n), to, toMode, cc.NodeSource(n), n, c.isVolatileOrAtomicExpr(n))
 	r, from, fromMode := c.expr0(w, n, to, toMode)
 	// trc("%v: %q EXPR post call EXPR0 from %v %v -> to %v %v (%s) %T, r.volatileOrAtomicHandled %v ", c.pos(n), cc.NodeSource(n), from, fromMode, to, toMode, cc.NodeSource(n), n, r.volatileOrAtomicHandled)
+	// trc("%v: c.pass=%v n=%q r=%p r.volatileOrAtomicHandled=%v", c.pos(n), c.pass, cc.NodeSource(n), r, r.volatileOrAtomicHandled)
 	if c.isVolatileOrAtomicExpr(n) && !r.volatileOrAtomicHandled {
-		c.err(errorf("TODO %v: %q %p %T %s, toMode %v", n.Position(), cc.NodeSource(n), n, n, n.Type(), toMode))
+		// trc("%v: c.pass=%v n=%q r=%p r.volatileOrAtomicHandled=%v", c.pos(n), c.pass, cc.NodeSource(n), r, r.volatileOrAtomicHandled)
+		c.err(errorf("TODO %v: %q %p %T %s, toMode %v", c.pos(n), cc.NodeSource(n), n, n, n.Type(), toMode))
 	}
 
 	if from == nil || fromMode == 0 {
@@ -802,12 +805,20 @@ func (c *ctx) conditionalExpression(w writer, n *cc.ConditionalExpression, t cc.
 			switch val := n.LogicalOrExpression.Value(); {
 			case c.isNonZero(val):
 				if mode == exprVoid {
+					if c.canIgnore(n.ExpressionList) {
+						return &b, t, mode
+					}
+
 					mode = exprDefault
 				}
 				b.w("%s", c.expr(w, n.ExpressionList, t, mode))
 				return &b, t, mode
 			case c.isZero(val):
 				if mode == exprVoid {
+					if c.canIgnore(n.ConditionalExpression) {
+						return &b, t, mode
+					}
+
 					mode = exprDefault
 				}
 				b.w("%s", c.expr(w, n.ConditionalExpression, t, mode))
@@ -1161,6 +1172,13 @@ func (c *ctx) binopArgs(w writer, a, b cc.ExpressionNode, t cc.Type) (x, y *buf)
 }
 
 func (c *ctx) checkVolatileExpr(w writer, n cc.ExpressionNode, t cc.Type, mode mode) (r *buf) {
+	if !c.isVolatileOrAtomicExpr(n) {
+		return c.expr(w, n, t, mode)
+
+	}
+
+	defer func() { r.volatileOrAtomicHandled = true }()
+
 	switch mode {
 	case exprDefault:
 		switch x := n.(type) {
@@ -1170,17 +1188,29 @@ func (c *ctx) checkVolatileExpr(w writer, n cc.ExpressionNode, t cc.Type, mode m
 				return c.expr(w, n, t, mode)
 			}
 		case *cc.PrimaryExpression:
-			if x.Case == cc.PrimaryExpressionExpr {
+			switch x.Case {
+			case
+				cc.PrimaryExpressionChar,
+				cc.PrimaryExpressionExpr,
+				cc.PrimaryExpressionFloat,
+				cc.PrimaryExpressionInt,
+				cc.PrimaryExpressionLChar,
+				cc.PrimaryExpressionLString:
+
 				return c.expr(w, n, t, mode)
+			}
+		case *cc.AssignmentExpression:
+			if d := c.declaratorOf(x.UnaryExpression); d != nil /*TODO && !d.AddressTaken() */ && d.StorageDuration() == cc.Automatic {
+				r := c.expr(w, n, t, mode)
+				r.volatileOrAtomicHandled = true
+				return r
 			}
 		}
 
-		if c.isVolatileOrAtomicExpr(n) {
-			defer func() { r.volatileOrAtomicHandled = true }()
-			b := c.atomicLoad(w, n, c.topExpr(w, n, n.Type().Pointer(), exprUintptr), n.Type())
-			return c.convert(n, w, b, n.Type(), t, mode, mode)
-		}
+		b := c.atomicLoad(w, n, c.topExpr(w, n, n.Type().Pointer(), exprUintptr), n.Type())
+		return c.convert(n, w, b, n.Type(), t, mode, mode)
 	}
+	c.err(errorf("%v: TODO n=%q t=%s mode=%v", n.Position(), cc.NodeSource(n), t, mode))
 	return c.expr(w, n, t, mode)
 }
 
@@ -3752,8 +3782,7 @@ out:
 			c.compoundStatement(w, n.CompoundStatement, false, "")
 		default:
 			rt, rmode = n.Type(), exprDefault
-			v := fmt.Sprintf("%sv%d", tag(ccgo), c.id())
-			w.w("var %s %s;", v, c.typ(n, n.Type()))
+			v := c.f.newAutovar(n, n.Type())
 			c.compoundStatement(w, n.CompoundStatement, false, v)
 			if c.exprStmtLevel == 1 {
 				b.w("%s", v)
@@ -4188,5 +4217,25 @@ func (c *ctx) stringCharConst(b byte, t cc.Type) string {
 }
 
 func (c *ctx) isVolatileOrAtomicExpr(n cc.ExpressionNode) bool {
-	return n.Type().Attributes().IsVolatile()
+	if !n.Type().Attributes().IsVolatile() {
+		return false
+	}
+
+	if d := c.declaratorOf(n); d != nil /*TODO && !d.AddressTaken() */ && d.StorageDuration() == cc.Automatic {
+		return false
+	}
+
+	switch x := n.(type) {
+	case *cc.AssignmentExpression:
+		return c.isVolatileOrAtomicExpr(x.UnaryExpression)
+	case *cc.PostfixExpression:
+		switch x.Case {
+		case cc.PostfixExpressionDec, cc.PostfixExpressionInc:
+			if d := c.declaratorOf(x.PostfixExpression); d != nil /* && !d.AddressTaken() */ && d.StorageDuration() == cc.Automatic {
+				return false
+			}
+		}
+	}
+
+	return true
 }

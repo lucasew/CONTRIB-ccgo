@@ -695,8 +695,8 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 		}
 	}
 	l.tld.registerNameSet(l, tld, true)
-	l.textSegmentNameP = l.tld.reg.put("ts")
-	l.textSegmentName = l.tld.reg.put("ts")
+	l.textSegmentNameP = l.tld.reg.put(ccgoTS)
+	l.textSegmentName = l.tld.reg.put(ccgoTS)
 	l.reflectName = l.tld.reg.put("reflect")
 	l.runtimeName = l.tld.reg.put("runtime")
 	l.unsafeName = l.tld.reg.put("unsafe")

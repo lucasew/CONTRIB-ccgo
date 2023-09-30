@@ -606,7 +606,7 @@ func (c *ctx) declaration(w writer, n *cc.Declaration, external bool) {
 			}
 		}
 	case cc.DeclarationAssert: // StaticAssertDeclaration
-		c.err(errorf("TODO %v", n.Case))
+		// nop
 	case cc.DeclarationAuto: // "__auto_type" Declarator '=' Initializer ';'
 		c.err(errorf("TODO %v", n.Case))
 	default:

@@ -31,7 +31,12 @@ func (c *ctx) statement(w writer, n *cc.Statement) {
 			break
 		}
 
-		w.w("%s;", c.discardStr2(e, c.topExpr(w, e, nil, exprVoid)))
+		switch {
+		case c.exprStmtLevel != 0:
+			w.w("%s;", c.topExpr(w, e, nil, exprVoid))
+		default:
+			w.w("%s;", c.discardStr2(e, c.topExpr(w, e, nil, exprVoid)))
+		}
 	case cc.StatementSelection: // SelectionStatement
 		w.w("%s%s", sep, c.posComment(n))
 		c.selectionStatement(w, n.SelectionStatement)
@@ -297,12 +302,14 @@ func (c *ctx) compoundStatement(w writer, n *cc.CompoundStatement, fnBlock bool,
 							c.blockItem(w, bi)
 							w.w("%s = %s;", value, c.compoundStmtValue)
 						default:
-							w.w("%s = ", value)
-							c.blockItem(w, bi)
+							b := c.topExpr(w, e, nil, exprDefault)
+							w.w("%s = %s", value, b)
 						}
+					case cc.ExpressionNode:
+						b := c.topExpr(w, e, nil, exprDefault)
+						w.w("%s = %s", value, b)
 					default:
-						w.w("%s = ", value)
-						c.blockItem(w, bi)
+						c.err(errorf("%v: TODO %v", s.Position(), s.Case))
 					}
 				default:
 					// trc("%v: %s", bi.Position(), cc.NodeSource(bi))
