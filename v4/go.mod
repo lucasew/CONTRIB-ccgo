@@ -7,7 +7,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0
 	golang.org/x/mod v0.11.0
 	golang.org/x/tools v0.10.0
-	modernc.org/cc/v4 v4.14.4
+	modernc.org/cc/v4 v4.14.5
 	modernc.org/ccgo/v3 v3.16.15
 	modernc.org/ccorpus2 v1.5.1
 	modernc.org/fileutil v1.2.0
@@ -26,7 +26,7 @@ require (
 	lukechampine.com/uint128 v1.2.0 // indirect
 	modernc.org/cc/v3 v3.41.0 // indirect
 	modernc.org/libc v1.24.1 // indirect
-	modernc.org/libc/v2 v2.1.11 // indirect
+	modernc.org/libc/v2 v2.1.13 // indirect
 	modernc.org/memory v1.7.2 // indirect
 	modernc.org/sortutil v1.2.0 // indirect
 	modernc.org/token v1.1.0 // indirect
