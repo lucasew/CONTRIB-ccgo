@@ -31,6 +31,10 @@ const (
 	objectPkg
 )
 
+var (
+	builtinsObject = &object{}
+)
+
 type object struct {
 	defs           map[string]gc.Node // extern: node
 	externs        nameSet            // CAPI
@@ -660,11 +664,14 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 	// 		}
 	// 	}()
 	// }
-	// Force a link error for things not really supported or that only panic at runtime.
+	//TODO Force a link error for things not really supported or that only panic at runtime.
 	var tld nameSet
 	// Build the symbol table. First try normal definitions.
 	for _, linkFile := range linkFiles {
 		object := objects[linkFile]
+		// if dmesgs {
+		// 	dmesg("checking object.id=%s", object.id)
+		// }
 		for nm := range object.externs { // object defines nm
 			// if dmesgs {
 			// 	dmesg("extern %s declared in %s", nm, object.id)
@@ -728,7 +735,12 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 				lib, ok := l.externs[nm]
 				if !ok {
 					// trc("%q %v: %q", object.id, pos, nm)
-					undefs = append(undefs, undef{pos, nm})
+					switch r := l.rawName(nm); {
+					case strings.HasPrefix(r, "__builtin_"):
+						l.externs[nm] = builtinsObject
+					default:
+						undefs = append(undefs, undef{pos, nm})
+					}
 					continue
 				}
 
@@ -849,7 +861,7 @@ var (
 
 	for _, linkFile := range linkFiles {
 		object := objects[linkFile]
-		if object.kind != objectFile {
+		if object == builtinsObject || object.kind != objectFile {
 			continue
 		}
 
@@ -1322,6 +1334,10 @@ func (fi *fnInfo) name(linkName string) string {
 		}
 
 		r := fi.linker.rawName(linkName)
+		if strings.HasPrefix(r, "__builtin_") {
+			return fmt.Sprintf("%s%s%s", fi.linker.task.tlsQualifier, fi.linker.task.prefixExternal, r)
+		}
+
 		if !fi.linker.task.ignoreLinkErrors && fi.linker.undefsReported.add(r) {
 			fi.linker.err(errorf("undefined: %q %v", r, symKind(linkName)))
 		}

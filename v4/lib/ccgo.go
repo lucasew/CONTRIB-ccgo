@@ -292,7 +292,6 @@ func (t *Task) main() (err error) {
 	set.Opt("extended-errors", func(arg string) error { extendedErrors = true; gc.ExtendedErrors = true; return nil })
 	set.Opt("ffreestanding", func(arg string) error {
 		t.freeStanding = true
-		t.noBuiltin = true
 		t.cfgArgs = append(t.cfgArgs, arg)
 		return nil
 	})
@@ -554,7 +553,7 @@ func (t *Task) main() (err error) {
 		return t.compile(t.o)
 	}
 
-	if !t.nostdlib && !t.freeStanding {
+	if !t.nostdlib {
 		t.linkFiles = append(t.linkFiles, "-l=c")
 	}
 	t.L = append(t.L, defaultLibs)
@@ -606,14 +605,14 @@ func sourcesFor(cfg *cc.Config, fn string, t *Task) (r []cc.Source) {
 	if len(t.predef) != 0 {
 		predef += "\n" + strings.Join(t.predef, "\n")
 	}
-	sources := []cc.Source{
+	r = []cc.Source{
 		{Name: "<predefined>", Value: predef},
 		{Name: "<builtin>", Value: cc.Builtin},
 	}
 	if t.defs != "" {
-		sources = append(sources, cc.Source{Name: "<command-line>", Value: t.defs})
+		r = append(r, cc.Source{Name: "<command-line>", Value: t.defs})
 	}
-	return append(sources, cc.Source{Name: fn, FS: cfg.FS})
+	return append(r, cc.Source{Name: fn, FS: cfg.FS})
 }
 
 // -c
