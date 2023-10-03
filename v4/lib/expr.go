@@ -3042,6 +3042,20 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, mode mode
 		}
 	}
 
+	//	void f() {}
+	//	void g(void) {}
+	//	void h(int i) {}
+	//
+	//	int main () {
+	//		f();
+	//		g();
+	//		h(42);
+	//	}
+	//
+	// "f()"   ft.MinArgs()=0 ft.MaxArgs()=-1
+	// "g()"   ft.MinArgs()=0 ft.MaxArgs()=0
+	// "h(42)" ft.MinArgs()=1 ft.MaxArgs()=1
+
 	if mode == exprCall {
 		var rft *cc.FunctionType
 		switch x := ft.Result().(type) {

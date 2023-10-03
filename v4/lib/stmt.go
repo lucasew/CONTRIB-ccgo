@@ -590,8 +590,8 @@ func (c *ctx) iterationStatement(w writer, n *cc.IterationStatement) {
 				cont := c.label()
 				defer c.setBreakCtx(brk)()
 				defer c.setContinueCtx(cont)()
-				w.w("\ngoto %s; %[1]s: ", cont)
 				c.unbracedStatement(w, n.Statement)
+				w.w("\ngoto %s; %[1]s: ", cont)
 				w.w("\ngoto %s; %[1]s:/**/;//\n", brk)
 			default:
 				c.unbracedStatement(w, n.Statement)
@@ -733,13 +733,16 @@ func (c *ctx) iterationStatementFlat(w writer, n *cc.IterationStatement) {
 		c.unbracedStatement(w, n.Statement)
 		w.w("goto %s; %s:", cont, brk)
 	case cc.IterationStatementDo: // "do" Statement "while" '(' ExpressionList ')' ';'
-		// cont:
+		// a:
 		//	stmt
-		//	if expr goto cont
+		// cont:
+		//	if expr goto a
 		// brk:
-		w.w("%s:", cont)
+		a := c.label()
+		w.w("%s:", a)
 		c.unbracedStatement(w, n.Statement)
-		w.w("if (%s) { goto %s }; goto %s; %[3]s:", c.expr(w, n.ExpressionList, nil, exprBool), cont, brk)
+		w.w("\ngoto %s; %[1]s:", cont)
+		w.w("if (%s) { goto %s }; goto %s; %[3]s:", c.expr(w, n.ExpressionList, nil, exprBool), a, brk)
 	case cc.IterationStatementFor: // "for" '(' ExpressionList ';' ExpressionList ';' ExpressionList ')' Statement
 		//	expr1
 		// a:	if !expr2 goto brk
