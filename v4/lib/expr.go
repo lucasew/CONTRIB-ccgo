@@ -1422,10 +1422,10 @@ out:
 		default:
 			switch mode {
 			case exprVoid:
+				defer func() { r.volatileOrAtomicHandled = true }()
 				if c.isVolatileOrAtomicExpr(n.UnaryExpression) {
 					bp := c.expr(w, n.UnaryExpression, n.UnaryExpression.Type().Pointer(), exprUintptr)
 					b.w("%sPreIncAtomic%sP(%s, 1)", c.task.tlsQualifier, c.helper(n, n.UnaryExpression.Type()), bp)
-					defer func() { r.volatileOrAtomicHandled = true }()
 					break
 				}
 
@@ -2040,10 +2040,10 @@ out:
 			d := c.declaratorOf(n.PostfixExpression)
 			switch mode {
 			case exprVoid:
+				defer func() { r.volatileOrAtomicHandled = true }()
 				if c.isVolatileOrAtomicExpr(n.PostfixExpression) {
 					bp := c.expr(w, n.PostfixExpression, d.Type().Pointer(), exprUintptr)
 					b.w("%sPostIncAtomic%sP(%s, 1)", c.task.tlsQualifier, c.helper(n, d.Type()), bp)
-					defer func() { r.volatileOrAtomicHandled = true }()
 					break
 				}
 
@@ -2839,7 +2839,8 @@ func (c *ctx) isLastStructOrUnionField(n cc.ExpressionNode) *cc.Field {
 	}
 }
 
-func (c *ctx) declaratorOf(n cc.ExpressionNode) *cc.Declarator {
+func (c *ctx) declaratorOf(n cc.ExpressionNode) (r *cc.Declarator) {
+	// defer func(n cc.ExpressionNode) { trc("%v: %q %T %p", n.Position(), cc.NodeSource(n), n, r) }(n)
 	for n != nil {
 		n = c.unparen(n)
 		switch x := n.(type) {
@@ -2892,11 +2893,7 @@ func (c *ctx) declaratorOf(n cc.ExpressionNode) *cc.Declarator {
 			}
 		case *cc.UnaryExpression:
 			switch x.Case {
-			case
-				cc.UnaryExpressionInc,
-				cc.UnaryExpressionDec,
-				cc.UnaryExpressionPostfix: // PostfixExpression
-
+			case cc.UnaryExpressionPostfix: // PostfixExpression
 				n = x.PostfixExpression
 			default:
 				return nil
@@ -3881,6 +3878,27 @@ func (c *ctx) primaryExpressionStringConst(w writer, n *cc.PrimaryExpression, t 
 		switch {
 		case c.isCharType(x.Elem()):
 			s := string(s.(cc.StringValue))
+			//TODO bug in cc/v4/cpp.go:
+			//
+			//	int main() {
+			//	  /* Test data is:
+			//	   *   <?xml version='1.0' encoding='utf-16'?>
+			//	   *   <a><![CDATA[hello]]></a>
+			//	   */
+			//	  const char text[]
+			//	      = "\0<\0?\0x\0m\0l\0"
+			//	        " \0v\0e\0r\0s\0i\0o\0n\0=\0'\0\x31\0.\0\x30\0'\0"
+			//	        " \0e\0n\0c\0o\0d\0i\0n\0g\0=\0'\0u\0t\0f\0-\0"
+			//	        "1\0"
+			//	        "6\0'"
+			//	        "\0?\0>\0\n"
+			//	        "\0<\0a\0>\0<\0!\0[\0C\0D\0A\0T\0A\0[\0h\0e\0l\0l\0o\0]\0]\0>\0<\0/\0a\0>";
+			//
+			//	  char *p = text;
+			//	  for(int i = 0; i < sizeof(text); i++) {
+			//		  __builtin_printf("%3d: 0x%02x\n", i, (unsigned)*p++);
+			//	  }
+			//	}
 		out:
 			switch t.Kind() {
 			case cc.Array:

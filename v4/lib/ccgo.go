@@ -118,6 +118,7 @@ type Task struct {
 	nostdlib                     bool // -nostdlib
 	opt0                         bool // -O0
 	packageNameSet               bool
+	pedantic                     bool // -pedantic
 	pedanticErrros               bool // -pedantic-errors
 	positions                    bool // -positions
 	prefixDefineSet              bool // --prefix-define <string>
@@ -322,6 +323,7 @@ func (t *Task) main() (err error) {
 	set.Opt("no-object-file-format", func(arg string) error { t.noObjFmt = true; return nil })
 	set.Opt("nostdinc", func(arg string) error { t.nostdinc = true; t.cfgArgs = append(t.cfgArgs, arg); return nil })
 	set.Opt("nostdlib", func(arg string) error { t.nostdlib = true; return nil })
+	set.Opt("pedantic", func(arg string) error { t.pedantic = true; return nil })
 	set.Opt("pedantic-errors", func(arg string) error { t.pedanticErrros = true; return nil })
 	set.Opt("positions", func(arg string) error { t.positions = true; return nil })
 	set.Opt("pthread", func(arg string) error { t.pthread = true; t.cfgArgs = append(t.cfgArgs, arg); return nil })

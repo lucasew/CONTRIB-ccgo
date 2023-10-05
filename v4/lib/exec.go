@@ -328,6 +328,7 @@ func (t *Task) cc(realCC string, cflags []string) error {
 	set.Opt("mlong-double-64", func(arg string) error { args.add(arg); return nil })
 	set.Opt("nostdinc", func(arg string) error { args.add(arg); return nil })
 	set.Opt("nostdlib", func(arg string) error { args.add(arg); return nil })
+	set.Opt("pedantic", func(arg string) error { args.add(arg); return nil })
 	set.Opt("pedantic-errors", func(arg string) error { args.add(arg); return nil })
 	set.Opt("pipe", func(arg string) error { return nil })
 	set.Opt("shared", func(arg string) error { args.add(arg); return nil })
