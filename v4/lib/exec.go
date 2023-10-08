@@ -332,6 +332,7 @@ func (t *Task) cc(realCC string, cflags []string) error {
 	set.Opt("pedantic", func(arg string) error { args.add(arg); return nil })
 	set.Opt("pedantic-errors", func(arg string) error { args.add(arg); return nil })
 	set.Opt("pipe", func(arg string) error { return nil })
+	set.Opt("s", func(arg string) error { args.add(arg); return nil })
 	set.Opt("shared", func(arg string) error { args.add(arg); return nil })
 	files := 0
 	if err := set.Parse(t.args[1:], func(arg string) error {
