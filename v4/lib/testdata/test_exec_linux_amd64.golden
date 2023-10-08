@@ -2377,6 +2377,9 @@ assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/991221-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/991227-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/991228-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/alias-1.c
+assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/alias-2.c
+assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/alias-3.c
+assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/alias-4.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/align-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/align-2.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/alloca-1.c
@@ -3821,6 +3824,9 @@ assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/991221-1.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/991227-1.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/991228-1.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/alias-1.c
+assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/alias-2.c
+assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/alias-3.c
+assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/alias-4.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/alias-access-path-1.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/alias-access-path-2.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/align-1.c

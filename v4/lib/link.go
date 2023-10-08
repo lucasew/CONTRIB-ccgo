@@ -664,6 +664,7 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 	// 		}
 	// 	}()
 	// }
+
 	//TODO Force a link error for things not really supported or that only panic at runtime.
 	var tld nameSet
 	// Build the symbol table. First try normal definitions.
@@ -686,16 +687,37 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 			tld.add(nm)
 		}
 	}
-	// Then try weak aliases
+	// Then try aliases
 	for _, linkFile := range linkFiles {
 		object := objects[linkFile]
-		for nm, to := range object.meta.WeakAliases { // object defines a weak alias for nm
+		for nm, to := range object.meta.Aliases { // object defines a weak alias for nm
+			// if dmesgs {
+			// 	dmesg("extern %s alias in %s", nm, object.id)
+			// }
 			if _, ok := l.externs[nm]; !ok { // extern is still unresolved
 				l.externs[nm] = object
 				object.requiredFor(nm)
 				l.weakAliases[nm] = to
 				// if dmesgs {
-				// 	dmesg("extern %s weak resolved in %s", nm, object.id)
+				// 	dmesg("extern %s alias resolved in %s", nm, object.id)
+				// }
+			}
+			tld.add(nm)
+		}
+	}
+	// Then try weak aliases
+	for _, linkFile := range linkFiles {
+		object := objects[linkFile]
+		for nm, to := range object.meta.WeakAliases { // object defines a weak alias for nm
+			// if dmesgs {
+			// 	dmesg("extern %s weak alias in %s", nm, object.id)
+			// }
+			if _, ok := l.externs[nm]; !ok { // extern is still unresolved
+				l.externs[nm] = object
+				object.requiredFor(nm)
+				l.weakAliases[nm] = to
+				// if dmesgs {
+				// 	dmesg("extern %s weak alias resolved in %s", nm, object.id)
 				// }
 			}
 			tld.add(nm)
@@ -739,6 +761,9 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 					case strings.HasPrefix(r, "__builtin_"):
 						l.externs[nm] = builtinsObject
 					default:
+						// if dmesgs {
+						// 	dmesg("extern %s NOT resolved", nm)
+						// }
 						undefs = append(undefs, undef{pos, nm})
 					}
 					continue

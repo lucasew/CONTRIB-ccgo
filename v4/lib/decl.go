@@ -665,12 +665,18 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 	if s := c.visbilityAttr(dt); s != "" {
 		c.Visibility[c.declaratorTag(d)+d.Name()] = s
 	}
-	if c.weakAttr(dt) && c.aliasAttr(dt) != "" {
+
+	if c.aliasAttr(dt) != "" {
 		toLinkName := tag(external) + c.aliasAttr(dt)
 		if to := c.aliasAttrDecl(dt); to != nil {
 			toLinkName = c.declaratorTag(to) + to.Name()
 		}
-		c.WeakAliases[c.declaratorTag(d)+d.Name()] = toLinkName
+		switch {
+		case c.weakAttr(dt):
+			c.WeakAliases[c.declaratorTag(d)+d.Name()] = toLinkName
+		default:
+			c.Aliases[c.declaratorTag(d)+d.Name()] = toLinkName
+		}
 		return
 	}
 

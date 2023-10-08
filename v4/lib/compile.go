@@ -203,6 +203,7 @@ type errHandler func(msg string, args ...interface{})
 
 // https://www.vishalchovatiya.com/default-handlers-in-c-weak_alias/
 type jsonMeta struct {
+	Aliases     map[string]string // redirect what link name: redirect to link name
 	Visibility  map[string]string
 	WeakAliases map[string]string // redirect what link name: redirect to link name
 }
@@ -277,6 +278,7 @@ func newCtx(task *Task, eh errHandler) *ctx {
 		task:                task,
 		verify:              map[cc.Type]struct{}{},
 		jsonMeta: jsonMeta{
+			Aliases:     map[string]string{},
 			Visibility:  map[string]string{},
 			WeakAliases: map[string]string{},
 		},
