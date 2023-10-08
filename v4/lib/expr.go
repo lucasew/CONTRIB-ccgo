@@ -1323,7 +1323,7 @@ func (c *ctx) isBitField(n cc.ExpressionNode) bool {
 				return false
 			}
 		default:
-			trc("TODO %T", x)
+			c.err(errorf("TODO %T", x))
 			return false
 		}
 	}
@@ -1479,7 +1479,13 @@ out:
 					w.w("\n%s = %s;", v, ds)
 					b.w("%s", v)
 				default:
-					c.err(errorf("%v: TODO", pos(n))) // -
+					pt := n.UnaryExpression.Type().Pointer()
+					v := c.f.newAutovar(n, n.UnaryExpression.Type())
+					v2 := c.f.newAutovar(n, pt)
+					w.w("%s = %s;", v2, c.expr(w, n.UnaryExpression, pt, exprUintptr))
+					w.w("(*(*%s)(%s)) -= %d;", c.typ(n, n.UnaryExpression.Type()), unsafePointer(v2), sz)
+					w.w("%s = (*(*%s)(%s));", v, c.typ(n, n.UnaryExpression.Type()), unsafePointer(v2))
+					b.w("%s", v)
 				}
 			default:
 				c.err(errorf("TODO %v", mode)) // -
@@ -3292,7 +3298,7 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 				defer func() { r.volatileOrAtomicHandled = true }()
 				return c.atomicStore(w, n, c.topExpr(w, n.UnaryExpression, ut.Pointer(), exprUintptr), c.topExpr(w, n.AssignmentExpression, ut, exprDefault), ut, mode), ut, mode
 			default:
-				trc("%v: TODO %q, t %s, mode %v, case %v", n.Position(), cc.NodeSource(n), t, mode, n.Case)
+				c.err(errorf("%v: TODO %q, t %s, mode %v, case %v", n.Position(), cc.NodeSource(n), t, mode, n.Case))
 			}
 		}
 

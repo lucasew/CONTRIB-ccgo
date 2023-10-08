@@ -59,6 +59,7 @@ type Task struct {
 	idirafter             []string // -idirafter
 	ignoreFile            nameSet  // -ignore-file=comma separated file list
 	imports               []string // -import=comma separated import list
+	include               []string // -include
 	inputFiles            []string
 	iquote                []string // -iquote
 	isystem               []string // -isystem
@@ -245,6 +246,7 @@ func (t *Task) main() (err error) {
 		}
 		return nil
 	})
+	set.Arg("include", true, func(arg, val string) error { t.include = append(t.include, val); return nil })
 	set.Arg("import", false, func(arg, val string) error {
 		t.imports = append(t.imports, strings.Split(val, ",")...)
 		return nil
@@ -398,14 +400,14 @@ func (t *Task) main() (err error) {
 		}
 	}
 
-	if len(t.isystem) == 0 && !t.freeStanding && !t.nostdlib {
+	if !t.freeStanding && !t.nostdlib {
 		isystem, err := isystem(t.goos, t.goarch, defaultLibcPackage)
 		if err != nil {
 			return err
 		}
 
 		if isystem != "" {
-			t.isystem = []string{isystem}
+			t.isystem = append(t.isystem, isystem)
 			t.D = append(t.D, "-D_GNU_SOURCE")
 		}
 	}
@@ -613,6 +615,14 @@ func sourcesFor(cfg *cc.Config, fn string, t *Task) (r []cc.Source) {
 	}
 	if t.defs != "" {
 		r = append(r, cc.Source{Name: "<command-line>", Value: t.defs})
+	}
+	if len(t.include) != 0 {
+		var includes []string
+		for _, v := range t.include {
+			includes = append(includes, fmt.Sprintf("#include %q", v))
+		}
+		includes = append(includes, "")
+		r = append(r, cc.Source{Name: "<include>", Value: strings.Join(includes, "\n")})
 	}
 	return append(r, cc.Source{Name: fn, FS: cfg.FS})
 }
