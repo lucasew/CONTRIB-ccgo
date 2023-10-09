@@ -309,7 +309,6 @@ func (t *Task) cc(realCC string, cflags []string) error {
 	set.Arg("O", true, func(arg, val string) error { args.add(arg + val); return nil })
 	set.Arg("U", true, func(arg, val string) error { args.add(arg + val); return nil })
 	set.Arg("idirafter", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
-	set.Arg("include", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("iquote", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("isystem", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("l", true, func(arg, val string) error { args.add(arg + val); return nil })
@@ -332,7 +331,6 @@ func (t *Task) cc(realCC string, cflags []string) error {
 	set.Opt("pedantic", func(arg string) error { args.add(arg); return nil })
 	set.Opt("pedantic-errors", func(arg string) error { args.add(arg); return nil })
 	set.Opt("pipe", func(arg string) error { return nil })
-	set.Opt("s", func(arg string) error { args.add(arg); return nil })
 	set.Opt("shared", func(arg string) error { args.add(arg); return nil })
 	files := 0
 	if err := set.Parse(t.args[1:], func(arg string) error {
