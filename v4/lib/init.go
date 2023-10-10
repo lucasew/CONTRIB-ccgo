@@ -7,11 +7,16 @@
 package ccgo // import "modernc.org/ccgo/v4/lib"
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 	"sort"
 
 	"modernc.org/cc/v4"
+)
+
+var (
+	zeroFuncPtr = []byte(fmt.Sprintf("(%suintptr(0))", tag(preserve)))
 )
 
 type initPatch struct {
@@ -89,7 +94,7 @@ func (c *ctx) initializer(w writer, n cc.Node, a []*cc.Initializer, t cc.Type, o
 		if t.Kind() == cc.Ptr && c.initPatch != nil && (t.Kind() == cc.Ptr && t.(*cc.PointerType).Elem().Kind() == cc.Function || c.mentionsFunc(in.AssignmentExpression)) {
 			c.initPatch(off0, r)
 			var b buf
-			b.w("(%suintptr(0))", tag(preserve))
+			b.w("%s", zeroFuncPtr)
 			return &b
 		}
 
@@ -229,7 +234,11 @@ func (c *ctx) initializerArray(w writer, n cc.Node, a []*cc.Initializer, t *cc.A
 		sort.Slice(a, func(i, j int) bool { return a[i] < a[j] })
 		for _, k := range a {
 			v := m[k]
-			b.w("\n%d: %s, ", k, c.initializer(w, n, []*cc.Initializer{v.s}, et, v.off, true))
+			if !c.isZeroInitializerSlice([]*cc.Initializer{v.s}) {
+				if s := c.initializer(w, n, []*cc.Initializer{v.s}, et, v.off, true); !bytes.Equal(s.bytes(), zeroFuncPtr) {
+					b.w("\n%d: %s, ", k, s)
+				}
+			}
 		}
 	default:
 		for _, v := range s {
@@ -244,7 +253,11 @@ func (c *ctx) initializerArray(w writer, n cc.Node, a []*cc.Initializer, t *cc.A
 			default:
 				off := v[0].Offset() - off0
 				off -= off % esz
-				b.w("\n%d: %s, ", off/esz, c.initializer(w, n, v, et, off0+off, true))
+				if !c.isZeroInitializerSlice(v) {
+					if s := c.initializer(w, n, v, et, off0+off, true); !bytes.Equal(s.bytes(), zeroFuncPtr) {
+						b.w("\n%d: %s, ", off/esz, s)
+					}
+				}
 			}
 		}
 	}
@@ -375,7 +388,11 @@ func (c *ctx) initializerStruct(w writer, n cc.Node, a []*cc.Initializer, t *cc.
 		}
 		// trc("f %q %s off %#0x v[0].Type() %v", f.Name(), f.Type(), f.Offset(), v[0].Type())
 		flds = flds[1:]
-		b.w("\n%s%s: %s, ", tag(field), c.fieldName(t, f), c.initializer(w, n, v, f.Type(), off0+f.Offset(), false))
+		if !c.isZeroInitializerSlice(v) {
+			if s := c.initializer(w, n, v, f.Type(), off0+f.Offset(), false); !bytes.Equal(s.bytes(), zeroFuncPtr) {
+				b.w("\n%s%s: %s, ", tag(field), c.fieldName(t, f), s)
+			}
+		}
 	}
 	b.w("\n}")
 	return &b

@@ -255,6 +255,7 @@ func (t *Task) rm() error {
 
 	rf := false
 	set := opt.NewSet()
+	set.Opt("r", func(arg string) error { return nil })
 	set.Opt("f", func(arg string) error { return nil })
 	set.Opt("rf", func(arg string) error { rf = true; return nil })
 	set.Opt("fr", func(arg string) error { rf = true; return nil })
@@ -316,6 +317,7 @@ func (t *Task) cc(realCC string, cflags []string) error {
 	set.Arg("mtune", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("o", true, func(arg, val string) error { args.add(arg, val+".go"); return nil })
 	set.Arg("std", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
+	set.Opt("-version", func(arg string) error { args.add(arg); return nil })
 	set.Opt("E", func(arg string) error { optE = true; return nil })
 	set.Opt("MMD", func(arg string) error { return nil })
 	set.Opt("c", func(arg string) error { args.add(arg); return nil })
@@ -331,7 +333,11 @@ func (t *Task) cc(realCC string, cflags []string) error {
 	set.Opt("pedantic", func(arg string) error { args.add(arg); return nil })
 	set.Opt("pedantic-errors", func(arg string) error { args.add(arg); return nil })
 	set.Opt("pipe", func(arg string) error { return nil })
+	set.Opt("s", func(arg string) error { args.add(arg); return nil })
 	set.Opt("shared", func(arg string) error { args.add(arg); return nil })
+	set.Opt("static", func(arg string) error { args.add(arg); return nil })
+	set.Opt("v", func(arg string) error { args.add(arg); return nil })
+	set.Opt("w", func(arg string) error { args.add(arg); return nil })
 	files := 0
 	if err := set.Parse(t.args[1:], func(arg string) error {
 		if optE {

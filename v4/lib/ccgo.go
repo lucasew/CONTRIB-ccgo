@@ -335,6 +335,7 @@ func (t *Task) main() (err error) {
 	set.Arg("MT", true, func(arg, val string) error { return nil })
 	set.Arg("march", true, func(arg, val string) error { return nil })
 	set.Arg("mtune", true, func(arg, val string) error { return nil })
+	set.Opt("-version", func(arg string) error { return nil })
 	set.Opt("M", func(arg string) error { return nil })
 	set.Opt("MD", func(arg string) error { return nil })
 	set.Opt("MM", func(arg string) error { return nil })
@@ -344,11 +345,11 @@ func (t *Task) main() (err error) {
 	set.Opt("S", func(arg string) error { return nil })
 	set.Opt("dynamiclib", func(arg string) error { return nil })
 	set.Opt("herror_on_warning", func(arg string) error { return nil })
-	set.Opt("pedantic", func(arg string) error { return nil })
 	set.Opt("pipe", func(arg string) error { return nil })
 	set.Opt("s", func(arg string) error { return nil })
 	set.Opt("shared", func(arg string) error { return nil })
 	set.Opt("static", func(arg string) error { return nil })
+	set.Opt("v", func(arg string) error { return nil })
 	set.Opt("w", func(arg string) error { return nil })
 
 	if err := set.Parse(t.args[1:], func(arg string) error {
