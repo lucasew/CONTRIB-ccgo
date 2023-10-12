@@ -35,6 +35,24 @@ const (
 	ccgoTS = "__ccgo_ts"
 )
 
+var (
+	//lint:ignore U1000 debug
+	indentLevel int
+)
+
+//lint:ignore U1000 debug
+func indent() (r string) {
+	r = strings.Repeat("· ", indentLevel)
+	indentLevel++
+	return r
+}
+
+//lint:ignore U1000 debug
+func undent() (r string) {
+	indentLevel--
+	return strings.Repeat("· ", indentLevel)
+}
+
 func (c *ctx) nonTopExpr(w writer, n cc.ExpressionNode, to cc.Type, toMode mode) *buf {
 	c.exprNestLevel++
 
@@ -52,7 +70,11 @@ func (c *ctx) topExpr(w writer, n cc.ExpressionNode, to cc.Type, toMode mode) *b
 	return c.expr(w, n, to, toMode)
 }
 
-func (c *ctx) expr(w writer, n cc.ExpressionNode, to cc.Type, toMode mode) *buf {
+func (c *ctx) expr(w writer, n cc.ExpressionNode, to cc.Type, toMode mode) (ret *buf) {
+	// trc("\t%s%v: %s from=%v to=%v toMode=%v", indent(), n.Position(), cc.NodeSource(n), n.Type(), to, toMode)
+	// defer func() {
+	// 	trc("\t%s%v: %s from=%v to=%v toMode=%v -> ret=%s", undent(), n.Position(), cc.NodeSource(n), n.Type(), to, toMode, ret)
+	// }()
 	if toMode == 0 {
 		c.err(errorf("internal error"))
 		return &buf{}
@@ -77,7 +99,7 @@ func (c *ctx) expr(w writer, n cc.ExpressionNode, to cc.Type, toMode mode) *buf 
 	}
 	// trc("%v: %q EXPR  pre call EXPR0 -> %s %s (%s) %T, isVolatileOrAtomicExpr %v", c.pos(n), cc.NodeSource(n), to, toMode, cc.NodeSource(n), n, c.isVolatileOrAtomicExpr(n))
 	r, from, fromMode := c.expr0(w, n, to, toMode)
-	// trc("%v: %q EXPR post call EXPR0 from %v %v -> to %v %v (%s) %T, r.volatileOrAtomicHandled %v ", c.pos(n), cc.NodeSource(n), from, fromMode, to, toMode, cc.NodeSource(n), n, r.volatileOrAtomicHandled)
+	// trc("%v: %q EXPR post call EXPR0 from %v %v -> to %v %v (%s) %T, r.volatileOrAtomicHandled %v r=%q", c.pos(n), cc.NodeSource(n), from, fromMode, to, toMode, cc.NodeSource(n), n, r.volatileOrAtomicHandled, r)
 	// trc("%v: c.pass=%v n=%q r=%p r.volatileOrAtomicHandled=%v", c.pos(n), c.pass, cc.NodeSource(n), r, r.volatileOrAtomicHandled)
 	if c.isVolatileOrAtomicExpr(n) && !r.volatileOrAtomicHandled {
 		// trc("%v: c.pass=%v n=%q r=%p r.volatileOrAtomicHandled=%v", c.pos(n), c.pass, cc.NodeSource(n), r, r.volatileOrAtomicHandled)
@@ -4231,8 +4253,12 @@ out:
 		default:
 			b.w("(%s%s%sFrom%s(%v))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), c.helper(n, n.Type()), x)
 		}
+	case cc.Complex64Value:
+		b.w("(%s%s%sFrom%s(%v))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), c.helper(n, n.Type()), x)
+	case cc.Complex128Value:
+		b.w("(%s%s%sFrom%s(%v))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), c.helper(n, n.Type()), x)
 	default:
-		c.err(errorf("TODO %T", x))
+		c.err(errorf("TODO %s %T from=%v t=%v mode=%v", cc.NodeSource(n), x, n.Type(), t, mode))
 	}
 	return &b, rt, rmode
 }
