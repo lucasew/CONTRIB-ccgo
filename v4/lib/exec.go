@@ -311,6 +311,7 @@ func (t *Task) cc(realCC string, cflags []string) error {
 	set.Arg("MT", true, func(arg, val string) error { return nil })
 	set.Arg("O", true, func(arg, val string) error { args.add(arg + val); return nil })
 	set.Arg("U", true, func(arg, val string) error { args.add(arg + val); return nil })
+	set.Arg("gz", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("idirafter", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("iquote", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("isystem", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })

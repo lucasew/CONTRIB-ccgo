@@ -333,6 +333,7 @@ func (t *Task) main() (err error) {
 	set.Arg("MF", true, func(arg, val string) error { return nil })
 	set.Arg("MQ", true, func(arg, val string) error { return nil })
 	set.Arg("MT", true, func(arg, val string) error { return nil })
+	set.Arg("gz", true, func(arg, val string) error { return nil })
 	set.Arg("march", true, func(arg, val string) error { return nil })
 	set.Arg("mtune", true, func(arg, val string) error { return nil })
 	set.Opt("-version", func(arg string) error { return nil })
