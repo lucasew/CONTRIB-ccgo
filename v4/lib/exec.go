@@ -171,7 +171,9 @@ func (t *Task) ln() error {
 	set := opt.NewSet()
 	var args []string
 	files := 0
-	set.Opt("s", func(arg string) error { args = append(args, "-s"); return nil })
+	set.Opt("s", func(arg string) error { args = append(args, arg); return nil })
+	set.Opt("sf", func(arg string) error { args = append(args, arg); return nil })
+	set.Opt("fs", func(arg string) error { args = append(args, arg); return nil })
 	if err := set.Parse(t.args[1:], func(arg string) error {
 		if strings.HasPrefix(arg, "-") {
 			if dmesgs {
