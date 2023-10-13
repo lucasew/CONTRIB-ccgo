@@ -342,6 +342,7 @@ func (t *Task) main() (err error) {
 	set.Opt("MMD", func(arg string) error { return nil })
 	set.Opt("MP", func(arg string) error { return nil })
 	set.Opt("Qunused-arguments", func(arg string) error { return nil })
+	set.Opt("Qunused-arguments", func(arg string) error { return nil })
 	set.Opt("S", func(arg string) error { return nil })
 	set.Opt("dynamiclib", func(arg string) error { return nil })
 	set.Opt("herror_on_warning", func(arg string) error { return nil })
