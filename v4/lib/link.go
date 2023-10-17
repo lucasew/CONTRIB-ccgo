@@ -1290,10 +1290,9 @@ func %s(f interface{}) uintptr {
 func (l *linker) prologue(nm string) {
 	l.w(`// %s%s/%s by '%s %s'%s
 
-//go:build %[2]s && %[3]s
-// +build %[2]s,%[3]s
+%s
 
-package %[7]s
+package %s
 
 `,
 		generatedFilePrefix,
@@ -1301,6 +1300,7 @@ package %[7]s
 		filepath.Base(l.task.args[0]),
 		strings.Join(l.task.args[1:], " "),
 		generatedFileSuffix,
+		l.task.buildLines,
 		nm,
 	)
 }

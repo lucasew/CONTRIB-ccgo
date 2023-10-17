@@ -47,7 +47,7 @@ clean:
 
 edit:
 	@touch log
-	@if [ -f "Session.vim" ]; then gvim -S & else gvim -p Makefile *.go & fi
+	@if [ -f "Session.vim" ]; then gvim -S & else gvim -p Makefile ccgo.go & fi
 
 editor:
 	stringer -output stringer.go -type mode,name

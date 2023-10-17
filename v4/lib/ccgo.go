@@ -46,6 +46,7 @@ type Task struct {
 	U                     []string            // -U
 	archiveLinkFiles      map[string]struct{} // path:
 	args                  []string            // command name in args[0]
+	buildLines            string              // //go:build ... and/or // +build ...
 	cfg                   *cc.Config
 	cfgArgs               []string
 	cleanupDirs           []string
@@ -145,15 +146,17 @@ func NewTask(goos, goarch string, args []string, stdout, stderr io.Writer, fs fs
 		D:                d,
 		archiveLinkFiles: map[string]struct{}{},
 		args:             args,
-		compiledfFiles:   map[string]string{},
-		fs:               fs,
-		goarch:           goarch,
-		goos:             goos,
-		intSize:          intSize,
-		prefixAnonType:   "_",
-		stderr:           stderr,
-		stdout:           stdout,
-		tlsQualifier:     tag(importQualifier) + "libc.",
+		buildLines: fmt.Sprintf(`//go:build %[1]s && %[2]s
+// +build %[1]s,%[2]s`, goos, goarch),
+		compiledfFiles: map[string]string{},
+		fs:             fs,
+		goarch:         goarch,
+		goos:           goos,
+		intSize:        intSize,
+		prefixAnonType: "_",
+		stderr:         stderr,
+		stdout:         stdout,
+		tlsQualifier:   tag(importQualifier) + "libc.",
 	}
 }
 
@@ -232,6 +235,7 @@ func (t *Task) main() (err error) {
 	set.Arg("L", true, func(arg, val string) error { t.L = append(t.L, val); return nil })
 	set.Arg("O", true, func(arg, val string) error { t.O = fmt.Sprintf("%s%s", arg, val); t.opt0 = val == "0"; return nil })
 	set.Arg("U", true, func(arg, val string) error { t.U = append(t.U, fmt.Sprintf("%s%s", arg, val)); return nil })
+	set.Arg("build-lines", false, func(arg, val string) error { t.buildLines = val; return nil })
 	set.Arg("hide", false, func(arg, val string) error {
 		for _, v := range strings.Split(val, ",") {
 			t.hidden.add(v)
