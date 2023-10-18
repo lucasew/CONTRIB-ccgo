@@ -64,6 +64,7 @@ type Task struct {
 	iquote                []string // -iquote
 	isystem               []string // -isystem
 	l                     []string // -l
+	libc                  string   // --libc=modernc.org/libc/v2
 	linkFiles             []string
 	o                     string   // -o
 	packageName           string   // --package-name
@@ -149,6 +150,7 @@ func NewTask(goos, goarch string, args []string, stdout, stderr io.Writer, fs fs
 		buildLines: fmt.Sprintf(`//go:build %[1]s && %[2]s
 // +build %[1]s,%[2]s`, goos, goarch),
 		compiledfFiles: map[string]string{},
+		libc:           defaultLibcPackage,
 		fs:             fs,
 		goarch:         goarch,
 		goos:           goos,
@@ -214,6 +216,7 @@ func (t *Task) main() (err error) {
 	}()
 
 	set := opt.NewSet()
+	set.Arg("-libc", false, func(arg, val string) error { t.libc = val; return nil })
 	set.Arg("-package-name", false, func(arg, val string) error { t.packageName = val; t.packageNameSet = true; return nil })
 	set.Arg("-predef", false, func(arg, val string) error { t.predef = append(t.predef, val); return nil })
 	set.Arg("-prefix-automatic", false, func(arg, val string) error { t.prefixAutomatic = val; return nil })
@@ -405,8 +408,8 @@ func (t *Task) main() (err error) {
 		}
 	}
 
-	if len(t.isystem) == 0 && !t.freeStanding && !t.nostdlib {
-		isystem, err := isystem(t.goos, t.goarch, defaultLibcPackage)
+	if len(t.isystem) == 0 && !t.freeStanding && !t.nostdlib && t.libc == defaultLibcPackage {
+		isystem, err := isystem(t.goos, t.goarch, t.libc)
 		if err != nil {
 			return err
 		}

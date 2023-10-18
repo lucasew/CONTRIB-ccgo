@@ -38,6 +38,8 @@ import (
 const (
 	csmithBitfields   = "--bitfields"    // --bitfields | --no-bitfields: enable | disable full-bitfields structs (enabled by default). // Was disabled by default in older versions,
 	csmithNoBitfields = "--no-bitfields" // --bitfields | --no-bitfields: enable | disable full-bitfields structs (enabled by default).
+
+	defaultTestLibcPackage = "modernc.org/libc"
 )
 
 var (
@@ -345,7 +347,7 @@ func TestExec(t *testing.T) {
 				}
 			}
 		default:
-			if out, err := shell(true, "go", "get", defaultLibcPackage+"@latest"); err != nil {
+			if out, err := shell(true, "go", "get", defaultTestLibcPackage+"@latest"); err != nil {
 				return fmt.Errorf("%s\vFAIL: %v", out, err)
 			}
 		}
@@ -500,6 +502,7 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 				"--prefix-field=F",
 				"-ignore-unsupported-atomic-sizes",
 				"-ignore-vector-functions",
+				"--libc", "modernc.org/libc",
 				path,
 			},
 			&out, &out, nil).Main()
@@ -515,6 +518,7 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 				"--prefix-field=F",
 				"-ignore-vector-functions",
 				"-ignore-unsupported-atomic-sizes",
+				"--libc", "modernc.org/libc",
 				path,
 			},
 			&out, &out, nil).Main()
@@ -805,7 +809,7 @@ func TestCSmith(t *testing.T) {
 			}
 		}
 	default:
-		if out, err := shell(true, "go", "get", defaultLibcPackage+"@latest"); err != nil { //TODO- @latest
+		if out, err := shell(true, "go", "get", defaultTestLibcPackage+"@latest"); err != nil { //TODO- @latest
 			t.Fatalf("%s\vFAIL: %v", out, err)
 		}
 	}
@@ -984,6 +988,7 @@ out:
 				"-ignore-asm-errors",
 				"-ignore-vector-functions",
 				"-ignore-unsupported-alignment",
+				"--libc", "modernc.org/libc",
 				"main.c",
 				csp,
 			},
@@ -1108,7 +1113,7 @@ func testSQLiteSimple(t *testing.T) {
 			}
 		}
 	default:
-		if out, err := shell(true, "go", "get", defaultLibcPackage+"@latest"); err != nil {
+		if out, err := shell(true, "go", "get", defaultTestLibcPackage+"@latest"); err != nil {
 			t.Fatalf("%s\vFAIL: %v", out, err)
 		}
 	}
@@ -1131,6 +1136,7 @@ func testSQLiteSimple(t *testing.T) {
 		"-ignore-unsupported-alignment",
 		"-ignore-unsupported-atomic-sizes",
 		"-ignore-vector-functions",
+		"--libc", "modernc.org/libc",
 		"-o", main,
 		filepath.Join(dir, "shell.c"),
 		filepath.Join(dir, "sqlite3.c"),
@@ -1278,6 +1284,7 @@ func testSQLiteSpeedTest1(t *testing.T) {
 		"-ignore-unsupported-alignment",
 		"-ignore-unsupported-atomic-sizes",
 		"-ignore-vector-functions",
+		"--libc", "modernc.org/libc",
 		"-o", main,
 		filepath.Join(dir, "speedtest1.c"),
 		filepath.Join(dir, "sqlite3.c"),
@@ -1309,7 +1316,7 @@ func testSQLiteSpeedTest1(t *testing.T) {
 			}
 		}
 	default:
-		if out, err := shell(true, "go", "get", defaultLibcPackage+"@latest"); err != nil {
+		if out, err := shell(true, "go", "get", defaultTestLibcPackage+"@latest"); err != nil {
 			t.Fatalf("%s\vFAIL: %v", out, err)
 		}
 	}

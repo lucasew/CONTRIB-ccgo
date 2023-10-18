@@ -246,7 +246,7 @@ func (t *Task) link() (err error) {
 				lib := "lib" + v[len("-l="):]
 				ip := prefix + "/" + lib
 				if prefix == defaultLibs && lib == "libc" {
-					ip = defaultLibcPackage
+					ip = t.libc
 				}
 				object, err = t.getPkgSymbols(ip)
 				if err == nil {
@@ -1380,6 +1380,11 @@ func (fi *fnInfo) name(linkName string) string {
 	case importQualifier:
 		switch nm := linkName[len(tag(importQualifier)):]; nm {
 		case "libc":
+			if fi.linker.libc == nil {
+				fi.linker.err(errorf("TODO %q %v - no libc object", linkName, symKind(linkName)))
+				return linkName
+			}
+
 			return fi.linker.libc.qualifier
 		case "runtime":
 			return fi.linker.runtimeName
