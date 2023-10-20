@@ -2241,8 +2241,25 @@ func (c *ctx) mulOverflow(w writer, n *cc.PostfixExpression, t cc.Type, mode mod
 	}
 
 	to := args[2].Type().(*cc.PointerType).Elem()
+	if !c.sameSignednessIntegers(args[0].Type(), args[1].Type(), to) {
+		c.err(errorf("TODO %s * %s -> %s", args[0].Type(), args[1].Type(), to))
+	}
 	b.w("%s__builtin_mul_overflow%s(%stls, %s, %s, %s)", tag(external), c.helper(n, to), tag(ccgo), c.expr(w, args[0], to, exprDefault), c.expr(w, args[1], to, exprDefault), c.expr(w, args[2], nil, exprDefault))
 	return &b, c.ast.Int, exprDefault
+}
+
+func (c *ctx) sameSignednessIntegers(n ...cc.Type) bool {
+	if !cc.IsIntegerType(n[0]) {
+		return false
+	}
+
+	n0 := cc.IsSignedInteger(n[0])
+	for _, v := range n[1:] {
+		if !cc.IsIntegerType(v) || cc.IsSignedInteger(v) != n0 {
+			return false
+		}
+	}
+	return true
 }
 
 func (c *ctx) addOverflow(w writer, n *cc.PostfixExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
@@ -2275,6 +2292,9 @@ func (c *ctx) addOverflow(w writer, n *cc.PostfixExpression, t cc.Type, mode mod
 	}
 
 	to := args[2].Type().(*cc.PointerType).Elem()
+	if !c.sameSignednessIntegers(args[0].Type(), args[1].Type(), to) {
+		c.err(errorf("TODO %s + %s -> %s", args[0].Type(), args[1].Type(), to))
+	}
 	b.w("%s__builtin_add_overflow%s(%stls, %s, %s, %s)", tag(external), c.helper(n, to), tag(ccgo), c.expr(w, args[0], to, exprDefault), c.expr(w, args[1], to, exprDefault), c.expr(w, args[2], nil, exprDefault))
 	return &b, c.ast.Int, exprDefault
 }
@@ -2309,6 +2329,9 @@ func (c *ctx) subOverflow(w writer, n *cc.PostfixExpression, t cc.Type, mode mod
 	}
 
 	to := args[2].Type().(*cc.PointerType).Elem()
+	if !c.sameSignednessIntegers(args[0].Type(), args[1].Type(), to) {
+		c.err(errorf("TODO %s - %s -> %s", args[0].Type(), args[1].Type(), to))
+	}
 	b.w("%s__builtin_sub_overflow%s(%stls, %s, %s, %s)", tag(external), c.helper(n, to), tag(ccgo), c.expr(w, args[0], to, exprDefault), c.expr(w, args[1], to, exprDefault), c.expr(w, args[2], nil, exprDefault))
 	return &b, c.ast.Int, exprDefault
 }
@@ -2636,7 +2659,8 @@ func (c *ctx) postfixExpressionSelect(w writer, n *cc.PostfixExpression, t cc.Ty
 			defer func() { r.volatileOrAtomicHandled = true }()
 			return &b, rt, rmode
 		default:
-			trc("%v: %q %v", n.Position(), cc.NodeSource(n), mode)
+			c.err(errorf("TODO %v", mode))
+			return &b, rt, rmode
 		}
 	}
 
