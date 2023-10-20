@@ -326,6 +326,7 @@ func (t *Task) cc(realCC string, cflags []string) error {
 	set.Opt("MMD", func(arg string) error { return nil })
 	set.Opt("Qunused-arguments", func(arg string) error { args.add(arg); return nil })
 	set.Opt("c", func(arg string) error { args.add(arg); return nil })
+	set.Opt("dumpmachine", func(arg string) error { args.add(arg); return nil })
 	set.Opt("ffreestanding", func(arg string) error { args.add(arg); return nil })
 	set.Opt("fno-builtin", func(arg string) error { args.add(arg); return nil })
 	set.Opt("g", func(arg string) error { return nil })
