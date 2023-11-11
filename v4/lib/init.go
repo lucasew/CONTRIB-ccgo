@@ -176,6 +176,12 @@ func (c *ctx) isZeroInitializerSlice(s []*cc.Initializer) bool {
 		}
 	}
 
+	// switch {
+	// case len(s) == 0:
+	// 	trc("ZERO len(s)=%v", len(s))
+	// default:
+	// 	trc("%s: ZERO %s", s[0].Position(), cc.NodeSource(s[0]))
+	// }
 	return true
 }
 
@@ -234,7 +240,7 @@ func (c *ctx) initializerArray(w writer, n cc.Node, a []*cc.Initializer, t *cc.A
 		sort.Slice(a, func(i, j int) bool { return a[i] < a[j] })
 		for _, k := range a {
 			v := m[k]
-			if !c.isZeroInitializerSlice([]*cc.Initializer{v.s}) {
+			if !c.isZeroInitializerSlice([]*cc.Initializer{v.s}) || !cc.IsArithmeticType(et) {
 				if s := c.initializer(w, n, []*cc.Initializer{v.s}, et, v.off, true); !bytes.Equal(s.bytes(), zeroFuncPtr) {
 					b.w("\n%d: %s, ", k, s)
 				}
@@ -253,7 +259,7 @@ func (c *ctx) initializerArray(w writer, n cc.Node, a []*cc.Initializer, t *cc.A
 			default:
 				off := v[0].Offset() - off0
 				off -= off % esz
-				if !c.isZeroInitializerSlice(v) {
+				if !c.isZeroInitializerSlice(v) || !cc.IsArithmeticType(et) {
 					if s := c.initializer(w, n, v, et, off0+off, true); !bytes.Equal(s.bytes(), zeroFuncPtr) {
 						b.w("\n%d: %s, ", off/esz, s)
 					}
