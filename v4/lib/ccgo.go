@@ -409,7 +409,7 @@ func (t *Task) main() (err error) {
 		}
 	}
 
-	if len(t.isystem) == 0 && !t.freeStanding && !t.nostdlib && t.libc == defaultLibcPackage {
+	if len(t.isystem) == 0 && !t.freeStanding && !t.nostdlib && t.libc == libcV2 {
 		isystem, err := isystem(t.goos, t.goarch, t.libc)
 		if err != nil {
 			return err

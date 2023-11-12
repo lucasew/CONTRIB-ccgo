@@ -28,7 +28,9 @@ type name int
 
 const (
 	defaultLibs        = "modernc.org"
-	defaultLibcPackage = defaultLibs + "/libc/v2" // Import paths are always slash separated.
+	libcV1             = defaultLibs + "/libc"    // Import paths are always slash separated.
+	libcV2             = defaultLibs + "/libc/v2" // Import paths are always slash separated.
+	defaultLibcPackage = libcV1
 
 	generatedFilePrefix = "Code generated for "
 	generatedFileSuffix = ", DO NOT EDIT."
