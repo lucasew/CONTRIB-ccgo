@@ -105,7 +105,7 @@ func TestMain(m *testing.M) {
 	switch runtime.GOOS {
 	case "linux":
 		switch runtime.GOARCH {
-		case "amd64", "386":
+		case "amd64", "386", "arm":
 			// ok
 		default:
 			panic(todo("unsupported target: %s/%s", runtime.GOOS, runtime.GOARCH)) //TODO
@@ -1055,7 +1055,7 @@ func durationStr(d time.Duration) string {
 
 func TestSQLite(t *testing.T) {
 	switch runtime.GOARCH {
-	case "amd64", "386":
+	case "amd64", "386", "arm":
 		// ok
 	default:
 		t.Skip("TODO")
