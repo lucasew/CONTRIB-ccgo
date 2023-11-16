@@ -280,10 +280,9 @@ func (c *ctx) externalDeclaration(w writer, n *cc.ExternalDeclaration) {
 		// 	return
 		// }
 
-		if d.IsStatic() && d.IsInline() && c.isHeader(d) ||
-			d.Type().Attributes().AlwaysInline() ||
-			d.Type().Attributes().GNUInline() || 
-			d.IsInline() {
+		if d.Type().Attributes().AlwaysInline() ||
+			d.Type().Attributes().GNUInline() ||
+			d.IsInline() && c.isHeader(d) {
 			c.inlineFuncs[d] = n.FunctionDefinition
 			return
 		}

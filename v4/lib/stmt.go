@@ -355,7 +355,7 @@ func (c *ctx) blockItem(w writer, n *cc.BlockItem) {
 	case cc.BlockItemDecl: // Declaration
 		c.declaration(w, n.Declaration, false)
 	case cc.BlockItemLabel: // LabelDeclaration
-		c.err(errorf("TODO %v", n.Case))
+		c.err(errorf("%v: label declarations not supported", c.pos(n.LabelDeclaration)))
 	case cc.BlockItemStmt: // Statement
 		c.statement(w, n.Statement)
 	case cc.BlockItemFuncDef: // DeclarationSpecifiers Declarator CompoundStatement

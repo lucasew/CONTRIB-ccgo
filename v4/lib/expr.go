@@ -3066,7 +3066,11 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, mode mode
 				return
 			}
 		case *cc.FunctionType:
-			defer func() { r.volatileOrAtomicHandled = true }()
+			defer func() {
+				if r != nil {
+					r.volatileOrAtomicHandled = true
+				}
+			}()
 			ft = x
 		default:
 			c.err(errorf("TODO %T", d.Type()))
