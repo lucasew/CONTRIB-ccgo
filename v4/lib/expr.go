@@ -2384,16 +2384,17 @@ func (c *ctx) atomicStoreN(w writer, n *cc.PostfixExpression, t cc.Type, mode mo
 		return &b, t, mode
 	}
 
-	if args[0].Type().Kind() != cc.Ptr {
+	pt := args[0].Type()
+	if pt.Kind() != cc.Ptr {
 		c.err(errorf("%v: invalid first argument to __atomic_store_n: %s", n.ArgumentExpressionList.Position(), args[0].Type()))
 		return &b, t, mode
 	}
 
-	switch a1 := args[1]; {
-	case cc.IsScalarType(a1.Type()):
-		b.w("%sAtomicStoreN%s(%s, %s, %s)", c.task.tlsQualifier, c.helper(n, a1.Type()), c.expr(w, args[0], nil, exprDefault), c.expr(w, a1, nil, exprDefault), c.expr(w, args[2], nil, exprDefault))
+	switch et := pt.(*cc.PointerType).Elem(); {
+	case cc.IsScalarType(et):
+		b.w("%sAtomicStoreN%s(%s, %s, %s)", c.task.tlsQualifier, c.helper(n, et), c.expr(w, args[0], nil, exprDefault), c.expr(w, args[1], et, exprDefault), c.expr(w, args[2], nil, exprDefault))
 	default:
-		c.err(errorf("%v: invalid second argument to __atomic_store_n: %s", n.ArgumentExpressionList.Position(), a1.Type()))
+		c.err(errorf("%v: invalid second argument to __atomic_store_n: %s", n.ArgumentExpressionList.Position(), et))
 	}
 	return &b, t, mode
 }
