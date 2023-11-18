@@ -109,7 +109,6 @@ assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20000502-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20000504-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20000511-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20000517-1.c
-assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20000518-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20000523-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20000605-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20000606-1.c
@@ -246,7 +245,6 @@ assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20021119-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20021120-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20021120-2.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20021124-1.c
-assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20021204-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20021205-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20021212-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20021230-1.c
@@ -1167,7 +1165,6 @@ assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr37617.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr37662.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr37664.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr37669-2.c
-assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr37669.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr37713.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr37742-3.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr37742.c
