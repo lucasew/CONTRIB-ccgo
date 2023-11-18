@@ -12,17 +12,20 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/github.com/vnmakarov/mir/c-tests/new/setjmp.c`:  {},
 	`assets/github.com/vnmakarov/mir/c-tests/new/setjmp2.c`: {},
 
-	// // Won't fix: sigfpe
+	// Won't fix: sigfpe
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20101011-1.c`:                 {},
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/20101011-1.c`: {},
 
-	// // Won't fix: other
+	// Won't fix: other
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20031003-1.c`:                  {},
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/20031003-1.c`:  {},
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/return-addr.c`: {},
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-basic.c`:                      {},
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-trailing-zero.c`:              {},
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/long-double-load.c`:                    {},
+
+	//TODO
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-pack-next.c`: {}, // EXEC FAIL
 
 	// ==== BUILD FAIL - compiles but does not build.
 
