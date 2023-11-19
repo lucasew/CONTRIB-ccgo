@@ -108,7 +108,8 @@ func TestMain(m *testing.M) {
 		"linux/386",
 		"linux/arm64",
 		"linux/arm",
-		"linux/ppc64le":
+		"linux/ppc64le",
+		"linux/riscv64":
 
 		// ok
 	default:
