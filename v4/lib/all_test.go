@@ -102,14 +102,15 @@ func (f *overlayFS) Open(name string) (fs.File, error) {
 }
 
 func TestMain(m *testing.M) {
-	switch runtime.GOOS {
-	case "linux":
-		switch runtime.GOARCH {
-		case "amd64", "386", "arm", "arm64":
-			// ok
-		default:
-			panic(todo("unsupported target: %s/%s", runtime.GOOS, runtime.GOARCH)) //TODO
-		}
+	switch fmt.Sprintf("%s/%s", goos, goarch) {
+	case
+		"linux/amd64",
+		"linux/386",
+		"linux/arm64",
+		"linux/arm",
+		"linux/ppc64le":
+
+		// ok
 	default:
 		panic(todo("unsupported target: %s/%s", runtime.GOOS, runtime.GOARCH)) //TODO
 	}
@@ -1054,13 +1055,6 @@ func durationStr(d time.Duration) string {
 }
 
 func TestSQLite(t *testing.T) {
-	switch runtime.GOARCH {
-	case "amd64", "386", "arm", "arm64":
-		// ok
-	default:
-		t.Skip("TODO")
-	}
-
 	t.Run("simple", testSQLiteSimple)
 	t.Run("speedtest1", testSQLiteSpeedTest1)
 }
