@@ -934,10 +934,18 @@ func firstError(err error, short bool) error {
 	}
 
 	if a := strings.Split(err.Error(), "\n"); len(a) != 0 {
-		return fmt.Errorf("%s", a[0])
+		s := a[0]
+		if len(s) > 200 {
+			s = s[:200] + "..."
+		}
+		return fmt.Errorf("%q", a[0])
 	}
 
-	return err
+	s := err.Error()
+	if len(s) > 200 {
+		s = s[:200] + "..."
+	}
+	return fmt.Errorf("%q", s)
 }
 
 func gcKind(k cc.Kind, cabi *cc.ABI) gc.Kind {

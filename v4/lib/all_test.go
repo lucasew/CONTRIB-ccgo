@@ -109,7 +109,8 @@ func TestMain(m *testing.M) {
 		"linux/arm64",
 		"linux/arm",
 		"linux/ppc64le",
-		"linux/riscv64":
+		"linux/riscv64",
+		"linux/s390x":
 
 		// ok
 	default:
@@ -591,7 +592,6 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 			}
 
 			trc("`%s`: {}, // EXEC FAIL: %v", fullPath, firstError(err, true))
-			trc("----\n%s\n---", err)
 			p.err(err)
 			return firstError(err, *oErr1)
 		}
