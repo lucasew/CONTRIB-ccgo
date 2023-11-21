@@ -104,6 +104,7 @@ func (f *overlayFS) Open(name string) (fs.File, error) {
 func TestMain(m *testing.M) {
 	switch fmt.Sprintf("%s/%s", goos, goarch) {
 	case
+		"freebsd/amd64",
 		"linux/amd64",
 		"linux/386",
 		"linux/arm64",

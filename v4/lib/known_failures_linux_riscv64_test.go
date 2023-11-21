@@ -31,7 +31,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040709-1.c`:                        {}, // BUILD FAIL: exit status 1
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040709-2.c`:                        {}, // BUILD FAIL: exit status 1
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040709-3.c`:                        {}, // BUILD FAIL: exit status 1
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20041114-1.c`:  {}, // BUILD FAIL: exit status 1
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20041114-1.c`:                        {}, // BUILD FAIL: exit status 1
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20060905-1.c`:                        {}, // BUILD FAIL: exit status 1
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20070614-1.c`:                        {}, // BUILD FAIL: exit status 1
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20080502-1.c`:                        {}, // BUILD FAIL: exit status 1
