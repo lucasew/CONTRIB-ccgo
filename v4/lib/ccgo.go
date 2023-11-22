@@ -24,6 +24,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"modernc.org/cc/v4"
@@ -606,8 +607,22 @@ func (t *Task) arExtract(fn string) (r []string, err error) {
 	if !t.keepObjectFiles {
 		t.cleanupDirs = append(t.cleanupDirs, tmp)
 	}
-	if out, err = exec.Command(ar, "x", "--output", tmp, fn).CombinedOutput(); err != nil {
-		return nil, errorf("%s: %s\nFAIL: %v", ar, out, err)
+	switch runtime.GOOS {
+	case "freebsd":
+		fn, err := filepath.Abs(fn)
+		if err != nil {
+			return nil, err
+		}
+
+		cmd := exec.Command(ar, "x", fn)
+		cmd.Dir = tmp
+		if out, err = cmd.CombinedOutput(); err != nil {
+			return nil, errorf("%s: %s\nFAIL: %v", ar, out, err)
+		}
+	default:
+		if out, err = exec.Command(ar, "x", "--output", tmp, fn).CombinedOutput(); err != nil {
+			return nil, errorf("%s: %s\nFAIL: %v", ar, out, err)
+		}
 	}
 
 	return r, nil

@@ -938,7 +938,7 @@ func firstError(err error, short bool) error {
 		if len(s) > 200 {
 			s = s[:200] + "..."
 		}
-		return fmt.Errorf("%q", a[0])
+		return fmt.Errorf("%q", s)
 	}
 
 	s := err.Error()
