@@ -7,6 +7,7 @@ package ccgo // import "modernc.org/ccgo/v4/lib"
 var testExecKnownFails = map[string]struct{}{
 	// ==== EXEC FAIL - compiles and builds but fails when executed.
 	`assets/benchmarksgame-team.pages.debian.net/reverse-complement-2.c`:                    {}, // EXEC FAIL: "assets/benchmarksgame-team.pages.debian.net/reverse-complement-2.c: unexpected fault address 0x15b38befffff"
+	`assets/benchmarksgame-team.pages.debian.net/reverse-complement-5.c`:                    {}, // EXEC FAIL: "assets/benchmarksgame-team.pages.debian.net/reverse-complement-5.c: unexpected fault address 0x85a765fffff"
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20101011-1.c`:                     {}, // EXEC FAIL: "assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20101011-1.c: panic: runtime error: integer divide by zero"
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/copysign1.c`:                 {}, // EXEC FAIL: "assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/copysign1.c: : FAIL: signal: abort trap (core dumped) (.:0:: .:0:: asm_amd64.s:1650:goexit: asm_amd64.s:1650:goexit: all_test.go:442:1: all_test.go:585:testExec1:)"
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/copysign2.c`:                 {}, // EXEC FAIL: "assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/copysign2.c: : FAIL: signal: abort trap (core dumped) (.:0:: .:0:: asm_amd64.s:1650:goexit: asm_amd64.s:1650:goexit: all_test.go:442:1: all_test.go:585:testExec1:)"
