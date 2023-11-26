@@ -3851,7 +3851,7 @@ out:
 			}
 		}
 	case cc.PrimaryExpressionGeneric: // GenericSelection
-		c.err(errorf("TODO %v", n.Case))
+		return c.expr0(w, n.GenericSelection.Associated().AssignmentExpression, n.Type(), mode)
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
 	}
