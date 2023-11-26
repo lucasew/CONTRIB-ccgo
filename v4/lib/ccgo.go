@@ -195,7 +195,12 @@ func (t *Task) main() (err error) {
 		dmesg("%v: ==== task.main enter %s CC=%q %s=%q, %s=%q, %s=%q",
 			origin(1), t.args, os.Getenv("CC"), CCEnvVar, os.Getenv(CCEnvVar), GCCEnvVar, os.Getenv(GCCEnvVar), ClangEnvVar, os.Getenv(ClangEnvVar))
 		defer func() {
-			dmesg("%v: ==== exit: %v", origin(1), err)
+			switch {
+			case err != nil:
+				dmesg("%v: ==== exit FAIL: %v", origin(1), err)
+			default:
+				dmesg("%v: ==== exit OK: %v", origin(1), err)
+			}
 		}()
 	}
 
@@ -582,16 +587,19 @@ func (t *Task) arExtract(fn string) (r []string, err error) {
 	if ar == "" {
 		ar, err = exec.LookPath("ar")
 		if err != nil {
-			return nil, err
+			return nil, errorf("%v", err)
 		}
 	}
 
 	tmp, err := os.MkdirTemp("", "ccgo-tmp-ar-")
 	if err != nil {
-		return nil, err
+		return nil, errorf("%v", err)
 	}
 
 	out, err := exec.Command(ar, "t", fn).CombinedOutput()
+	if dmesgs {
+		dmesg("fn=%s out=%s err=%v", fn, out, err)
+	}
 	if err != nil {
 		return nil, errorf("%s: %s\nFAIL: %v", ar, out, err)
 	}
@@ -611,16 +619,24 @@ func (t *Task) arExtract(fn string) (r []string, err error) {
 	case "freebsd":
 		fn, err := filepath.Abs(fn)
 		if err != nil {
-			return nil, err
+			return nil, errorf("%v", err)
 		}
 
 		cmd := exec.Command(ar, "x", fn)
 		cmd.Dir = tmp
-		if out, err = cmd.CombinedOutput(); err != nil {
+		out, err = cmd.CombinedOutput()
+		if dmesgs {
+			dmesg("fn=%s out=%s err=%v", fn, out, err)
+		}
+		if err != nil {
 			return nil, errorf("%s: %s\nFAIL: %v", ar, out, err)
 		}
 	default:
-		if out, err = exec.Command(ar, "x", "--output", tmp, fn).CombinedOutput(); err != nil {
+		out, err = exec.Command(ar, "x", "--output", tmp, fn).CombinedOutput()
+		if dmesgs {
+			dmesg("fn=%s out=%s err=%v", fn, out, err)
+		}
+		if err != nil {
 			return nil, errorf("%s: %s\nFAIL: %v", ar, out, err)
 		}
 	}
