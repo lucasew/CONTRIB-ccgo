@@ -22,6 +22,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/ccgo/bug/sqlite.c`: {}, // BUILD FAIL: exit status 1
 	`assets/ccgo/bug/union3.c`: {}, // BUILD FAIL: exit status 1
 	`assets/ccgo/bug/union4.c`: {}, // BUILD FAIL: exit status 1
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20000112-1.c`:                        {}, // BUILD FAIL: "exit status 2"
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010122-1.c`:                        {}, // BUILD FAIL: exit status 1
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020103-1.c`:                        {}, // BUILD FAIL: exit status 1
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030128-1.c`:                        {}, // BUILD FAIL: exit status 1
@@ -62,7 +63,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-8l.c`:                    {}, // BUILD FAIL: exit status 1
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/pr36332.c`:                      {}, // BUILD FAIL: exit status 1
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/pr38016.c`:                      {}, // BUILD FAIL: exit status 1
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/loop-2f.c`:     {}, // BUILD FAIL: "exit status 1"
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/loop-2f.c`:                           {}, // BUILD FAIL: "exit status 1"
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr17377.c`:                           {}, // BUILD FAIL: exit status 1
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr19449.c`:                           {}, // BUILD FAIL: exit status 1
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr35456.c`:                           {}, // BUILD FAIL: exit status 1
