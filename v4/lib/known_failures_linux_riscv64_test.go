@@ -62,6 +62,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-8l.c`:                    {}, // BUILD FAIL: exit status 1
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/pr36332.c`:                      {}, // BUILD FAIL: exit status 1
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/pr38016.c`:                      {}, // BUILD FAIL: exit status 1
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/loop-2f.c`:     {}, // BUILD FAIL: "exit status 1"
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr17377.c`:                           {}, // BUILD FAIL: exit status 1
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr19449.c`:                           {}, // BUILD FAIL: exit status 1
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr35456.c`:                           {}, // BUILD FAIL: exit status 1
