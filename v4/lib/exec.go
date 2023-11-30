@@ -164,9 +164,8 @@ func (t *Task) ln() error {
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		if dmesgs {
-			dmesg("SKIP: %s returns %v", t.realLN, err.(*exec.ExitError).ExitCode())
+			dmesg("NOTE: %s returns %v", t.realLN, err.(*exec.ExitError).ExitCode())
 		}
-		return err
 	}
 	set := opt.NewSet()
 	var args []string
@@ -295,9 +294,8 @@ func (t *Task) cc(realCC string, cflags []string) error {
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		if dmesgs {
-			dmesg("SKIP: %s returns %v", t.realCC, err.(*exec.ExitError).ExitCode())
+			dmesg("NOTE: %s returns %v", t.realCC, err.(*exec.ExitError).ExitCode())
 		}
-		return err
 	}
 
 	optE := false
