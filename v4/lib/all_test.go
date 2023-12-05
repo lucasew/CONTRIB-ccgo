@@ -104,6 +104,8 @@ func (f *overlayFS) Open(name string) (fs.File, error) {
 func TestMain(m *testing.M) {
 	switch fmt.Sprintf("%s/%s", goos, goarch) {
 	case
+		"darwin/amd64",
+		"darwin/arm64",
 		"freebsd/amd64",
 		"freebsd/arm64",
 		"linux/amd64",
@@ -506,6 +508,7 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 				"-verify-types",
 				"--prefix-field=F",
 				"-ignore-unsupported-atomic-sizes",
+				"-ignore-unsupported-alignment",
 				"-ignore-vector-functions",
 				"--libc", "modernc.org/libc",
 				path,
@@ -522,6 +525,7 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 				"-verify-types",
 				"--prefix-field=F",
 				"-ignore-vector-functions",
+				"-ignore-unsupported-alignment",
 				"-ignore-unsupported-atomic-sizes",
 				"--libc", "modernc.org/libc",
 				path,
@@ -1129,6 +1133,7 @@ func testSQLiteSimple(t *testing.T) {
 		"-DSQLITE_LIKE_DOESNT_MATCH_BLOBS",
 		// "-DSQLITE_MEMDEBUG",
 		"-DSQLITE_THREADSAFE=0",
+		"-DSQLITE_WITHOUT_ZONEMALLOC",
 		"--prefix-field=F",
 		"-positions",
 		"-full-paths",
@@ -1277,6 +1282,7 @@ func testSQLiteSpeedTest1(t *testing.T) {
 		"-DSQLITE_LIKE_DOESNT_MATCH_BLOBS",
 		// "-DSQLITE_MEMDEBUG",
 		"-DSQLITE_THREADSAFE=0",
+		"-DSQLITE_WITHOUT_ZONEMALLOC",
 		"--prefix-field=F",
 		"-positions",
 		"-full-paths",

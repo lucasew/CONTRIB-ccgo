@@ -21,15 +21,16 @@ import (
 const (
 	// xxEnvVars contain the paths to the binaries ccgo acts as a proxy for when
 	// -exec is in effect.
-	AREnvVar     = "CCGO_EXEC_AR"
-	CCEnvVar     = "CCGO_EXEC_CC"
-	ClangEnvVar  = "CCGO_EXEC_CLANG"
-	GCCEnvVar    = "CCGO_EXEC_GCC"
-	LNEnvVar     = "CCGO_EXEC_LN"
-	MVEnvVar     = "CCGO_EXEC_MV"
-	RMEnvVar     = "CCGO_EXEC_RM"
-	cflagsEnvVar = "CCGO_EXEC_CFLAGS"
-	cflagsSep    = "|"
+	AREnvVar      = "CCGO_EXEC_AR"
+	CCEnvVar      = "CCGO_EXEC_CC"
+	ClangEnvVar   = "CCGO_EXEC_CLANG"
+	GCCEnvVar     = "CCGO_EXEC_GCC"
+	LIBTOOLEnvVar = "CCGO_EXEC_LIBTOOL"
+	LNEnvVar      = "CCGO_EXEC_LN"
+	MVEnvVar      = "CCGO_EXEC_MV"
+	RMEnvVar      = "CCGO_EXEC_RM"
+	cflagsEnvVar  = "CCGO_EXEC_CFLAGS"
+	cflagsSep     = "|"
 )
 
 var (
@@ -38,6 +39,7 @@ var (
 		{"cc", CCEnvVar},
 		{"clang", ClangEnvVar},
 		{"gcc", GCCEnvVar},
+		{"libtool", LIBTOOLEnvVar},
 		{"ln", LNEnvVar},
 		{"mv", MVEnvVar},
 		{"rm", RMEnvVar},
@@ -97,6 +99,11 @@ func (t *Task) exec(args []string) (err error) {
 
 		ln := os.Getenv(LNEnvVar)
 		for _, v := range execBins {
+			switch {
+			case v.nm == "libtool" && t.goos != "darwin":
+				continue
+			}
+
 			symlink := filepath.Join(dirTemp, v.nm)
 			out, err := exec.Command(ln, self, symlink).CombinedOutput()
 			if err != nil {
@@ -152,9 +159,67 @@ func (t *Task) execed(cflags []string) (err error) {
 		return t.rm()
 	case filepath.Base(t.realLN):
 		return t.ln()
+	case filepath.Base(t.realLIBTOOL):
+		return t.libtool()
 	default:
 		return errorf("internal error: real CC=%q, GCC=%q, Clang=%q, faked args=%q", t.realCC, t.realGCC, t.realClang, t.args)
 	}
+}
+
+func (t *Task) libtool() error {
+	cmd := exec.Command(t.realLIBTOOL, t.args[1:]...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		if dmesgs {
+			dmesg("NOTE: %s returns %v", t.realLIBTOOL, err.(*exec.ExitError).ExitCode())
+		}
+	}
+	set := opt.NewSet()
+	var args strSlice
+	var outfn string
+	set.Arg("o", true, func(arg, val string) error {
+		if !strings.HasSuffix(val, ".a") {
+			return errorf("unexpected -o argument: %s", val)
+		}
+
+		outfn = t.goFile(val)
+		return nil
+	})
+	if err := set.Parse(t.args[1:], func(arg string) error {
+		if strings.HasPrefix(arg, "-") {
+			if dmesgs {
+				dmesg("", errorf("unexpected/unsupported option: %q", arg))
+			}
+			return errorf("unexpected/unsupported option: %s", arg)
+		}
+
+		args.add(t.goFile(arg))
+		return nil
+	}); err != nil {
+		return err
+	}
+	args2 := strSlice{"-cr", outfn}
+	args2 = append(args2, args...)
+	if dmesgs {
+		dmesg("", args2)
+	}
+	cmd = exec.Command(t.realAR, args2...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		if dmesgs {
+			dmesg("SKIP2: %s returns %v", t.realAR, err.(*exec.ExitError).ExitCode())
+		}
+		return err
+	}
+
+	if dmesgs {
+		dmesg("OK %v", args2)
+	}
+	return nil
 }
 
 func (t *Task) ln() error {
@@ -416,6 +481,9 @@ func (t *Task) cc(realCC string, cflags []string) error {
 }
 
 func (t *Task) ar() error {
+	if dmesgs {
+		dmesg("AR %v", t.args)
+	}
 	cmd := exec.Command(t.realAR, t.args[1:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout

@@ -90,6 +90,7 @@ type Task struct {
 	realCC                string // which cc
 	realClang             string // which clang
 	realGCC               string // which gcc
+	realLIBTOOL           string // which libtool
 	realLN                string // which ln
 	realMV                string // which mv
 	realRM                string // which rm
@@ -181,6 +182,7 @@ func (t *Task) Main() (err error) {
 		t.realCC = os.Getenv(CCEnvVar)
 		t.realClang = os.Getenv(ClangEnvVar)
 		t.realGCC = os.Getenv(GCCEnvVar)
+		t.realLIBTOOL = os.Getenv(LIBTOOLEnvVar)
 		t.realLN = os.Getenv(LNEnvVar)
 		t.realMV = os.Getenv(MVEnvVar)
 		t.realRM = os.Getenv(RMEnvVar)
@@ -616,7 +618,7 @@ func (t *Task) arExtract(fn string) (r []string, err error) {
 		t.cleanupDirs = append(t.cleanupDirs, tmp)
 	}
 	switch runtime.GOOS {
-	case "freebsd":
+	case "freebsd", "darwin":
 		fn, err := filepath.Abs(fn)
 		if err != nil {
 			return nil, errorf("%v", err)
