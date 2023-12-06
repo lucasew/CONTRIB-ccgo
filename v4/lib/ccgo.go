@@ -618,7 +618,7 @@ func (t *Task) arExtract(fn string) (r []string, err error) {
 		t.cleanupDirs = append(t.cleanupDirs, tmp)
 	}
 	switch runtime.GOOS {
-	case "freebsd", "darwin":
+	case "freebsd", "darwin", "openbsd":
 		fn, err := filepath.Abs(fn)
 		if err != nil {
 			return nil, errorf("%v", err)
