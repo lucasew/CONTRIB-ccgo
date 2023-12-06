@@ -108,13 +108,14 @@ func TestMain(m *testing.M) {
 		"darwin/arm64",
 		"freebsd/amd64",
 		"freebsd/arm64",
-		"linux/amd64",
 		"linux/386",
-		"linux/arm64",
+		"linux/amd64",
 		"linux/arm",
+		"linux/arm64",
 		"linux/ppc64le",
 		"linux/riscv64",
-		"linux/s390x":
+		"linux/s390x",
+		"openbsd/amd64":
 
 		// ok
 	default:
@@ -464,6 +465,9 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 	var cCompilerFailed, cExecFailed bool
 	ofn := fmt.Sprint(id)
 	bin := "cbin_" + enforceBinaryExt(ofn)
+
+	defer func(nm string) { os.Remove(nm) }(bin)
+
 	switch {
 	case !execute:
 		if _, err = shell(false, hostCC, "-c", "-w", path, "-lm", "-lpthread"); err != nil {
@@ -558,6 +562,9 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 	}
 
 	bin = "gobin_" + enforceBinaryExt(ofn)
+
+	defer func(nm string) { os.Remove(nm) }(bin)
+
 	var shOut []byte
 	if shOut, err = shell(false, "go", "build", "-o", bin, ofn); err != nil {
 		// trc("gc %v %v", path, err)
