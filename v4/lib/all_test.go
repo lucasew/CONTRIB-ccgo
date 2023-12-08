@@ -115,7 +115,8 @@ func TestMain(m *testing.M) {
 		"linux/ppc64le",
 		"linux/riscv64",
 		"linux/s390x",
-		"openbsd/amd64":
+		"openbsd/amd64",
+		"openbsd/arm64":
 
 		// ok
 	default:
