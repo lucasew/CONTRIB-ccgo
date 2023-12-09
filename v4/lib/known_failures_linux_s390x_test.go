@@ -8,6 +8,7 @@ var testExecKnownFails = map[string]struct{}{
 	// ==== EXEC FAIL - compiles and builds but fails when executed.
 
 	`assets/CompCert-3.6/test/c/mandelbrot.c`:                                            {}, // EXEC FAIL: "assets/CompCert-3.6/test/c/mandelbrot.c: P4"
+	`assets/benchmarksgame-team.pages.debian.net/fasta-3.c`:                              {}, // EXEC FAIL: "assets/benchmarksgame-team.pages.debian.net/fasta-3.c: >ONE Homo sapiens alu"
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-2.c`:                         {}, // EXEC FAIL: "assets/benchmarksgame-team.pages.debian.net/mandelbrot-2.c: P4"
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-9.c`:                         {}, // EXEC FAIL
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20101011-1.c`:                  {}, // EXEC FAIL: "assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20101011-1.c: panic: runtime error: integer divide by zero"
@@ -34,11 +35,13 @@ var testExecKnownFails = map[string]struct{}{
 
 	// ==== BUILD FAIL - compiles but does not build.
 
-	`assets/benchmarksgame-team.pages.debian.net/reverse-complement-4.c`: {}, // BUILD FAIL: "exit status 1"
-	`assets/ccgo/bug/sqlite.c`: {}, // BUILD FAIL: "exit status 1"
-	`assets/ccgo/bug/union3.c`: {}, // BUILD FAIL: "exit status 1"
-	`assets/ccgo/bug/union4.c`: {}, // BUILD FAIL: "exit status 1"
+	`assets/CompCert-3.6/test/c/knucleotide.c`:                                                 {}, // BUILD FAIL: "signal: killed"
+	`assets/benchmarksgame-team.pages.debian.net/reverse-complement-4.c`:                       {}, // BUILD FAIL: "exit status 1"
+	`assets/ccgo/bug/sqlite.c`:                                                                 {}, // BUILD FAIL: "exit status 1"
+	`assets/ccgo/bug/union3.c`:                                                                 {}, // BUILD FAIL: "exit status 1"
+	`assets/ccgo/bug/union4.c`:                                                                 {}, // BUILD FAIL: "exit status 1"
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010122-1.c`:                        {}, // BUILD FAIL: "exit status 1"
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020920-1.c`:                        {}, // BUILD FAIL: "signal: killed"
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030128-1.c`:                        {}, // BUILD FAIL: "exit status 1"
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030323-1.c`:                        {}, // BUILD FAIL: "exit status 1"
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030811-1.c`:                        {}, // BUILD FAIL: "exit status 1"
