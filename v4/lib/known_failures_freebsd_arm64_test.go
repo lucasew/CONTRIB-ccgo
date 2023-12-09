@@ -7,6 +7,7 @@ package ccgo // import "modernc.org/ccgo/v4/lib"
 var testExecKnownFails = map[string]struct{}{
 	// ==== EXEC FAIL - compiles and builds but fails when executed.
 
+	`assets/benchmarksgame-team.pages.debian.net/reverse-complement-5.c`:                 {}, // EXEC FAIL: "assets/benchmarksgame-team.pages.debian.net/reverse-complement-5.c: unexpected fault address 0x63b67b3fffff"
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/return-addr.c`: {}, // EXEC FAIL
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-types-init.c`:                 {}, // EXEC FAIL
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/long-double-load.c`:                    {}, // EXEC FAIL
@@ -195,6 +196,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr56571.c`:                                    {}, // COMPILE FAIL: "\"-: TODO (expr.go:524:expr0: expr.go:3834:primaryExpression: expr.go:506:expr0: expr.go:914:conditionalExpression: expr.go:70:topExpr: expr.go:85:expr:)\""
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr70190.c`:                                    {}, // COMPILE FAIL: "\"TODO <nil> (asm_arm64.s:1197:goexit: compile.go:433:compile: decl.go:294:externalDeclaration: decl.go:322:functionDefinition: decl.go:344:functionDefinition0: decl.go:101:newFnCtx:)\""
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr70199.c`:                                    {}, // COMPILE FAIL: "\"TODO <nil> (asm_arm64.s:1197:goexit: compile.go:433:compile: decl.go:294:externalDeclaration: decl.go:322:functionDefinition: decl.go:344:functionDefinition0: decl.go:101:newFnCtx:)\""
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr70355.c`:                                    {}, // COMPILE FAIL: "\"TODO vector (compile.go:433:compile: decl.go:296:externalDeclaration: decl.go:606:declaration: decl.go:745:initDeclarator: type.go:18:typedef: type.go:89:typ0:)\""
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr70916.c`:                                    {}, // COMPILE FAIL: "\"-: TODO (expr.go:3444:assignmentExpression: expr.go:101:expr: expr.go:506:expr0: expr.go:914:conditionalExpression: expr.go:70:topExpr: expr.go:85:expr:)\""
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr71109.c`:                                    {}, // COMPILE FAIL: "\"pr71109.c:15:7: too few arguments to function 'foo', type 'function(int, struct S, struct T)' in 'foo (bar, a)' (stmt.go:38:statement: expr.go:70:topExpr: expr.go:101:expr: expr.go:522:expr0: expr.go:2025:postfixExpression: expr.go:3134:postfixExpressionCall:)\""
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr77754-1.c`:                                  {}, // COMPILE FAIL: "\"pr77754-1.c:5:13: incomplete type: array of array of int (asm_arm64.s:1197:goexit: asm_arm64.s:1197:goexit: compile.go:481:compile: decl.go:531:signature: type.go:398:isValidParamType: type.go:486:isValidType1:)\""
