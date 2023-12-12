@@ -306,6 +306,9 @@ func (t *Task) link() (err error) {
 }
 
 func (t *Task) getPkgSymbols(importPath string) (r *object, err error) {
+	if dmesgs {
+		dmesg("==== import %q", importPath)
+	}
 	// if dmesgs {
 	// 	defer func() {
 	// 		switch {
@@ -342,6 +345,9 @@ func (t *Task) getPkgSymbols(importPath string) (r *object, err error) {
 
 	r = newObject(objectPkg, importPath)
 	for _, fn := range pkg.GoFiles {
+		if dmesgs {
+			dmesg("importing file %q", fn)
+		}
 		b, err := os.ReadFile(fn)
 		if err != nil {
 			return nil, errorf("%s: %v", importPath, err)
@@ -362,6 +368,9 @@ func (t *Task) getPkgSymbols(importPath string) (r *object, err error) {
 					break
 				}
 
+				if dmesgs {
+					dmesg("imported func %q", x.FunctionName.Src())
+				}
 				r.externs.add(x.FunctionName.Src())
 			case *gc.VarDecl:
 				for _, v := range x.VarSpecs {
