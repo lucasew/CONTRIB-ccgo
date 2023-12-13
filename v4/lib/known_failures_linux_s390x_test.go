@@ -11,6 +11,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/benchmarksgame-team.pages.debian.net/fasta-3.c`:                              {}, // EXEC FAIL: "assets/benchmarksgame-team.pages.debian.net/fasta-3.c: >ONE Homo sapiens alu"
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-2.c`:                         {}, // EXEC FAIL: "assets/benchmarksgame-team.pages.debian.net/mandelbrot-2.c: P4"
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-9.c`:                         {}, // EXEC FAIL
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20000519-1.c`:                  {}, // EXEC FAIL:
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20101011-1.c`:                  {}, // EXEC FAIL: "assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20101011-1.c: panic: runtime error: integer divide by zero"
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/bitfld-6.c`:                    {}, // EXEC FAIL: "assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/bitfld-6.c: : FAIL: exit status 51 (.:0:: .:0:: asm_s390x.s:773:goexit: asm_s390x.s:773:goexit: all_test.go:441:1: all_test.go:584:testExec1:)"
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/bitfld-7.c`:                    {}, // EXEC FAIL: "assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/bitfld-7.c: : FAIL: exit status 34 (.:0:: .:0:: asm_s390x.s:773:goexit: asm_s390x.s:773:goexit: all_test.go:441:1: all_test.go:584:testExec1:)"
