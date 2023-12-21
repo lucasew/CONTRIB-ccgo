@@ -32,6 +32,7 @@ import (
 	"modernc.org/ccorpus2"
 	"modernc.org/fileutil"
 	"modernc.org/gc/v2"
+	_ "modernc.org/libc"
 	"modernc.org/mathutil"
 )
 
@@ -512,8 +513,6 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 				"-c",
 				"-verify-types",
 				"--prefix-field=F",
-				"-ignore-unsupported-atomic-sizes",
-				"-ignore-unsupported-alignment",
 				"-ignore-vector-functions",
 				"--libc", "modernc.org/libc",
 				path,
@@ -530,8 +529,6 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 				"-verify-types",
 				"--prefix-field=F",
 				"-ignore-vector-functions",
-				"-ignore-unsupported-alignment",
-				"-ignore-unsupported-atomic-sizes",
 				"--libc", "modernc.org/libc",
 				path,
 			},
@@ -1006,7 +1003,6 @@ out:
 				"--prefix-field=F",
 				"-ignore-asm-errors",
 				"-ignore-vector-functions",
-				"-ignore-unsupported-alignment",
 				"--libc", "modernc.org/libc",
 				"main.c",
 				csp,
@@ -1146,8 +1142,6 @@ func testSQLiteSimple(t *testing.T) {
 		"-positions",
 		"-full-paths",
 		"-verify-types",
-		"-ignore-unsupported-alignment",
-		"-ignore-unsupported-atomic-sizes",
 		"-ignore-vector-functions",
 		"--libc", "modernc.org/libc",
 		"-o", main,
@@ -1295,8 +1289,6 @@ func testSQLiteSpeedTest1(t *testing.T) {
 		"-positions",
 		"-full-paths",
 		"-verify-types",
-		"-ignore-unsupported-alignment",
-		"-ignore-unsupported-atomic-sizes",
 		"-ignore-vector-functions",
 		"--libc", "modernc.org/libc",
 		"-o", main,
