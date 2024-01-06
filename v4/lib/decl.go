@@ -63,6 +63,7 @@ type inlineInfo struct {
 	parent         *inlineInfo
 	replacedParams []string
 	result         string
+	vaOff          int64
 }
 
 type fnCtx struct {

@@ -128,6 +128,7 @@ type Task struct {
 	prefixDefineSet              bool // --prefix-define <string>
 	pthread                      bool // -pthread
 	strictISOMode                bool // -ansi or stc=c90
+	unsignedEnums                bool // -unsigned-enums
 	verifyTypes                  bool // -verify-types
 }
 
@@ -342,6 +343,7 @@ func (t *Task) main() (err error) {
 	set.Opt("pedantic-errors", func(arg string) error { t.pedanticErrros = true; return nil })
 	set.Opt("positions", func(arg string) error { t.positions = true; return nil })
 	set.Opt("pthread", func(arg string) error { t.pthread = true; t.cfgArgs = append(t.cfgArgs, arg); return nil })
+	set.Opt("unsigned-enums", func(arg string) error { t.unsignedEnums = true; return nil })
 	set.Opt("verify-types", func(arg string) error { t.verifyTypes = true; return nil })
 
 	// Ignored
@@ -363,10 +365,13 @@ func (t *Task) main() (err error) {
 	set.Opt("dumpmachine", func(arg string) error { return nil })
 	set.Opt("dynamiclib", func(arg string) error { return nil })
 	set.Opt("herror_on_warning", func(arg string) error { return nil })
+	set.Opt("mconsole", func(arg string) error { return nil })
+	set.Opt("municode", func(arg string) error { return nil })
 	set.Opt("pipe", func(arg string) error { return nil })
 	set.Opt("s", func(arg string) error { return nil })
 	set.Opt("shared", func(arg string) error { return nil })
 	set.Opt("static", func(arg string) error { return nil })
+	set.Opt("static-libgcc", func(arg string) error { return nil })
 	set.Opt("v", func(arg string) error { return nil })
 	set.Opt("w", func(arg string) error { return nil })
 
@@ -495,6 +500,7 @@ func (t *Task) main() (err error) {
 		return err
 	}
 
+	cfg.UnsignedEnums = t.unsignedEnums
 	if ldflag == "" {
 		if err = cfg.AdjustLongDouble(); err != nil {
 			return err
@@ -608,7 +614,7 @@ func (t *Task) arExtract(fn string) (r []string, err error) {
 
 	m := map[string]struct{}{}
 	for _, v := range strings.Split(strings.TrimSpace(string(out)), "\n") {
-		w := filepath.Join(tmp, v)
+		w := filepath.Join(tmp, strings.TrimSpace(v))
 		if _, ok := m[w]; !ok {
 			r = append(r, w)
 		}
@@ -618,7 +624,7 @@ func (t *Task) arExtract(fn string) (r []string, err error) {
 		t.cleanupDirs = append(t.cleanupDirs, tmp)
 	}
 	switch runtime.GOOS {
-	case "freebsd", "darwin", "openbsd":
+	case "freebsd", "darwin", "openbsd", "windows":
 		fn, err := filepath.Abs(fn)
 		if err != nil {
 			return nil, errorf("%v", err)
@@ -643,6 +649,11 @@ func (t *Task) arExtract(fn string) (r []string, err error) {
 		}
 	}
 
+	if dmesgs {
+		for _, v := range r {
+			dmesg("ar extracted %s", v)
+		}
+	}
 	return r, nil
 }
 

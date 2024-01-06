@@ -311,12 +311,7 @@ func (c *ctx) typ0(b *strings.Builder, n cc.Node, t cc.Type, useTypenames, useTa
 				}
 
 				b.WriteByte('\n')
-				switch nm := f.Name(); {
-				case nm == "":
-					fmt.Fprintf(b, "%s__ccgo%d", tag(field), i)
-				default:
-					fmt.Fprintf(b, "%s%s", tag(field), c.fieldName(x, f))
-				}
+				fmt.Fprintf(b, "%s%s", tag(field), c.fieldName(x, f))
 				b.WriteByte(' ')
 				b.WriteString("[0]")
 				c.typ0(b, n, f.Type(), true, true, true)
@@ -328,12 +323,7 @@ func (c *ctx) typ0(b *strings.Builder, n cc.Node, t cc.Type, useTypenames, useTa
 
 			sz1 := ff.Type().Size()
 			b.WriteByte('\n')
-			switch nm := ff.Name(); {
-			case nm == "":
-				fmt.Fprintf(b, "%s__ccgo%d", tag(field), ff.Index())
-			default:
-				fmt.Fprintf(b, "%s%s", tag(field), c.fieldName(x, ff))
-			}
+			fmt.Fprintf(b, "%s%s", tag(field), c.fieldName(x, ff))
 			b.WriteByte(' ')
 			c.typ0(b, n, ff.Type(), true, true, true)
 			if n := t.Size() - sz1; n != 0 {

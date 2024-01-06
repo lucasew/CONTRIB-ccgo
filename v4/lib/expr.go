@@ -338,6 +338,13 @@ func (c *ctx) convertType(n cc.ExpressionNode, s *buf, from, to cc.Type, fromMod
 		return s
 	}
 
+	if x, ok := s.n.(interface{ Value() cc.Value }); ok {
+		if c.isZero(x.Value()) && (to.Kind() == cc.Union || to.Kind() == cc.Struct) {
+			b.w("(%s{})", c.typ(n, to))
+			return &b
+		}
+	}
+
 	c.err(errorf("%v: TODO %q %s, %v %s -> %s, %v %s (%v:)", pos(n), s, from, from.Size(), fromMode, to, to.Size(), toMode, c.pos(n)))
 	// panic(todo("")) //TODO-DBG
 	//trc("", errorf("ERROR %q %s %s -> %s %s (%v:)", s, from, fromMode, to, toMode, c.pos(n))) //TODO-DBG
@@ -1964,7 +1971,10 @@ out:
 	case cc.PostfixExpressionCall: // PostfixExpression '(' ArgumentExpressionList ')'
 		//TODO __builtin_object_size 28_strings.c on darwin/amd64
 		switch c.declaratorOf(n.PostfixExpression).Name() {
-		case "__builtin_constant_p":
+		case
+			"__builtin_constant_p",
+			"__ccgo__types_compatible_p":
+
 			switch mode {
 			case exprBool:
 				rt, rmode = n.Type(), mode
@@ -1986,7 +1996,12 @@ out:
 			}
 
 			rt, rmode = n.Type(), mode
-			w.w("%s = %s%s", c.expr(w, n.ArgumentExpressionList.AssignmentExpression, nil, exprDefault), tag(ccgo), vaArgName)
+			switch {
+			case c.f.inlineInfo != nil:
+				w.w("%s = %s", c.expr(w, n.ArgumentExpressionList.AssignmentExpression, nil, exprDefault), bpOff(c.f.inlineInfo.vaOff))
+			default:
+				w.w("%s = %s%s", c.expr(w, n.ArgumentExpressionList.AssignmentExpression, nil, exprDefault), tag(ccgo), vaArgName)
+			}
 			break out
 		case "__builtin_va_end":
 			if argumentExpressionListLen(n.ArgumentExpressionList) != 1 || mode != exprVoid {
@@ -2007,6 +2022,16 @@ out:
 			return c.mulOverflow(w, n, t, mode)
 		case "__builtin_add_overflow":
 			return c.addOverflow(w, n, t, mode)
+		case "__builtin_choose_expr":
+			switch {
+			case c.isNonZero(n.ArgumentExpressionList.AssignmentExpression.Value()):
+				b.w("%s", c.expr(w, n.ArgumentExpressionList.ArgumentExpressionList.AssignmentExpression, nil, exprDefault))
+			case c.isZero(n.ArgumentExpressionList.AssignmentExpression.Value()):
+				b.w("%s", c.expr(w, n.ArgumentExpressionList.ArgumentExpressionList.ArgumentExpressionList.AssignmentExpression, nil, exprDefault))
+			default:
+				c.err(errorf("internal error"))
+			}
+			return &b, n.Type(), mode
 		}
 
 		switch mode {
@@ -2062,10 +2087,15 @@ out:
 			d := c.declaratorOf(n.PostfixExpression)
 			switch mode {
 			case exprVoid:
-				defer func() { r.volatileOrAtomicHandled = true }()
+				defer func() {
+					if r != nil {
+						r.volatileOrAtomicHandled = true
+					}
+				}()
+				et := n.PostfixExpression.Type()
 				if c.isVolatileOrAtomicExpr(n.PostfixExpression) {
-					bp := c.expr(w, n.PostfixExpression, d.Type().Pointer(), exprUintptr)
-					b.w("%sPostIncAtomic%sP(%s, 1)", c.task.tlsQualifier, c.helper(n, d.Type()), bp)
+					bp := c.expr(w, n.PostfixExpression, et.Pointer(), exprUintptr)
+					b.w("%sPostIncAtomic%sP(%s, 1)", c.task.tlsQualifier, c.helper(n, et), bp)
 					break
 				}
 
@@ -2475,7 +2505,8 @@ func (c *ctx) postfixExpressionPSelect(w writer, n *cc.PostfixExpression, t cc.T
 		return &b, rt, rmode
 	}
 
-	if u, ok := pe.Elem().(*cc.UnionType); ok && f != firstPositiveSizedField(u) {
+	parentFields, unionOk := c.collectParentFields(n, f, pe.Elem())
+	if u, ok := pe.Elem().(*cc.UnionType); !unionOk || (ok && f != firstPositiveSizedField(u)) {
 		switch mode {
 		case exprSelect, exprLvalue, exprDefault:
 			rt, rmode = n.Type(), mode
@@ -2522,7 +2553,7 @@ func (c *ctx) postfixExpressionPSelect(w writer, n *cc.PostfixExpression, t cc.T
 		b.w("((*%s)(%s).", c.typ(n, pe.Elem()), unsafePointer(c.expr(w, n.PostfixExpression, nil, exprDefault)))
 		switch {
 		case f.Parent() != nil:
-			c.parentFields(&b, n.Token, f)
+			c.parentFields(parentFields, &b, n.Token, f, pe.Elem())
 		default:
 			b.w("%s%s", tag(field), c.fieldName(n.PostfixExpression.Type(), f))
 		}
@@ -2538,7 +2569,7 @@ func (c *ctx) postfixExpressionPSelect(w writer, n *cc.PostfixExpression, t cc.T
 		b.w("((*%s)(%s).", c.typ(n, pe.Elem()), unsafePointer(c.expr(w, n.PostfixExpression, nil, exprDefault)))
 		switch {
 		case f.Parent() != nil:
-			c.parentFields(&b, n.Token, f)
+			c.parentFields(parentFields, &b, n.Token, f, pe.Elem())
 		default:
 			b.w("%s%s", tag(field), c.fieldName(n.PostfixExpression.Type(), f))
 		}
@@ -2591,7 +2622,8 @@ func (c *ctx) postfixExpressionSelect(w writer, n *cc.PostfixExpression, t cc.Ty
 		}
 	}
 
-	if u, ok := n.PostfixExpression.Type().(*cc.UnionType); ok && f != firstPositiveSizedField(u) {
+	parentFields, unionOk := c.collectParentFields(n, f, n.PostfixExpression.Type())
+	if u, ok := n.PostfixExpression.Type().(*cc.UnionType); !unionOk || (ok && f != firstPositiveSizedField(u)) {
 		switch mode {
 		case exprLvalue, exprDefault, exprSelect:
 			rt, rmode = n.Type(), mode
@@ -2671,7 +2703,7 @@ func (c *ctx) postfixExpressionSelect(w writer, n *cc.PostfixExpression, t cc.Ty
 		b.w("(%s.", c.expr(w, n.PostfixExpression, nil, exprSelect))
 		switch {
 		case f.Parent() != nil:
-			c.parentFields(&b, n.Token, f)
+			c.parentFields(parentFields, &b, n.Token, f, n.PostfixExpression.Type())
 		default:
 			b.w("%s%s", tag(field), c.fieldName(n.PostfixExpression.Type(), f))
 		}
@@ -2686,7 +2718,7 @@ func (c *ctx) postfixExpressionSelect(w writer, n *cc.PostfixExpression, t cc.Ty
 		b.w("(%s.", c.expr(w, n.PostfixExpression, nil, exprSelect))
 		switch {
 		case f.Parent() != nil:
-			c.parentFields(&b, n.Token, f)
+			c.parentFields(parentFields, &b, n.Token, f, n.PostfixExpression.Type())
 		default:
 			b.w("%s%s", tag(field), c.fieldName(n.PostfixExpression.Type(), f))
 		}
@@ -2850,10 +2882,27 @@ func (c *ctx) postfixExpressionSelectUnionField(w writer, n *cc.PostfixExpressio
 	return &b, f.Type(), mode
 }
 
-func (c *ctx) parentFields(b *buf, n cc.Node, f *cc.Field) {
-	if p := f.Parent(); p != nil {
-		c.parentFields(b, n, p)
-		b.w(".")
+func (c *ctx) collectParentFields(n cc.Node, f *cc.Field, in cc.Type) (r []*cc.Field, ok bool) {
+	g := f
+	ok = true
+	for p := g.ParentField(); p != nil; p = p.ParentField() {
+		_, isUnion := p.Type().(*cc.UnionType)
+		if isUnion && g.Index() != 0 {
+			ok = false
+		}
+		if p.Type() == in || p.Type().IsCompatible(in) {
+			break
+		}
+
+		r = append(r, p)
+		g = p
+	}
+	return r, ok
+}
+
+func (c *ctx) parentFields(a []*cc.Field, b *buf, n cc.Node, f *cc.Field, in cc.Type) {
+	for i := len(a) - 1; i >= 0; i-- {
+		b.w("%s%s.", tag(field), c.fieldName(nil, a[i]))
 	}
 	b.w("%s%s", tag(field), c.fieldName(nil, f))
 }
@@ -3181,9 +3230,18 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, mode mode
 	}
 	switch {
 	case inlineFD != nil:
-		if len(params) != len(args) || ft.IsVariadic() {
+		if len(params) != len(args) && !ft.IsVariadic() {
 			c.err(errorf("TODO %v: %s %v", inlineFD.Position(), inlineFD.Declarator.Name(), inlineFD.Declarator.Type()))
 			return
+		}
+
+		var vaOff int64
+		if c.pass == 1 && ft.IsVariadic() {
+			n := 8 * (len(args) - ft.MinArgs() + 2)
+			c.f.tlsAllocs = roundup(c.f.tlsAllocs, 8)
+			vaOff = c.f.tlsAllocs
+			vaOff = roundup(vaOff, 16)
+			c.f.tlsAllocs += int64(n)
 		}
 
 		sv := c.f.inlineInfo
@@ -3193,6 +3251,7 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, mode mode
 			mode:   mode,
 			params: params,
 			parent: c.f.inlineInfo,
+			vaOff:  vaOff,
 		}
 		c.f.inlineInfo = nfo
 
@@ -3214,6 +3273,18 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, mode mode
 				panic(todo("r %v w %v a %v", d.ReadCount(), d.WriteCount(), d.AddressTaken()))
 			}
 			nfo.replacedParams = append(nfo.replacedParams, rp)
+		}
+		if ft.IsVariadic() {
+			args := xargs[ft.MinArgs():]
+			for i, v := range args {
+				if i == 0 {
+					w.w("\n%s%sVaList(%s", c.task.tlsQualifier, tag(preserve), bpOff(vaOff))
+				}
+				w.w(", %s ", v)
+				if i == len(args)-1 {
+					w.w(")")
+				}
+			}
 		}
 
 		for l := inlineFD.CompoundStatement.BlockItemList; l != nil; l = l.BlockItemList {
@@ -3618,6 +3689,13 @@ func (c *ctx) primaryExpression(w writer, n *cc.PrimaryExpression, t cc.Type, mo
 			defer func() { r.volatileOrAtomicHandled = true }()
 		}
 	}
+
+	defer func() {
+		if r != nil {
+			r.n = n
+		}
+	}()
+
 	var b buf
 out:
 	switch n.Case {
@@ -3787,6 +3865,9 @@ out:
 			}
 		case *cc.Enumerator:
 			switch {
+			case x.ResolvedIn().Parent == nil && c.exprNestLevel == 1:
+				rt, rmode = t, exprDefault
+				b.w("(%s%s)", tag(enumConst), x.Token.Src())
 			case x.ResolvedIn().Parent == nil:
 				rt, rmode = t, exprDefault
 				switch {
@@ -3890,7 +3971,14 @@ func (c *ctx) primaryExpressionLStringConst(w writer, n *cc.PrimaryExpression, t
 		case *cc.ArrayType:
 			switch z := n.Value().(type) {
 			case cc.UTF16StringValue:
-				c.err(errorf("TODO %T", z))
+				for len(z) != 0 && z[len(z)-1] == 0 {
+					z = z[:len(z)-1]
+				}
+				b.w("%s{", c.typ(n, y))
+				for _, c := range z {
+					b.w("%s, ", strconv.QuoteRuneToASCII(rune(c)))
+				}
+				b.w("}")
 			case cc.UTF32StringValue:
 				for len(z) != 0 && z[len(z)-1] == 0 {
 					z = z[:len(z)-1]

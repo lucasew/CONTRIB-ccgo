@@ -460,7 +460,7 @@ func (c *ctx) compile(ifn, ofn string) (err error) {
 	case c.hasMain && c.task.tlsQualifier != "":
 		c.w("\n\nfunc %smain() {\n%s%[1]sStart(%[3]smain)\n}\n", tag(preserve), c.task.tlsQualifier, tag(external))
 	case c.hasWMain && c.task.tlsQualifier != "":
-		c.err(errorf("TODO"))
+		c.w("\n\nfunc %smain() {\n%s%[1]sStart(%[3]swmain)\n}\n", tag(preserve), c.task.tlsQualifier, tag(external))
 	}
 	var a []string
 	for k := range c.externsDefined {

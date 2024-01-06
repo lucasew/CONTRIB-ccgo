@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -85,30 +84,25 @@ func (t *Task) exec(args []string) (err error) {
 
 	defer os.RemoveAll(dirTemp)
 
-	switch runtime.GOOS {
-	case "windows":
-		return errorf("-exec not yet supported on Windows")
-	default:
-		path := os.Getenv("PATH")
+	path := os.Getenv("PATH")
 
-		defer os.Setenv("PATH", path)
+	defer os.Setenv("PATH", path)
 
-		if err = os.Setenv("PATH", fmt.Sprintf("%s%c%s", dirTemp, os.PathListSeparator, path)); err != nil {
-			return err
+	if err = os.Setenv("PATH", fmt.Sprintf("%s%c%s", dirTemp, os.PathListSeparator, path)); err != nil {
+		return err
+	}
+
+	ln := os.Getenv(LNEnvVar)
+	for _, v := range execBins {
+		switch {
+		case v.nm == "libtool" && t.goos != "darwin":
+			continue
 		}
 
-		ln := os.Getenv(LNEnvVar)
-		for _, v := range execBins {
-			switch {
-			case v.nm == "libtool" && t.goos != "darwin":
-				continue
-			}
-
-			symlink := filepath.Join(dirTemp, v.nm)
-			out, err := exec.Command(ln, self, symlink).CombinedOutput()
-			if err != nil {
-				return errorf("%s\n%v", out, err)
-			}
+		symlink := filepath.Join(dirTemp, v.nm)
+		out, err := exec.Command(ln, self, symlink).CombinedOutput()
+		if err != nil {
+			return errorf("%s\n%v", out, err)
 		}
 	}
 
@@ -144,26 +138,35 @@ func (t *Task) execed(cflags []string) (err error) {
 		return errorf("internal error: real CC=%q, GCC=%q, Clang=%q, faked args=%q", t.realCC, t.realGCC, t.realClang, t.args)
 	}
 
-	switch filepath.Base(t.args[0]) {
-	case filepath.Base(t.realAR):
+	switch t.noExe(filepath.Base(t.args[0])) {
+	case t.noExe(filepath.Base(t.realAR)):
 		return t.ar()
-	case filepath.Base(t.realCC):
+	case t.noExe(filepath.Base(t.realCC)):
 		return t.cc(t.realCC, cflags)
-	case filepath.Base(t.realGCC):
+	case t.noExe(filepath.Base(t.realGCC)):
 		return t.cc(t.realGCC, cflags)
-	case filepath.Base(t.realClang):
+	case t.noExe(filepath.Base(t.realClang)):
 		return t.cc(t.realClang, cflags)
-	case filepath.Base(t.realMV):
+	case t.noExe(filepath.Base(t.realMV)):
 		return t.mv()
-	case filepath.Base(t.realRM):
+	case t.noExe(filepath.Base(t.realRM)):
 		return t.rm()
-	case filepath.Base(t.realLN):
+	case t.noExe(filepath.Base(t.realLN)):
 		return t.ln()
-	case filepath.Base(t.realLIBTOOL):
+	case t.noExe(filepath.Base(t.realLIBTOOL)):
 		return t.libtool()
 	default:
-		return errorf("internal error: real CC=%q, GCC=%q, Clang=%q, faked args=%q", t.realCC, t.realGCC, t.realClang, t.args)
+		return errorf("internal error: realAR=%q realCC=%q, realGCC=%q, realClang=%q, t.args=%q", t.realAR, t.realCC, t.realGCC, t.realClang, t.args)
 	}
+}
+
+func (t *Task) noExe(s string) string {
+	const tag = ".exe"
+	if t.goos != "windows" || !strings.HasSuffix(s, tag) {
+		return s
+	}
+
+	return s[:len(s)-len(tag)]
 }
 
 func (t *Task) libtool() error {
@@ -403,6 +406,8 @@ func (t *Task) cc(realCC string, cflags []string) error {
 	set.Opt("m64", func(arg string) error { args.add(arg); return nil })
 	set.Opt("mdynamic-no-pic", func(arg string) error { return nil })
 	set.Opt("mlong-double-64", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mconsole", func(arg string) error { args.add(arg); return nil })
+	set.Opt("municode", func(arg string) error { args.add(arg); return nil })
 	set.Opt("nostdinc", func(arg string) error { args.add(arg); return nil })
 	set.Opt("nostdlib", func(arg string) error { args.add(arg); return nil })
 	set.Opt("pedantic", func(arg string) error { args.add(arg); return nil })
@@ -411,6 +416,7 @@ func (t *Task) cc(realCC string, cflags []string) error {
 	set.Opt("s", func(arg string) error { args.add(arg); return nil })
 	set.Opt("shared", func(arg string) error { args.add(arg); return nil })
 	set.Opt("static", func(arg string) error { args.add(arg); return nil })
+	set.Opt("static-libgcc", func(arg string) error { args.add(arg); return nil })
 	set.Opt("v", func(arg string) error { args.add(arg); return nil })
 	set.Opt("w", func(arg string) error { args.add(arg); return nil })
 	files := 0
