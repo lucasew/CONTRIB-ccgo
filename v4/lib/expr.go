@@ -3282,7 +3282,7 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, mode mode
 				}
 				w.w(", %s ", v)
 				if i == len(args)-1 {
-					w.w(")")
+					w.w(");")
 				}
 			}
 		}
