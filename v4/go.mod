@@ -11,8 +11,8 @@ require (
 	modernc.org/ccgo/v3 v3.16.15
 	modernc.org/ccorpus2 v1.5.1
 	modernc.org/fileutil v1.2.0
-	modernc.org/gc/v2 v2.3.0
-	modernc.org/libc v1.38.1
+	modernc.org/gc/v2 v2.4.1
+	modernc.org/libc v1.39.0
 	modernc.org/mathutil v1.6.0
 	modernc.org/opt v0.1.3
 	modernc.org/strutil v1.2.0

@@ -54,7 +54,7 @@ var (
 	oShellTime    = flag.Duration("shelltimeout", 3600*time.Second, "shell() time limit")
 	oStackTrace   = flag.Bool("trcstack", false, "")
 	oTrace        = flag.Bool("trc", false, "print tested paths.")
-	oTraceC       = flag.Bool("trcc", false, "trace TestExec transiple errors")
+	oTraceC       = flag.Bool("trcc", false, "trace TestExec transpile errors")
 	oTraceCC      = flag.Bool("trccc", false, "trace TestExec C compiler errors")
 	oTraceF       = flag.Bool("trcf", false, "print test file content")
 	oTraceO       = flag.Bool("trco", false, "print test output")
@@ -113,6 +113,7 @@ func TestMain(m *testing.M) {
 		"linux/amd64",
 		"linux/arm",
 		"linux/arm64",
+		"linux/mips64le",
 		"linux/ppc64le",
 		"linux/riscv64",
 		"linux/s390x",
