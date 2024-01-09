@@ -113,6 +113,7 @@ func TestMain(m *testing.M) {
 		"linux/amd64",
 		"linux/arm",
 		"linux/arm64",
+		"linux/loong64",
 		"linux/mips64le",
 		"linux/ppc64le",
 		"linux/riscv64",
