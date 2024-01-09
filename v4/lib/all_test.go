@@ -766,13 +766,7 @@ func TestCSmith(t *testing.T) {
 
 	csmith, err := exec.LookPath("csmith")
 	if err != nil {
-		switch runtime.GOOS {
-		case "windows": //TODO
-			t.Skip(err)
-			return
-		default:
-			t.Fatal(err)
-		}
+		t.Skip(err)
 	}
 
 	bigEndian := abi.ByteOrder == binary.BigEndian
