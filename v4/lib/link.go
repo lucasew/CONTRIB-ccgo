@@ -335,7 +335,7 @@ func (t *Task) getPkgSymbols(importPath string) (r *object, err error) {
 	}
 
 	pkg := pkgs[0]
-	if len(pkg.Errors) != 0 {
+	if len(pkg.Errors) != 0 && !t.ignoreLinkErrors {
 		var a []string
 		for _, v := range pkg.Errors {
 			a = append(a, v.Error())
