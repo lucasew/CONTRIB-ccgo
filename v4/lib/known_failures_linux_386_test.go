@@ -22,6 +22,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/string-conversion.c`:                   {}, // EXEC FAIL: assets/github.com/vnmakarov/mir/c-tests/lacc/string-conversion.c: if
 	`assets/github.com/vnmakarov/mir/c-tests/new/setjmp.c`:                               {}, // EXEC FAIL: assets/github.com/vnmakarov/mir/c-tests/new/setjmp.c: libc.go:2140:Xlongjmp: TODOTODO
 	`assets/github.com/vnmakarov/mir/c-tests/new/setjmp2.c`:                              {}, // EXEC FAIL: assets/github.com/vnmakarov/mir/c-tests/new/setjmp2.c: libc.go:2140:Xlongjmp: TODOTODO
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-types-init.c`:    {},
 
 	// BUILD FAIL - compiles but does not build.
 

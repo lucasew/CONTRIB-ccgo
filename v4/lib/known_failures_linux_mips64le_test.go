@@ -23,6 +23,7 @@ var testExecKnownFails = map[string]struct{}{
 	// Won't fix: implementation defined bit packing
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-basic.c`:         {},
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-trailing-zero.c`: {},
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-types-init.c`:    {},
 
 	// Won't fix: long double
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/long-double-load.c`: {},

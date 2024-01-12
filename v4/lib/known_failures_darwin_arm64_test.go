@@ -26,6 +26,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/tcc-0.9.27/tests/tests2/94_generic.c`:                                        {}, // EXEC FAIL
 	`assets/tcc-0.9.27/tests/tests2/95_bitfields.c`:                                      {}, // EXEC FAIL: "assets/tcc-0.9.27/tests/tests2/95_bitfields.c: ---- TEST 1 ----"
 	`assets/tcc-0.9.27/tests/tests2/95_bitfields_ms.c`:                                   {}, // EXEC FAIL: "assets/tcc-0.9.27/tests/tests2/95_bitfields_ms.c: ---- TEST 1 - MS-BITFIELDS ----"
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-types-init.c`:    {},
 
 	// ==== BUILD FAIL - compiles but does not build.
 
