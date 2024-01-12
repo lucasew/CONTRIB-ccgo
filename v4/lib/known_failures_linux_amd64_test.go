@@ -20,9 +20,10 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20031003-1.c`:                 {},
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/20031003-1.c`: {},
 
-	// Won't fix: implementation defined bit packing
+	// Won't fix: implementation defined bit fields
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-basic.c`:         {},
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-trailing-zero.c`: {},
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-types-init.c`:    {},
 
 	// Won't fix: long double
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/long-double-load.c`: {},

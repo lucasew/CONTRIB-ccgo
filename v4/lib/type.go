@@ -269,11 +269,6 @@ func (c *ctx) typ0(b *strings.Builder, n cc.Node, t cc.Type, useTypenames, useTa
 			case c.maxAlign < x.Align() && off < x.Size():
 				b.WriteByte('\n')
 				fmt.Fprintf(b, "%s__ccgo_pad%d [%d]byte", tag(field), nf, x.Size()-off)
-			default:
-				if p := x.Padding(); p != 0 {
-					b.WriteByte('\n')
-					fmt.Fprintf(b, "%s__ccgo_pad%d [%d]byte", tag(field), nf, p)
-				}
 			}
 			b.WriteString("\n}")
 		}
