@@ -103,28 +103,6 @@ func (f *overlayFS) Open(name string) (fs.File, error) {
 }
 
 func TestMain(m *testing.M) {
-	switch fmt.Sprintf("%s/%s", goos, goarch) {
-	case
-		"darwin/amd64",
-		"darwin/arm64",
-		"freebsd/amd64",
-		"freebsd/arm64",
-		"linux/386",
-		"linux/amd64",
-		"linux/arm",
-		"linux/arm64",
-		"linux/loong64",
-		"linux/mips64le",
-		"linux/ppc64le",
-		"linux/riscv64",
-		"linux/s390x",
-		"openbsd/amd64",
-		"openbsd/arm64":
-
-		// ok
-	default:
-		panic(todo("unsupported target: %s/%s", runtime.GOOS, runtime.GOARCH)) //TODO
-	}
 	testWD, err := filepath.Abs("testdata")
 	if err != nil {
 		panic(todo("", err))

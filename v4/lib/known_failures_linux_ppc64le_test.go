@@ -11,7 +11,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/return-addr.c`: {}, // EXEC FAIL
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-basic.c`:                      {}, // EXEC FAIL
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-trailing-zero.c`:              {}, // EXEC FAIL
-	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-types-init.c`:    {},
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-types-init.c`:                 {},
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/long-double-load.c`:                    {}, // EXEC FAIL
 
 	// ==== BUILD FAIL - compiles but does not build.
