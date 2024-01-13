@@ -66,6 +66,7 @@ var (
 	goos   = runtime.GOOS
 	hostCC string
 	re     *regexp.Regexp
+	target = fmt.Sprintf("%s/%s", goos, goarch)
 
 	csmithDefaultArgs = strings.Join([]string{
 		"--max-nested-struct-level", "10", // --max-nested-struct-level <num>: limit maximum nested level of structs to <num>(default 0). Only works in the exhaustive mode.
@@ -1117,11 +1118,16 @@ func testSQLiteSimple(t *testing.T) {
 		"-full-paths",
 		"-verify-types",
 		"-ignore-vector-functions",
+		"-ignore-vector-functions",
 		"--libc", "modernc.org/libc",
 		"-o", main,
 		filepath.Join(dir, "shell.c"),
 		filepath.Join(dir, "sqlite3.c"),
 		filepath.Join(dir, "patch.c"),
+	}
+	switch target {
+	case "darwin/arm64":
+		ccgoArgs = append(ccgoArgs, "-ignore-unsupported-alignment")
 	}
 	if *oKeep {
 		ccgoArgs = append(ccgoArgs, "-keep-object-files", "-extended-errors", "-debug-linker-save")
@@ -1269,6 +1275,10 @@ func testSQLiteSpeedTest1(t *testing.T) {
 		filepath.Join(dir, "speedtest1.c"),
 		filepath.Join(dir, "sqlite3.c"),
 		filepath.Join(dir, "patch.c"),
+	}
+	switch target {
+	case "darwin/arm64":
+		ccgoArgs = append(ccgoArgs, "-ignore-unsupported-alignment")
 	}
 	if *oKeep {
 		ccgoArgs = append(ccgoArgs, "-keep-object-files", "-extended-errors", "-debug-linker-save")
