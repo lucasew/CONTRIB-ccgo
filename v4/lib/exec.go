@@ -20,16 +20,18 @@ import (
 const (
 	// xxEnvVars contain the paths to the binaries ccgo acts as a proxy for when
 	// -exec is in effect.
-	AREnvVar      = "CCGO_EXEC_AR"
-	CCEnvVar      = "CCGO_EXEC_CC"
-	ClangEnvVar   = "CCGO_EXEC_CLANG"
-	GCCEnvVar     = "CCGO_EXEC_GCC"
-	LIBTOOLEnvVar = "CCGO_EXEC_LIBTOOL"
-	LNEnvVar      = "CCGO_EXEC_LN"
-	MVEnvVar      = "CCGO_EXEC_MV"
-	RMEnvVar      = "CCGO_EXEC_RM"
-	cflagsEnvVar  = "CCGO_EXEC_CFLAGS"
-	cflagsSep     = "|"
+	AREnvVar       = "CCGO_EXEC_AR"
+	CCEnvVar       = "CCGO_EXEC_CC"
+	ClangEnvVar    = "CCGO_EXEC_CLANG"
+	GCCEnvVar      = "CCGO_EXEC_GCC"
+	LIBTOOLEnvVar  = "CCGO_EXEC_LIBTOOL"
+	LNEnvVar       = "CCGO_EXEC_LN"
+	MVEnvVar       = "CCGO_EXEC_MV"
+	RMEnvVar       = "CCGO_EXEC_RM"
+	TargetCCEnvVar = "CCGO_EXEC_TARGET_CC"
+	TargetAREnvVar = "CCGO_EXEC_TARGET_AR"
+	cflagsEnvVar   = "CCGO_EXEC_CFLAGS"
+	cflagsSep      = "|"
 )
 
 var (
@@ -60,6 +62,24 @@ func (t *Task) exec(args []string) (err error) {
 			if err := os.Setenv(v.envVar, bin); err != nil {
 				return errorf("cannot set env var %s: %v", v.envVar, err)
 			}
+		}
+	}
+	if t.targetAR != "" {
+		if s := os.Getenv(t.targetAR); s != "" {
+			return errorf("-exec: env var %s already set: %q", TargetAREnvVar, s)
+		}
+
+		if err := os.Setenv(TargetAREnvVar, t.targetAR); err != nil {
+			return errorf("cannot set env var %s: %v", TargetAREnvVar, err)
+		}
+	}
+	if t.targetCC != "" {
+		if s := os.Getenv(t.targetCC); s != "" {
+			return errorf("-exec: env var %s already set: %q", TargetCCEnvVar, s)
+		}
+
+		if err := os.Setenv(TargetCCEnvVar, t.targetCC); err != nil {
+			return errorf("cannot set env var %s: %v", TargetCCEnvVar, err)
 		}
 	}
 
@@ -104,6 +124,25 @@ func (t *Task) exec(args []string) (err error) {
 		if err != nil {
 			return errorf("%s\n%v", out, err)
 		}
+		trc("symlinked %s -> %s", symlink, self)
+	}
+	if t.targetCC != "" {
+		symlink := filepath.Join(dirTemp, filepath.Base(t.targetCC))
+		out, err := exec.Command(ln, self, symlink).CombinedOutput()
+		if err != nil {
+			return errorf("%s\n%v", out, err)
+		}
+
+		trc("symlinked %s -> %s", symlink, self)
+	}
+	if t.targetAR != "" {
+		symlink := filepath.Join(dirTemp, filepath.Base(t.targetAR))
+		out, err := exec.Command(ln, self, symlink).CombinedOutput()
+		if err != nil {
+			return errorf("%s\n%v", out, err)
+		}
+
+		trc("symlinked %s -> %s", symlink, self)
 	}
 
 	cmd := exec.Command(args[0], args[1:]...)
@@ -119,7 +158,7 @@ func (s *strSlice) add(v ...string) { *s = append(*s, v...) }
 func (t *Task) execed(cflags []string) (err error) {
 	if dmesgs {
 		wd, err := os.Getwd()
-		dmesg("%v: ==== task.execed ENTER: wd (%v, %v), CC=%q %s=%q, %s=%q, %s=%q\\\n%v", origin(1), wd, err, os.Getenv("CC"), CCEnvVar, os.Getenv(CCEnvVar), GCCEnvVar, os.Getenv(GCCEnvVar), ClangEnvVar, os.Getenv(ClangEnvVar), t.args)
+		dmesg("%v: ==== task.execed ENTER: wd (%v, %v), CC=%q %s=%q %s=%q, %s=%q, %s=%q\\\n%v", origin(1), wd, err, os.Getenv("CC"), CCEnvVar, os.Getenv(CCEnvVar), TargetCCEnvVar, os.Getenv(TargetCCEnvVar), GCCEnvVar, os.Getenv(GCCEnvVar), ClangEnvVar, os.Getenv(ClangEnvVar), t.args)
 	}
 
 	defer func() {
@@ -139,8 +178,12 @@ func (t *Task) execed(cflags []string) (err error) {
 	}
 
 	switch t.noExe(filepath.Base(t.args[0])) {
+	case t.noExe(filepath.Base(t.targetAR)):
+		return t.ar(t.targetAR)
 	case t.noExe(filepath.Base(t.realAR)):
-		return t.ar()
+		return t.ar(t.realAR)
+	case t.noExe(filepath.Base(t.targetCC)):
+		return t.cc(t.targetCC, cflags)
 	case t.noExe(filepath.Base(t.realCC)):
 		return t.cc(t.realCC, cflags)
 	case t.noExe(filepath.Base(t.realGCC)):
@@ -156,7 +199,7 @@ func (t *Task) execed(cflags []string) (err error) {
 	case t.noExe(filepath.Base(t.realLIBTOOL)):
 		return t.libtool()
 	default:
-		return errorf("internal error: realAR=%q realCC=%q, realGCC=%q, realClang=%q, t.args=%q", t.realAR, t.realCC, t.realGCC, t.realClang, t.args)
+		return errorf("internal error: targetAR=%q realAR=%q realCC=%q, realGCC=%q, realClang=%q, t.args=%q", t.targetAR, t.realAR, t.realCC, t.realGCC, t.realClang, t.args)
 	}
 }
 
@@ -390,6 +433,10 @@ func (t *Task) cc(realCC string, cflags []string) error {
 	set.Arg("o", true, func(arg, val string) error { args.add(arg, val+".go"); return nil })
 	set.Arg("sectcreate", false, func(arg, val string) error { ignore = 2; return nil })
 	set.Arg("std", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
+	set.Arg("target-ar", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
+	set.Arg("target-cc", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
+	set.Arg("target-goarch", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
+	set.Arg("target-goos", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Opt("-version", func(arg string) error { args.add(arg); return nil })
 	set.Opt("E", func(arg string) error { optE = true; return nil })
 	set.Opt("MMD", func(arg string) error { return nil })
@@ -499,17 +546,17 @@ func (t *Task) cc(realCC string, cflags []string) error {
 	return t.main()
 }
 
-func (t *Task) ar() error {
+func (t *Task) ar(realAR string) error {
 	if dmesgs {
 		dmesg("AR %v", t.args)
 	}
-	cmd := exec.Command(t.realAR, t.args[1:]...)
+	cmd := exec.Command(realAR, t.args[1:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		if dmesgs {
-			dmesg("SKIP: %s returns %v", t.realAR, err.(*exec.ExitError).ExitCode())
+			dmesg("SKIP: %s returns %v", realAR, err.(*exec.ExitError).ExitCode())
 		}
 		return err
 	}

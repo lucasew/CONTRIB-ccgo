@@ -5,11 +5,8 @@
 // Package ccgo implements the ccgo command.
 package ccgo // import "modernc.org/ccgo/v4/lib"
 
-//TODO TestSQLite linux/arm64
-//TODO support hidden
 //TODO Tucontext_t - Tucontext_t5
 //TODO acosh u does not need to be pinned, need better escape analysis above "address taken"
-//TODO tests += staticcheck
 //TODO add inlining infinite recursion protection
 
 //  [0]: http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf
@@ -97,6 +94,8 @@ type Task struct {
 	std                   string // -std
 	stderr                io.Writer
 	stdout                io.Writer
+	targetAR              string // -target-ar <string>, expanded to full path
+	targetCC              string // -target-cc <string>, expanded to full path
 	tlsQualifier          string // eg. "libc."
 
 	intSize int
@@ -134,20 +133,7 @@ type Task struct {
 
 // NewTask returns a newly created Task. args[0] is the command name.
 func NewTask(goos, goarch string, args []string, stdout, stderr io.Writer, fs fs.FS) (r *Task) {
-	var d []string
-	switch goarch {
-	case "arm", "386":
-		// modernc.org/libc@v1/sys/types/Off_t is 64 bit
-		d = []string{"-D_FILE_OFFSET_BITS=64"}
-	}
-
-	intSize := 8
-	switch goarch {
-	case "arm", "386":
-		intSize = 4
-	}
 	return &Task{
-		D:                d,
 		archiveLinkFiles: map[string]struct{}{},
 		args:             args,
 		buildLines: fmt.Sprintf(`//go:build %[1]s && %[2]s
@@ -157,7 +143,6 @@ func NewTask(goos, goarch string, args []string, stdout, stderr io.Writer, fs fs
 		fs:             fs,
 		goarch:         goarch,
 		goos:           goos,
-		intSize:        intSize,
 		prefixAnonType: "_",
 		stderr:         stderr,
 		stdout:         stdout,
@@ -187,6 +172,8 @@ func (t *Task) Main() (err error) {
 		t.realLN = os.Getenv(LNEnvVar)
 		t.realMV = os.Getenv(MVEnvVar)
 		t.realRM = os.Getenv(RMEnvVar)
+		t.targetAR = os.Getenv(TargetAREnvVar)
+		t.targetCC = os.Getenv(TargetCCEnvVar)
 		return t.execed(flags)
 	}
 
@@ -212,10 +199,6 @@ func (t *Task) main() (err error) {
 		return errorf("invalid arguments")
 	case 1:
 		return errorf("no input files")
-	}
-
-	if t.goABI, err = gc.NewABI(t.goos, t.goarch); err != nil {
-		return errorf("%v", err)
 	}
 
 	defer func() {
@@ -298,6 +281,26 @@ func (t *Task) main() (err error) {
 		if val == "c90" {
 			t.strictISOMode = true
 		}
+		return nil
+	})
+	set.Arg("target-goos", false, func(arg, val string) error { t.goos = val; return nil })
+	set.Arg("target-goarch", false, func(arg, val string) error { t.goarch = val; return nil })
+	set.Arg("target-ar", false, func(arg, val string) (err error) {
+		pth, err := exec.LookPath(val)
+		if err != nil {
+			return errorf("%s=%s: %v", arg, val, err)
+		}
+
+		t.targetAR = pth
+		return nil
+	})
+	set.Arg("target-cc", false, func(arg, val string) (err error) {
+		pth, err := exec.LookPath(val)
+		if err != nil {
+			return errorf("%s=%s: %v", arg, val, err)
+		}
+
+		t.targetCC = pth
 		return nil
 	})
 	set.Opt("E", func(arg string) error { t.E = true; return nil })
@@ -434,6 +437,22 @@ func (t *Task) main() (err error) {
 		}
 	}
 
+	if t.goABI, err = gc.NewABI(t.goos, t.goarch); err != nil {
+		return errorf("%v", err)
+	}
+
+	switch t.goarch {
+	case "arm", "386":
+		// modernc.org/libc@v1/sys/types/Off_t is 64 bit
+		t.D = append(t.D, "-D_FILE_OFFSET_BITS=64")
+	}
+	switch t.goarch {
+	case "arm", "386":
+		t.intSize = 4
+	default:
+		t.intSize = 8
+	}
+
 	t.D = append(t.D, "-D__CCGO__")
 	t.cfgArgs = append(t.cfgArgs, t.D...)
 	t.cfgArgs = append(t.cfgArgs, t.U...)
@@ -441,7 +460,6 @@ func (t *Task) main() (err error) {
 		t.O,
 		t.std,
 	)
-
 	ldflag := cc.LongDouble64Flag(t.goos, t.goarch)
 	if ldflag != "" {
 		t.cfgArgs = append(t.cfgArgs, ldflag)
@@ -487,6 +505,8 @@ func (t *Task) main() (err error) {
 
 	sv := os.Getenv("CC")
 	switch {
+	case os.Getenv(TargetCCEnvVar) != "":
+		os.Setenv("CC", os.Getenv(TargetCCEnvVar))
 	case os.Getenv(CCEnvVar) != "":
 		os.Setenv("CC", os.Getenv(CCEnvVar))
 	case os.Getenv(GCCEnvVar) != "":

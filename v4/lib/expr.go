@@ -345,7 +345,13 @@ func (c *ctx) convertType(n cc.ExpressionNode, s *buf, from, to cc.Type, fromMod
 		}
 	}
 
-	c.err(errorf("%v: TODO %q %s, %v %s -> %s, %v %s (%v:)", pos(n), s, from, from.Size(), fromMode, to, to.Size(), toMode, c.pos(n)))
+	if cc.IsScalarType(from) && to.Kind() == cc.Union && from.Size() == to.Size() && fromMode == exprDefault && toMode == exprDefault {
+		e := c.expr(nil, s.n.(cc.ExpressionNode), nil, exprDefault)
+		b.w("(*(*%s)(%s))", c.typ(n, to), unsafePointer(fmt.Sprintf("&struct{ %s__ccgo %s}{%s}", tag(preserve), c.typ(n, from), e)))
+		return &b
+	}
+
+	c.err(errorf("%v: TODO %q from=%s %v %v %v -> to=%s %v %v %v (%v:)", pos(n), s, from, from.Kind(), from.Size(), fromMode, to, to.Kind(), to.Size(), toMode, c.pos(n)))
 	// panic(todo("")) //TODO-DBG
 	//trc("", errorf("ERROR %q %s %s -> %s %s (%v:)", s, from, fromMode, to, toMode, c.pos(n))) //TODO-DBG
 	return s //TODO
@@ -1104,6 +1110,7 @@ func (c *ctx) castExpression(w writer, n *cc.CastExpression, t cc.Type, mode mod
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
 	}
+	b.n = n
 	return &b, rt, rmode
 }
 

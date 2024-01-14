@@ -116,7 +116,9 @@ func (c *ctx) initializer(w writer, n cc.Node, a []*cc.Initializer, t cc.Type, o
 		return c.initializerStruct(w, n, a, x, off0)
 	case *cc.UnionType:
 		if len(a) == 1 && a[0].Type().Kind() == cc.Union && a[0].Type().Size() == x.Size() {
-			return c.expr(w, a[0].AssignmentExpression, t, exprDefault)
+			r := c.expr(w, a[0].AssignmentExpression, t, exprDefault)
+			r.n = a[0].AssignmentExpression
+			return r
 		}
 
 		return c.initializerUnion(w, n, a, x, off0, arrayElem)
