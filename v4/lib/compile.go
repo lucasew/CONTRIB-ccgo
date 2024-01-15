@@ -670,11 +670,27 @@ package %s
 `,
 		generatedFilePrefix,
 		c.task.goos, c.task.goarch,
-		filepath.Base(c.task.args[0]),
-		strings.Join(c.task.args[1:], " "),
+		safeArg(filepath.Base(c.task.args[0])),
+		strings.Join(safeArgs(c.task.args[1:]), " "),
 		generatedFileSuffix,
 		objectFilePackageName,
 	)
+}
+
+func safeArg(arg string) (r string) {
+	r = strings.ReplaceAll(arg, "\n", "\\n")
+	// Thanks go vet.
+	r = strings.ReplaceAll(r, "//go:build", "\\/\\/go:build")
+	r = strings.ReplaceAll(r, "// +build", "\\/\\/ \\x2bbuild")
+	return strings.ReplaceAll(r, "\r", "\\r")
+}
+
+func safeArgs(args []string) (r []string) {
+	r = make([]string, 0, len(args))
+	for _, v := range args {
+		r = append(r, safeArg(v))
+	}
+	return r
 }
 
 func (c *ctx) declaratorTag(d *cc.Declarator) string { return tag(c.declaratorKind(d)) }

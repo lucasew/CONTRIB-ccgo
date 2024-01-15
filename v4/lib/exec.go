@@ -57,7 +57,20 @@ func (t *Task) exec(args []string) (err error) {
 			return errorf("-exec: env var %s already set: %q", v.envVar, s)
 		}
 
-		bin, err := exec.LookPath(v.nm)
+		var bin string
+		switch v.nm {
+		case "cc", "clang", "gcc":
+			if t.targetCC != "" {
+				bin = t.targetCC
+			}
+		case "ar":
+			if t.targetAR != "" {
+				bin = t.targetAR
+			}
+		}
+		if bin == "" {
+			bin, err = exec.LookPath(v.nm)
+		}
 		if err == nil {
 			if err := os.Setenv(v.envVar, bin); err != nil {
 				return errorf("cannot set env var %s: %v", v.envVar, err)
@@ -124,7 +137,6 @@ func (t *Task) exec(args []string) (err error) {
 		if err != nil {
 			return errorf("%s\n%v", out, err)
 		}
-		trc("symlinked %s -> %s", symlink, self)
 	}
 	if t.targetCC != "" {
 		symlink := filepath.Join(dirTemp, filepath.Base(t.targetCC))
@@ -132,8 +144,6 @@ func (t *Task) exec(args []string) (err error) {
 		if err != nil {
 			return errorf("%s\n%v", out, err)
 		}
-
-		trc("symlinked %s -> %s", symlink, self)
 	}
 	if t.targetAR != "" {
 		symlink := filepath.Join(dirTemp, filepath.Base(t.targetAR))
@@ -141,8 +151,6 @@ func (t *Task) exec(args []string) (err error) {
 		if err != nil {
 			return errorf("%s\n%v", out, err)
 		}
-
-		trc("symlinked %s -> %s", symlink, self)
 	}
 
 	cmd := exec.Command(args[0], args[1:]...)
@@ -455,6 +463,39 @@ func (t *Task) cc(realCC string, cflags []string) error {
 	set.Opt("mconsole", func(arg string) error { args.add(arg); return nil })
 	set.Opt("mdynamic-no-pic", func(arg string) error { return nil })
 	set.Opt("mlong-double-64", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-3dnow", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-abm", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-aes", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-avx", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-avx2", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-avx512cd", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-avx512er", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-avx512f", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-avx512pf", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-bmi", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-bmi2", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-f16c", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-fma", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-fma4", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-fsgsbase", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-lwp", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-lzcnt", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-mmx", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-pclmul", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-popcnt", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-prefetchwt1", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-rdrnd", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-sha", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-sse", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-sse2", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-sse3", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-sse4", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-sse4.1", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-sse4.2", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-sse4a", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-ssse3", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-tbm", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mno-xop", func(arg string) error { args.add(arg); return nil })
 	set.Opt("municode", func(arg string) error { args.add(arg); return nil })
 	set.Opt("nostdinc", func(arg string) error { args.add(arg); return nil })
 	set.Opt("nostdlib", func(arg string) error { args.add(arg); return nil })
@@ -526,7 +567,7 @@ func (t *Task) cc(realCC string, cflags []string) error {
 			args.add(nm)
 			files++
 			return nil
-		case ".a":
+		case ".a", ".def":
 			args.add(arg)
 			files++
 			return nil
@@ -614,6 +655,8 @@ func (t *Task) ar(realAR string) error {
 					members++
 					args.add(nm)
 				}
+				return nil
+			case ".def":
 				return nil
 			default:
 				return errorf("TODO #%d: %q: real AR=%q, faked args=%q", argN, arg, t.realAR, t.args)

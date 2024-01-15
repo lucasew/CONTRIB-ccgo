@@ -48,7 +48,7 @@ type Task struct {
 	cfg                   *cc.Config
 	cfgArgs               []string
 	cleanupDirs           []string
-	compiledfFiles        map[string]string // *.c -> *.c.go
+	compiledfFiles        map[string]string // *.c -> *.o.go
 	defs                  string
 	fs                    fs.FS
 	goABI                 *gc.ABI
@@ -56,8 +56,8 @@ type Task struct {
 	goos                  string
 	hidden                nameSet  // -hide <string>
 	idirafter             []string // -idirafter
-	ignoreFile            nameSet  // -ignore-file=comma separated file list
-	imports               []string // -import=comma separated import list
+	ignoreFile            nameSet  // -ignore-file=<comma separated file list>
+	imports               []string // -import=<comma separated import list>
 	inputFiles            []string
 	iquote                []string // -iquote
 	isystem               []string // -isystem
@@ -412,6 +412,8 @@ func (t *Task) main() (err error) {
 			for _, v := range list {
 				t.archiveLinkFiles[v] = struct{}{}
 			}
+			return nil
+		case strings.HasSuffix(arg, ".def"):
 			return nil
 		}
 
