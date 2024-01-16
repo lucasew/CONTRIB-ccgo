@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/dustin/go-humanize v1.0.1
+	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
 	github.com/pmezard/go-difflib v1.0.0
 	golang.org/x/mod v0.14.0
 	golang.org/x/tools v0.17.0
@@ -12,7 +13,7 @@ require (
 	modernc.org/ccorpus2 v1.5.1
 	modernc.org/fileutil v1.2.0
 	modernc.org/gc/v2 v2.4.1
-	modernc.org/libc v1.40.3
+	modernc.org/libc v1.40.4
 	modernc.org/mathutil v1.6.0
 	modernc.org/opt v0.1.3
 	modernc.org/strutil v1.2.0

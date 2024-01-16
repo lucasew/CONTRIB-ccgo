@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
+	"github.com/pbnjay/memory"
 	"github.com/pmezard/go-difflib/difflib"
 	"modernc.org/cc/v4"
 	"modernc.org/ccorpus2"
@@ -61,12 +62,13 @@ var (
 	oXWork        = flag.String("xwork", "", "TestExec will use a go.work file for packages in the CSV list")
 	oXTags        = flag.String("xtags", "", "passed to go build of TestSQLite")
 
-	cfs    fs.FS
-	goarch = runtime.GOARCH
-	goos   = runtime.GOOS
-	hostCC string
-	re     *regexp.Regexp
-	target = fmt.Sprintf("%s/%s", goos, goarch)
+	cfs         fs.FS
+	goarch      = runtime.GOARCH
+	goos        = runtime.GOOS
+	hostCC      string
+	re          *regexp.Regexp
+	target      = fmt.Sprintf("%s/%s", goos, goarch)
+	totalMemory = memory.TotalMemory()
 
 	csmithDefaultArgs = strings.Join([]string{
 		"--max-nested-struct-level", "10", // --max-nested-struct-level <num>: limit maximum nested level of structs to <num>(default 0). Only works in the exhaustive mode.
@@ -411,8 +413,14 @@ func testExec(t *testing.T, cfsDir string, exec bool, g *golden) {
 		}
 
 		p.file()
+		base := filepath.Base(path)
 		switch {
-		case re != nil && !re.MatchString(filepath.Base(path)):
+		case re != nil && !re.MatchString(base):
+			p.skip()
+			return nil
+		}
+
+		if totalMemory < 4<<30 && strings.HasPrefix(base, "limits-") {
 			p.skip()
 			return nil
 		}
