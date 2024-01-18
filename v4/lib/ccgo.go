@@ -50,6 +50,7 @@ type Task struct {
 	cleanupDirs           []string
 	compiledfFiles        map[string]string // *.c -> *.o.go
 	defs                  string
+	routes                string // -map <comma separated list>
 	fs                    fs.FS
 	goABI                 *gc.ABI
 	goarch                string
@@ -83,20 +84,21 @@ type Task struct {
 	prefixTaggedUnion     string // --prefix-taged-union <string>
 	prefixTypename        string // --prefix-typename <string>
 	prefixUndefined       string // --prefix-undefined <string>
-	realAR                string // which ar
-	realCC                string // which cc
-	realClang             string // which clang
-	realGCC               string // which gcc
-	realLIBTOOL           string // which libtool
-	realLN                string // which ln
-	realMV                string // which mv
-	realRM                string // which rm
-	std                   string // -std
-	stderr                io.Writer
-	stdout                io.Writer
-	targetAR              string // -target-ar <string>, expanded to full path
-	targetCC              string // -target-cc <string>, expanded to full path
-	tlsQualifier          string // eg. "libc."
+	// The simple form "tool1,tool2" asks to route commands "tool1" and "tool2" via
+	// ccgo. For example
+	//
+	//	-map ar,cc
+	//
+	// The other form, like "tool=bin" asks to route command "tool" via ccgo using
+	// "bin". For example
+	//
+	//	-map ar=x86_64-w64-mingw32-gcc-ar,cc=x86_64-w64-mingw32-gcc
+	//
+	// The tool must be one of ar,cc,clang,gcc,libtool,ln,mv,rm.
+	std          string // -std
+	stderr       io.Writer
+	stdout       io.Writer
+	tlsQualifier string // eg. "libc."
 
 	intSize int
 
@@ -139,6 +141,7 @@ func NewTask(goos, goarch string, args []string, stdout, stderr io.Writer, fs fs
 		buildLines: fmt.Sprintf(`//go:build %[1]s && %[2]s
 // +build %[1]s,%[2]s`, goos, goarch),
 		compiledfFiles: map[string]string{},
+		routes:         "ar,cc,clang,gcc,libtool,ln,mv,rm",
 		libc:           defaultLibcPackage,
 		fs:             fs,
 		goarch:         goarch,
@@ -152,6 +155,12 @@ func NewTask(goos, goarch string, args []string, stdout, stderr io.Writer, fs fs
 
 // Exec executes a task having the "-exec=foo" option.
 func (t *Task) Exec() (err error) {
+	if dmesgs {
+		dmesg(
+			"==== task.Exec t.goos=%s t.goarch=%s TARGET_GOOS=%s TARGET_GOARCH=%s IsExecEnv()=%v CC=%s CCGO_CPP=%s\nt.args=%s",
+			t.goos, t.goarch, os.Getenv("TARGET_GOOS"), os.Getenv("TARGET_GOARCH"), IsExecEnv(), os.Getenv("CC"), os.Getenv("CCGO_CPP"), t.args,
+		)
+	}
 	defer clearExecEnv()
 
 	return t.Main()
@@ -159,22 +168,18 @@ func (t *Task) Exec() (err error) {
 
 // Main executes task.
 func (t *Task) Main() (err error) {
-	if IsExecEnv() {
+	if dmesgs {
+		dmesg(
+			"==== task.Main t.goos=%s t.goarch=%s TARGET_GOOS=%s TARGET_GOARCH=%s IsExecEnv()=%v CC=%s CCGO_CPP=%s\nt.args=%s",
+			t.goos, t.goarch, os.Getenv("TARGET_GOOS"), os.Getenv("TARGET_GOARCH"), IsExecEnv(), os.Getenv("CC"), os.Getenv("CCGO_CPP"), t.args,
+		)
+	}
+	if ee := execEnv(); ee != "" {
 		var flags []string
 		if cflags := os.Getenv(cflagsEnvVar); cflags != "" {
-			flags = strutil.SplitFields(cflags, cflagsSep)
+			flags = strutil.SplitFields(cflags, commaSep)
 		}
-		t.realAR = os.Getenv(AREnvVar)
-		t.realCC = os.Getenv(CCEnvVar)
-		t.realClang = os.Getenv(ClangEnvVar)
-		t.realGCC = os.Getenv(GCCEnvVar)
-		t.realLIBTOOL = os.Getenv(LIBTOOLEnvVar)
-		t.realLN = os.Getenv(LNEnvVar)
-		t.realMV = os.Getenv(MVEnvVar)
-		t.realRM = os.Getenv(RMEnvVar)
-		t.targetAR = os.Getenv(TargetAREnvVar)
-		t.targetCC = os.Getenv(TargetCCEnvVar)
-		return t.execed(flags)
+		return t.execed(ee, flags)
 	}
 
 	return t.main()
@@ -182,18 +187,11 @@ func (t *Task) Main() (err error) {
 
 func (t *Task) main() (err error) {
 	if dmesgs {
-		dmesg("%v: ==== task.main enter %s CC=%q %s=%q, %s=%q, %s=%q",
-			origin(1), t.args, os.Getenv("CC"), CCEnvVar, os.Getenv(CCEnvVar), GCCEnvVar, os.Getenv(GCCEnvVar), ClangEnvVar, os.Getenv(ClangEnvVar))
-		defer func() {
-			switch {
-			case err != nil:
-				dmesg("%v: ==== exit FAIL: %v", origin(1), err)
-			default:
-				dmesg("%v: ==== exit OK: %v", origin(1), err)
-			}
-		}()
+		dmesg(
+			"==== task.main t.goos=%s t.goarch=%s TARGET_GOOS=%s TARGET_GOARCH=%s IsExecEnv()=%v CC=%s CCGO_CPP=%s\nt.args=%s",
+			t.goos, t.goarch, os.Getenv("TARGET_GOOS"), os.Getenv("TARGET_GOARCH"), IsExecEnv(), os.Getenv("CC"), os.Getenv("CCGO_CPP"), t.args,
+		)
 	}
-
 	switch len(t.args) {
 	case 0:
 		return errorf("invalid arguments")
@@ -275,32 +273,13 @@ func (t *Task) main() (err error) {
 		return nil
 	})
 
+	set.Arg("map", true, func(arg, val string) error { t.routes = val; return nil })
 	set.Arg("o", true, func(arg, val string) error { t.o = val; return nil })
 	set.Arg("std", true, func(arg, val string) error {
 		t.std = fmt.Sprintf("%s=%s", arg, val)
 		if val == "c90" {
 			t.strictISOMode = true
 		}
-		return nil
-	})
-	set.Arg("target-goos", false, func(arg, val string) error { t.goos = val; return nil })
-	set.Arg("target-goarch", false, func(arg, val string) error { t.goarch = val; return nil })
-	set.Arg("target-ar", false, func(arg, val string) (err error) {
-		pth, err := exec.LookPath(val)
-		if err != nil {
-			return errorf("%s=%s: %v", arg, val, err)
-		}
-
-		t.targetAR = pth
-		return nil
-	})
-	set.Arg("target-cc", false, func(arg, val string) (err error) {
-		pth, err := exec.LookPath(val)
-		if err != nil {
-			return errorf("%s=%s: %v", arg, val, err)
-		}
-
-		t.targetCC = pth
 		return nil
 	})
 	set.Opt("E", func(arg string) error { t.E = true; return nil })
@@ -505,23 +484,25 @@ func (t *Task) main() (err error) {
 		)
 	}
 
-	sv := os.Getenv("CC")
+	svCC := os.Getenv("CC")
 	switch {
-	case os.Getenv(TargetCCEnvVar) != "":
-		os.Setenv("CC", os.Getenv(TargetCCEnvVar))
-	case os.Getenv(CCEnvVar) != "":
-		os.Setenv("CC", os.Getenv(CCEnvVar))
-	case os.Getenv(GCCEnvVar) != "":
-		os.Setenv("CC", os.Getenv(GCCEnvVar))
-	case os.Getenv(ClangEnvVar) != "":
-		os.Setenv("CC", os.Getenv(ClangEnvVar))
+	case os.Getenv("CCGO_CPP") != "":
+		os.Setenv("CC", os.Getenv("CCGO_CPP"))
 	}
-	cfg, err := cc.NewConfig(t.goos, t.goarch, t.cfgArgs...)
-	os.Setenv("CC", sv)
+	goos := env("TARGET_GOOS", t.goos)
+	goarch := env("TARGET_GOARCH", t.goarch)
+	if dmesgs {
+		dmesg("cc.NewConfig(%q, %q, %q) CC=%q", goos, goarch, t.cfgArgs, os.Getenv("CC"))
+	}
+	cfg, err := cc.NewConfig(goos, goarch, t.cfgArgs...)
+	os.Setenv("CC", svCC)
 	if err != nil {
 		return err
 	}
 
+	// if dmesgs {
+	// 	dmesg("cfg.Predefined=%s", cfg.Predefined)
+	// }
 	cfg.UnsignedEnums = t.unsignedEnums
 	if ldflag == "" {
 		if err = cfg.AdjustLongDouble(); err != nil {
@@ -610,17 +591,7 @@ func (t *Task) main() (err error) {
 }
 
 func (t *Task) arExtract(fn string) (r []string, err error) {
-	ar := t.realAR
-	if ar == "" {
-		ar = os.Getenv(AREnvVar)
-	}
-	if ar == "" {
-		ar, err = exec.LookPath("ar")
-		if err != nil {
-			return nil, errorf("%v", err)
-		}
-	}
-
+	ar := os.Getenv("CCGO_AR")
 	tmp, err := os.MkdirTemp("", "ccgo-tmp-ar-")
 	if err != nil {
 		return nil, errorf("%v", err)

@@ -35,7 +35,7 @@ func dmesg(s string, args ...interface{}) {
 		s = strings.Repeat("%v ", len(args))
 	}
 	s = fmt.Sprintf(s, args...)
-	s = time.Now().Format("15:04:05.000 ") + pid + s
+	s = time.Now().Format("15:04:05.000 ") + pid + s + fmt.Sprintf(" (%v: %v:)", origin(3), origin(2))
 	switch {
 	case len(s) != 0 && s[len(s)-1] == '\n':
 		fmt.Fprint(logf, s)
