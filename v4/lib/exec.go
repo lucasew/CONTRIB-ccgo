@@ -39,14 +39,7 @@ func (t *Task) exec(args []string) (err error) {
 	}
 
 	cflags := t.args[1 : (len(t.args))-len(args)-1] // -1 for the final "-exec"
-	if err := os.Setenv(cflagsEnvVar, strutil.JoinFields(cflags, commaSep)); err != nil {
-		return errorf("cannot set env var %s: %v", cflagsEnvVar, err)
-	}
-
-	if dmesgs {
-		dmesg("%s=%s", cflagsEnvVar, cflags)
-	}
-
+	setenv(cflagsEnvVar, strutil.JoinFields(cflags, commaSep))
 	self, err := os.Executable()
 	if err != nil {
 		return err
@@ -61,12 +54,9 @@ func (t *Task) exec(args []string) (err error) {
 
 	restorePath := os.Getenv("PATH")
 
-	defer os.Setenv("PATH", restorePath)
+	defer setenv("PATH", restorePath)
 
-	if err = os.Setenv("PATH", fmt.Sprintf("%s%c%s", dirTemp, os.PathListSeparator, restorePath)); err != nil {
-		return err
-	}
-
+	setenv("PATH", fmt.Sprintf("%s%c%s", dirTemp, os.PathListSeparator, restorePath))
 	var a []string
 	if dmesgs {
 		dmesg("t.routes=%s", t.routes)
@@ -74,8 +64,8 @@ func (t *Task) exec(args []string) (err error) {
 	for _, v := range strings.Split(t.routes, commaSep) {
 		pair := strings.SplitN(v, "=", 2)
 		tool := pair[0]
-		if ccgoBin, err := exec.LookPath(tool); err == nil {
-			os.Setenv(fmt.Sprintf("CCGO_%s", strings.ToUpper(tool)), ccgoBin)
+		if hostBin, err := exec.LookPath(tool); err == nil {
+			setenv(fmt.Sprintf("CCGO_%s", strings.ToUpper(tool)), hostBin)
 		}
 		bin := tool
 		if len(pair) == 2 {
@@ -89,24 +79,40 @@ func (t *Task) exec(args []string) (err error) {
 			continue
 		}
 
-		symlink := filepath.Join(dirTemp, tool)
-		if err := os.Symlink(self, symlink); err != nil {
-			return errorf("%v", err)
-		}
+		switch base := filepath.Base(bin); {
+		case base != tool:
+			symlink := filepath.Join(dirTemp, base)
+			if err := os.Symlink(self, symlink); err != nil {
+				return errorf("%v", err)
+			}
 
-		if dmesgs {
-			dmesg("symlink %s -> %s", symlink, self)
+			if dmesgs {
+				dmesg("symlink %s -> %s", symlink, self)
+			}
+		default:
+			symlink := filepath.Join(dirTemp, tool)
+			if err := os.Symlink(self, symlink); err != nil {
+				return errorf("%v", err)
+			}
+
+			if dmesgs {
+				dmesg("symlink %s -> %s", symlink, self)
+			}
 		}
 		a = append(a, fmt.Sprintf("%s=%s", tool, bin))
 	}
-	os.Setenv(execEnvVar, strings.Join(a, commaSep))
+	setenv(execEnvVar, strings.Join(a, commaSep))
 	if dmesgs {
-		dmesg("%s=%s", execEnvVar, a)
+		dmesg("exec.Command(%q, %q)", args[0], args[1:])
 	}
 	cmd := exec.Command(args[0], args[1:]...)
 	cmd.Stdout = t.stdout
 	cmd.Stderr = t.stderr
-	return cmd.Run()
+	err = cmd.Run()
+	if dmesgs {
+		dmesg("exec.Command->%v", err)
+	}
+	return err
 }
 
 type strSlice []string
@@ -136,42 +142,50 @@ func (t *Task) execed(routes string, cflags []string) (err error) {
 	cmdBase := filepath.Base(cmd)
 	for _, v := range pairs {
 		pair := strings.SplitN(v, "=", 2)
-		switch tool, bin := pair[0], pair[1]; tool {
+		tool, bin := pair[0], pair[1]
+		binBase := filepath.Base(bin)
+		switch tool {
 		case "ar":
-			if cmd == tool || cmdBase == tool {
+			if cmd == tool || cmdBase == tool || cmdBase == binBase {
 				return t.ar(bin, os.Getenv("CCGO_AR"))
 			}
 		case "cc":
-			if cmd == tool || cmdBase == tool {
+			if cmd == tool || cmdBase == tool || cmdBase == binBase {
 				return t.cc(bin, os.Getenv("CCGO_CC"), cflags)
 			}
 		case "gcc":
-			if cmd == tool || cmdBase == tool {
+			if cmd == tool || cmdBase == tool || cmdBase == binBase {
 				return t.cc(bin, os.Getenv("CCGO_GCC"), cflags)
 			}
 		case "clang":
-			if cmd == tool || cmdBase == tool {
+			if cmd == tool || cmdBase == tool || cmdBase == binBase {
 				return t.cc(bin, os.Getenv("CCGO_CLANG"), cflags)
 			}
 		case "libtool":
-			if cmd == tool || cmdBase == tool {
+			if cmd == tool || cmdBase == tool || cmdBase == binBase {
 				return t.libtool(bin, os.Getenv("CCGO_LIBTOOL"), os.Getenv("CCGO_AR"))
 			}
 		case "ln":
-			if cmd == tool || cmdBase == tool {
+			if cmd == tool || cmdBase == tool || cmdBase == binBase {
 				return t.ln(bin, os.Getenv("CCGO_LN"))
 			}
 		case "mv":
-			if cmd == tool || cmdBase == tool {
+			if cmd == tool || cmdBase == tool || cmdBase == binBase {
 				return t.mv(bin, os.Getenv("CCGO_MV"))
 			}
 		case "rm":
-			if cmd == tool || cmdBase == tool {
+			if cmd == tool || cmdBase == tool || cmdBase == binBase {
 				return t.rm(bin, os.Getenv("CCGO_RM"))
 			}
 		default:
+			if dmesgs {
+				dmesg("FAIL")
+			}
 			return errorf("internal error: route %q", pair)
 		}
+	}
+	if dmesgs {
+		dmesg("FAIL cmd=%s", cmd)
 	}
 	return errorf("internal error: %q", cmd)
 }
@@ -185,7 +199,7 @@ func (t *Task) noExe(s string) string {
 	return s[:len(s)-len(tag)]
 }
 
-func (t *Task) libtool(execLibtool, ccgoLibtool, ccgoAR string) error {
+func (t *Task) libtool(execLibtool, hostLibtool, hostAR string) error {
 	cmd := exec.Command(execLibtool, t.args[1:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -224,13 +238,13 @@ func (t *Task) libtool(execLibtool, ccgoLibtool, ccgoAR string) error {
 	if dmesgs {
 		dmesg("", args2)
 	}
-	cmd = exec.Command(ccgoAR, args2...)
+	cmd = exec.Command(hostAR, args2...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		if dmesgs {
-			dmesg("SKIP2: %s returns %v", ccgoAR, err.(*exec.ExitError).ExitCode())
+			dmesg("SKIP2: %s returns %v", hostAR, err.(*exec.ExitError).ExitCode())
 		}
 		return err
 	}
@@ -241,7 +255,7 @@ func (t *Task) libtool(execLibtool, ccgoLibtool, ccgoAR string) error {
 	return nil
 }
 
-func (t *Task) ln(execLN, ccgoLN string) error {
+func (t *Task) ln(execLN, hostLN string) error {
 	cmd := exec.Command(execLN, t.args[1:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -272,18 +286,18 @@ func (t *Task) ln(execLN, ccgoLN string) error {
 		return err
 	}
 	if files != 2 {
-		return errorf("real LN=%q, faked args=%q", ccgoLN, t.args)
+		return errorf("real LN=%q, faked args=%q", hostLN, t.args)
 	}
 
 	if _, err := os.Stat(args[0]); err != nil {
 		return nil
 	}
 
-	shell0(60*time.Second, true, ccgoLN, args...)
+	shell0(60*time.Second, true, hostLN, args...)
 	return nil
 }
 
-func (t *Task) mv(execMV, ccgoMV string) error {
+func (t *Task) mv(execMV, hostMV string) error {
 	cmd := exec.Command(execMV, t.args[1:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -315,18 +329,18 @@ func (t *Task) mv(execMV, ccgoMV string) error {
 	}
 
 	if files != 2 {
-		return errorf("real MV=%q, faked args=%q", ccgoMV, t.args)
+		return errorf("real MV=%q, faked args=%q", hostMV, t.args)
 	}
 
 	if _, err := os.Stat(args[0]); err != nil {
 		return nil
 	}
 
-	shell0(60*time.Second, true, ccgoMV, args...)
+	shell0(60*time.Second, true, hostMV, args...)
 	return nil
 }
 
-func (t *Task) rm(execRM, ccgoRM string) error {
+func (t *Task) rm(execRM, hostRM string) error {
 	cmd := exec.Command(execRM, t.args[1:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -371,9 +385,9 @@ func (t *Task) goFile(s string) string {
 	}
 }
 
-func (t *Task) cc(execCC, ccgoCC string, cflags []string) error {
+func (t *Task) cc(execCC, hostCC string, cflags []string) error {
 	if dmesgs {
-		dmesg("cc(%q, %q, %q)", execCC, ccgoCC, cflags)
+		dmesg("cc(%q, %q, %q)", execCC, hostCC, cflags)
 		dmesg("%s %v", execCC, t.args[1:])
 	}
 	cmd := exec.Command(execCC, t.args[1:]...)
@@ -552,9 +566,9 @@ func (t *Task) cc(execCC, ccgoCC string, cflags []string) error {
 	return t.main()
 }
 
-func (t *Task) ar(execAR, ccgoAR string) error {
+func (t *Task) ar(execAR, hostAR string) error {
 	if dmesgs {
-		dmesg("execAR=%s ccgoAR=%s t.args=%v", execAR, ccgoAR, t.args)
+		dmesg("execAR=%s hostAR=%s t.args=%v", execAR, hostAR, t.args)
 	}
 	cmd := exec.Command(execAR, t.args[1:]...)
 	cmd.Stdin = os.Stdin
@@ -633,13 +647,16 @@ func (t *Task) ar(execAR, ccgoAR string) error {
 		return err
 	}
 
-	cmd = exec.Command(ccgoAR, []string(args[1:])...)
+	if dmesgs {
+		dmesg("hostAR=%s args[1:]=%v", hostAR, args[1:])
+	}
+	cmd = exec.Command(hostAR, []string(args[1:])...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		if dmesgs {
-			dmesg("SKIP2: %s returns %v", ccgoAR, err.(*exec.ExitError).ExitCode())
+			dmesg("SKIP2: %s returns %v", hostAR, err.(*exec.ExitError).ExitCode())
 		}
 		return err
 	}

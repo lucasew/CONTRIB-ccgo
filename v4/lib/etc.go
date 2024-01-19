@@ -1116,7 +1116,7 @@ func (w *echoWriter) Write(b []byte) (int, error) {
 
 // IsExecEnv reports whether the environment is set up for executing the command after the -exec
 // option.
-func IsExecEnv() bool {
+func IsExecEnv() (r bool) {
 	return execEnv() != ""
 }
 
@@ -1125,7 +1125,7 @@ func execEnv() string {
 }
 
 func clearExecEnv() {
-	os.Setenv(execEnvVar, "")
+	setenv(execEnvVar, "")
 }
 
 func bpAlign(t cc.Type) (r int64) {

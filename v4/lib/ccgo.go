@@ -487,7 +487,13 @@ func (t *Task) main() (err error) {
 	svCC := os.Getenv("CC")
 	switch {
 	case os.Getenv("CCGO_CPP") != "":
-		os.Setenv("CC", os.Getenv("CCGO_CPP"))
+		setenv("CC", os.Getenv("CCGO_CPP"))
+	case os.Getenv("CCGO_CC") != "":
+		setenv("CC", os.Getenv("CCGO_CC"))
+	case os.Getenv("CCGO_GCC") != "":
+		setenv("CC", os.Getenv("CCGO_GCC"))
+	case os.Getenv("CCGO_CLANG") != "":
+		setenv("CC", os.Getenv("CCGO_CLANG"))
 	}
 	goos := env("TARGET_GOOS", t.goos)
 	goarch := env("TARGET_GOARCH", t.goarch)
@@ -495,7 +501,7 @@ func (t *Task) main() (err error) {
 		dmesg("cc.NewConfig(%q, %q, %q) CC=%q", goos, goarch, t.cfgArgs, os.Getenv("CC"))
 	}
 	cfg, err := cc.NewConfig(goos, goarch, t.cfgArgs...)
-	os.Setenv("CC", svCC)
+	setenv("CC", svCC)
 	if err != nil {
 		return err
 	}
@@ -695,4 +701,11 @@ func (t *Task) compile(optO string) error {
 		p.exec(func() error { return newCtx(t, p.eh).compile(ifn, ofn) })
 	}
 	return p.wait()
+}
+
+func setenv(nm, val string) {
+	os.Setenv(nm, val)
+	if dmesgs {
+		dmesg("os.Setenv(%q, %q)", nm, val)
+	}
 }
