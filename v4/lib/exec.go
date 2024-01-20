@@ -26,8 +26,8 @@ const (
 func (t *Task) exec(args []string) (err error) {
 	if dmesgs {
 		dmesg(
-			"==== task.exec t.goos=%s t.goarch=%s TARGET_GOOS=%s TARGET_GOARCH=%s IsExecEnv()=%v CC=%s CCGO_CPP=%s\nt.args=%s",
-			t.goos, t.goarch, os.Getenv("TARGET_GOOS"), os.Getenv("TARGET_GOARCH"), IsExecEnv(), os.Getenv("CC"), os.Getenv("CCGO_CPP"), t.args,
+			"==== task.exec t.goos=%s t.goarch=%s IsExecEnv()=%v CC=%s\nargs=%q\nt.args=%q",
+			t.goos, t.goarch, IsExecEnv(), os.Getenv("CC"), args, t.args,
 		)
 	}
 	if len(args) == 0 {
@@ -122,8 +122,8 @@ func (s *strSlice) add(v ...string) { *s = append(*s, v...) }
 func (t *Task) execed(routes string, cflags []string) (err error) {
 	if dmesgs {
 		dmesg(
-			"==== task.execed t.goos=%s t.goarch=%s TARGET_GOOS=%s TARGET_GOARCH=%s IsExecEnv()=%v CC=%s CCGO_CPP=%s routes=%s\nt.args=%s",
-			t.goos, t.goarch, os.Getenv("TARGET_GOOS"), os.Getenv("TARGET_GOARCH"), IsExecEnv(), os.Getenv("CC"), os.Getenv("CCGO_CPP"), routes, t.args,
+			"==== task.execed t.goos=%s t.goarch=%s IsExecEnv()=%v CC=%s routes=%s\nt.args=%s",
+			t.goos, t.goarch, IsExecEnv(), os.Getenv("CC"), routes, t.args,
 		)
 	}
 
@@ -404,6 +404,9 @@ func (t *Task) cc(execCC, hostCC string, cflags []string) error {
 	args := append(strSlice{t.args[0]}, cflags...)
 	set := opt.NewSet()
 	ignore := 0
+	set.Arg("-cpp", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
+	set.Arg("-goarch", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
+	set.Arg("-goos", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("-libc", false, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("D", true, func(arg, val string) error { args.add(arg + val); return nil })
 	set.Arg("I", true, func(arg, val string) error { args.add(arg + val); return nil })
@@ -413,6 +416,7 @@ func (t *Task) cc(execCC, hostCC string, cflags []string) error {
 	set.Arg("MT", true, func(arg, val string) error { return nil })
 	set.Arg("O", true, func(arg, val string) error { args.add(arg + val); return nil })
 	set.Arg("U", true, func(arg, val string) error { args.add(arg + val); return nil })
+	set.Arg("build-lines", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("current_version", false, func(arg, val string) error { return nil })
 	set.Arg("gz", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("idirafter", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
@@ -561,6 +565,9 @@ func (t *Task) cc(execCC, hostCC string, cflags []string) error {
 		return nil
 	}
 
+	if dmesgs {
+		dmesg("DBG args=%q", args)
+	}
 	t = NewTask(t.goos, t.goarch, args, t.stdout, t.stderr, t.fs)
 	t.isExeced = true
 	return t.main()

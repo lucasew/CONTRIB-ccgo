@@ -1135,11 +1135,3 @@ func bpAlign(t cc.Type) (r int64) {
 	}
 	return r
 }
-
-func env(name, deflt string) (r string) {
-	r = deflt
-	if s := os.Getenv(name); s != "" {
-		r = s
-	}
-	return r
-}

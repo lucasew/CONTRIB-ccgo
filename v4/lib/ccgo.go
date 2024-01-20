@@ -49,12 +49,13 @@ type Task struct {
 	cfgArgs               []string
 	cleanupDirs           []string
 	compiledfFiles        map[string]string // *.c -> *.o.go
+	cpp                   string            // -cpp <string>
 	defs                  string
 	routes                string // -map <comma separated list>
 	fs                    fs.FS
 	goABI                 *gc.ABI
-	goarch                string
-	goos                  string
+	goarch                string   // -goos <string>
+	goos                  string   // -goarch <string>
 	hidden                nameSet  // -hide <string>
 	idirafter             []string // -idirafter
 	ignoreFile            nameSet  // -ignore-file=<comma separated file list>
@@ -157,8 +158,8 @@ func NewTask(goos, goarch string, args []string, stdout, stderr io.Writer, fs fs
 func (t *Task) Exec() (err error) {
 	if dmesgs {
 		dmesg(
-			"==== task.Exec t.goos=%s t.goarch=%s TARGET_GOOS=%s TARGET_GOARCH=%s IsExecEnv()=%v CC=%s CCGO_CPP=%s\nt.args=%s",
-			t.goos, t.goarch, os.Getenv("TARGET_GOOS"), os.Getenv("TARGET_GOARCH"), IsExecEnv(), os.Getenv("CC"), os.Getenv("CCGO_CPP"), t.args,
+			"==== task.Exec t.goos=%s t.goarch=%s IsExecEnv()=%v CC=%s\nt.args=%s",
+			t.goos, t.goarch, IsExecEnv(), os.Getenv("CC"), t.args,
 		)
 	}
 	defer clearExecEnv()
@@ -170,8 +171,8 @@ func (t *Task) Exec() (err error) {
 func (t *Task) Main() (err error) {
 	if dmesgs {
 		dmesg(
-			"==== task.Main t.goos=%s t.goarch=%s TARGET_GOOS=%s TARGET_GOARCH=%s IsExecEnv()=%v CC=%s CCGO_CPP=%s\nt.args=%s",
-			t.goos, t.goarch, os.Getenv("TARGET_GOOS"), os.Getenv("TARGET_GOARCH"), IsExecEnv(), os.Getenv("CC"), os.Getenv("CCGO_CPP"), t.args,
+			"==== task.Main t.goos=%s t.goarch=%s IsExecEnv()=%v CC=%s\nt.args=%s",
+			t.goos, t.goarch, IsExecEnv(), os.Getenv("CC"), t.args,
 		)
 	}
 	if ee := execEnv(); ee != "" {
@@ -188,8 +189,8 @@ func (t *Task) Main() (err error) {
 func (t *Task) main() (err error) {
 	if dmesgs {
 		dmesg(
-			"==== task.main t.goos=%s t.goarch=%s TARGET_GOOS=%s TARGET_GOARCH=%s IsExecEnv()=%v CC=%s CCGO_CPP=%s\nt.args=%s",
-			t.goos, t.goarch, os.Getenv("TARGET_GOOS"), os.Getenv("TARGET_GOARCH"), IsExecEnv(), os.Getenv("CC"), os.Getenv("CCGO_CPP"), t.args,
+			"==== task.main t.goos=%s t.goarch=%s IsExecEnv()=%v CC=%s\nt.args=%q",
+			t.goos, t.goarch, IsExecEnv(), os.Getenv("CC"), t.args,
 		)
 	}
 	switch len(t.args) {
@@ -206,6 +207,9 @@ func (t *Task) main() (err error) {
 	}()
 
 	set := opt.NewSet()
+	set.Arg("-cpp", true, func(arg, val string) error { t.cpp = strings.TrimSpace(val); return nil })
+	set.Arg("-goarch", true, func(arg, val string) error { t.goarch = val; return nil })
+	set.Arg("-goos", true, func(arg, val string) error { t.goos = val; return nil })
 	set.Arg("-libc", false, func(arg, val string) error { t.libc = val; return nil })
 	set.Arg("-package-name", false, func(arg, val string) error { t.packageName = val; t.packageNameSet = true; return nil })
 	set.Arg("-predef", false, func(arg, val string) error { t.predef = append(t.predef, val); return nil })
@@ -406,6 +410,9 @@ func (t *Task) main() (err error) {
 		}
 	}
 
+	if dmesgs {
+		dmesg("DBG t@%p.buildLines = %q", t, t.buildLines)
+	}
 	if len(t.isystem) == 0 && !t.freeStanding && !t.nostdlib && t.libc == libcV2 {
 		isystem, err := isystem(t.goos, t.goarch, t.libc)
 		if err != nil {
@@ -486,21 +493,13 @@ func (t *Task) main() (err error) {
 
 	svCC := os.Getenv("CC")
 	switch {
-	case os.Getenv("CCGO_CPP") != "":
-		setenv("CC", os.Getenv("CCGO_CPP"))
-	case os.Getenv("CCGO_CC") != "":
-		setenv("CC", os.Getenv("CCGO_CC"))
-	case os.Getenv("CCGO_GCC") != "":
-		setenv("CC", os.Getenv("CCGO_GCC"))
-	case os.Getenv("CCGO_CLANG") != "":
-		setenv("CC", os.Getenv("CCGO_CLANG"))
+	case t.cpp != "":
+		setenv("CC", t.cpp)
 	}
-	goos := env("TARGET_GOOS", t.goos)
-	goarch := env("TARGET_GOARCH", t.goarch)
 	if dmesgs {
-		dmesg("cc.NewConfig(%q, %q, %q) CC=%q", goos, goarch, t.cfgArgs, os.Getenv("CC"))
+		dmesg("cc.NewConfig(%q, %q, %q) CC=%q", t.goos, t.goarch, t.cfgArgs, os.Getenv("CC"))
 	}
-	cfg, err := cc.NewConfig(goos, goarch, t.cfgArgs...)
+	cfg, err := cc.NewConfig(t.goos, t.goarch, t.cfgArgs...)
 	setenv("CC", svCC)
 	if err != nil {
 		return err

@@ -1300,6 +1300,9 @@ func %s(f interface{}) uintptr {
 }
 
 func (l *linker) prologue(nm string) {
+	if dmesgs {
+		dmesg("DBG t@%p.buildLines = %q", l.task, l.task.buildLines)
+	}
 	l.w(`// %s%s/%s by '%s %s'%s
 
 %s
