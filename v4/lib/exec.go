@@ -140,6 +140,17 @@ func (t *Task) execed(routes string, cflags []string) (err error) {
 	pairs := strings.Split(routes, commaSep)
 	cmd := t.noExe(t.args[0])
 	cmdBase := filepath.Base(cmd)
+	if t.cpp == "" {
+		for _, v := range []string{"CCGO_CC", "CCGO_GCC", "CCGO_CLANG"} {
+			if s := os.Getenv(v); s != "" {
+				t.cpp = s
+				break
+			}
+		}
+	}
+	if t.cpp != "" {
+		setenv("CCGO_CPP", t.cpp)
+	}
 	for _, v := range pairs {
 		pair := strings.SplitN(v, "=", 2)
 		tool, bin := pair[0], pair[1]

@@ -492,9 +492,11 @@ func (t *Task) main() (err error) {
 	}
 
 	svCC := os.Getenv("CC")
-	switch {
+	switch cpp := os.Getenv("CCGO_CPP"); {
 	case t.cpp != "":
 		setenv("CC", t.cpp)
+	case cpp != "":
+		setenv("CC", cpp)
 	}
 	if dmesgs {
 		dmesg("cc.NewConfig(%q, %q, %q) CC=%q", t.goos, t.goarch, t.cfgArgs, os.Getenv("CC"))
