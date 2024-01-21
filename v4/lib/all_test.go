@@ -867,7 +867,7 @@ func TestCSmith(t *testing.T) {
 		"--no-bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 4263172072",
 		"--no-bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 572192313",
 
-		//TODO
+		//TODO this will fail on linux/arm before Go 1.22, see https://github.com/golang/go/issues/64715
 		"--max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --bitfields -s 1701143130",
 	}
 	var ch <-chan time.Time
