@@ -14,6 +14,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/991014-1.c`:                   {}, // EXEC FAIL: "assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/991014-1.c: runtime: out of memory: cannot allocate 2147483648-byte block (12288000 in use)"
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c`: {}, // EXEC FAIL: "assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c: libc_netbsd.go:1316:Xabort: TODOTODO "
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/return-addr.c`:                {}, // EXEC FAIL
+	`assets/github.com/vnmakarov/mir/c-benchmarks/except.c`:                                             {}, // EXEC FAIL: "assets/github.com/vnmakarov/mir/c-benchmarks/except.c: libc.go:2142:Xlongjmp: TODOTODO "
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-types-init.c`:                                {}, // EXEC FAIL
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/string-conversion.c`:                                  {}, // EXEC FAIL: "assets/github.com/vnmakarov/mir/c-tests/lacc/string-conversion.c: if"
 	`assets/github.com/vnmakarov/mir/c-tests/new/setjmp.c`:                                              {}, // EXEC FAIL: "assets/github.com/vnmakarov/mir/c-tests/new/setjmp.c: libc.go:2142:Xlongjmp: TODOTODO "
