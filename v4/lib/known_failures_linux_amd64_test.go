@@ -22,6 +22,7 @@ var testExecKnownFails = map[string]struct{}{
 
 	// Won't fix: implementation defined bit fields
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-basic.c`:         {},
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-pack-next.c`:     {},
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-trailing-zero.c`: {},
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-types-init.c`:    {},
 
