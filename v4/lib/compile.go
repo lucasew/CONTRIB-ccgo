@@ -438,7 +438,8 @@ func (c *ctx) compile(ifn, ofn string) (err error) {
 			a = append(a, k)
 		}
 		sort.Strings(a)
-		for k, t := range c.defineTaggedStructs {
+		for _, k := range a {
+			t := c.defineTaggedStructs[k]
 			c.defineStructType(c, "\n\n", nil, t)
 			delete(c.defineTaggedStructs, k)
 		}
@@ -449,7 +450,8 @@ func (c *ctx) compile(ifn, ofn string) (err error) {
 			a = append(a, k)
 		}
 		sort.Strings(a)
-		for k, t := range c.defineTaggedUnions {
+		for _, k := range a {
+			t := c.defineTaggedUnions[k]
 			c.defineUnionType(c, "\n\n", nil, t)
 			delete(c.defineTaggedUnions, k)
 		}
