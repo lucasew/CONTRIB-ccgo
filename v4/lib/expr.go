@@ -4178,6 +4178,8 @@ func (c *ctx) primaryExpressionCharConst(w writer, n *cc.PrimaryExpression, t cc
 			lit = fmt.Sprintf(`'\%03o'`, n.Value())
 		case src == `'\"'`:
 			lit = `'"'`
+		case src == `'\?'`:
+			lit = `'?'`
 		}
 		if val, err = strconv.Unquote(lit); err != nil {
 			c.err(errorf("TODO `%s` -> %s", lit, err))
