@@ -577,7 +577,7 @@ func (t *Task) cc(execCC, hostCC string, cflags []string) error {
 	}
 
 	if dmesgs {
-		dmesg("DBG args=%q", args)
+		dmesg("DBG args=%v", args)
 	}
 	t = NewTask(t.goos, t.goarch, args, t.stdout, t.stderr, t.fs)
 	t.isExeced = true
