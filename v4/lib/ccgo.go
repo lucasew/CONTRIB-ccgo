@@ -598,7 +598,10 @@ func (t *Task) main() (err error) {
 }
 
 func (t *Task) arExtract(fn string) (r []string, err error) {
-	ar := os.Getenv("CCGO_AR")
+	ar := "ar"
+	if t.isExeced {
+		ar = os.Getenv("CCGO_AR")
+	}
 	tmp, err := os.MkdirTemp("", "ccgo-tmp-ar-")
 	if err != nil {
 		return nil, errorf("%v", err)
