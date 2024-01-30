@@ -504,6 +504,7 @@ func (t *Task) cc(execCC, hostCC string, cflags []string) error {
 	set.Opt("v", func(arg string) error { args.add(arg); return nil })
 	set.Opt("w", func(arg string) error { args.add(arg); return nil })
 	files := 0
+	var postfix strSlice
 	if err := set.Parse(t.args[1:], func(arg string) error {
 		if ignore > 0 {
 			ignore--
@@ -565,12 +566,22 @@ func (t *Task) cc(execCC, hostCC string, cflags []string) error {
 			args.add(arg)
 			files++
 			return nil
+		case ".so":
+			bn := filepath.Base(arg)
+			bn = bn[:len(bn)-len(".so")]
+			if !strings.HasPrefix(bn, "lib") {
+				break
+			}
+
+			postfix.add(fmt.Sprintf("-l%s", bn[len("lib"):]))
+			return nil
 		}
 
 		return errorf("unexpected/unsupported argument: %s", arg)
 	}); err != nil {
 		return err
 	}
+	args = append(args, postfix...)
 
 	if files == 0 || optE {
 		return nil

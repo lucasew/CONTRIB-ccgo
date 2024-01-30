@@ -382,6 +382,9 @@ func (t *Task) main() (err error) {
 		case strings.HasSuffix(arg, ".go"):
 			t.linkFiles = append(t.linkFiles, arg)
 			return nil
+		case strings.HasSuffix(arg, ".o"):
+			t.linkFiles = append(t.linkFiles, t.goFile(arg))
+			return nil
 		case strings.HasSuffix(arg, ".a"):
 			nm += "go" // foo.a -> foo.ago
 			fallthrough
