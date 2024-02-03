@@ -106,6 +106,7 @@ func (f *overlayFS) Open(name string) (fs.File, error) {
 }
 
 func TestMain(m *testing.M) {
+	isTesting = true
 	testWD, err := filepath.Abs("testdata")
 	if err != nil {
 		panic(todo("", err))

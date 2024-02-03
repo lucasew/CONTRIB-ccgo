@@ -478,7 +478,7 @@ func (p *parallel) err(err error) {
 		return
 	}
 
-	err = firstError(err, true)
+	err = firstError(err, isTesting)
 	p.Lock()
 	p.errors.add(err)
 	p.Unlock()

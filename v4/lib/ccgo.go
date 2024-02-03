@@ -33,6 +33,8 @@ import (
 var (
 	oTraceL = flag.Bool("trcl", false, "Print produced object files.")
 	oTraceG = flag.Bool("trcg", false, "Print produced Go files.")
+
+	isTesting bool
 )
 
 // Task represents a compilation job.
