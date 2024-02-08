@@ -365,7 +365,7 @@ func trc(s string, args ...interface{}) string {
 		s = fmt.Sprintf(s, args...)
 	}
 	r := fmt.Sprintf("%s: TRC %s", origin(2), s)
-	fmt.Fprintf(os.Stderr, "%s\n", r)
+	fmt.Fprintf(os.Stderr, "%s %s\n", time.Now().Format("15:04:05.000"), r)
 	os.Stderr.Sync()
 	return r
 }

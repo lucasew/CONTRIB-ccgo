@@ -626,6 +626,95 @@ func (c *ctx) defines(w writer) {
 		case cc.StringValue:
 			w.w("%s%sconst %s%s = %q;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), x[:len(x)-1])
 			c.macrosEmited.add(nm)
+		default:
+			a := c.normalizedMacroReplacementList0(m)
+			if len(a) == 0 {
+				break
+			}
+
+			t := a[0]
+			switch t.Ch {
+			case rune(cc.PPNUMBER):
+				dot := strings.Contains(r, ".")
+				var exp bool
+				fp := dot
+				if !fp {
+					if s := strings.ToLower(r); strings.Contains(s, "e+") || strings.Contains(s, "e-") {
+						exp = true
+						fp = true
+					}
+				}
+				if !fp {
+					switch {
+					case strings.HasSuffix(r, "LL"):
+						r = r[:len(r)-len("LL")]
+					case strings.HasSuffix(r, "UL"):
+						r = r[:len(r)-len("UL")]
+					case strings.HasSuffix(r, "L"):
+						r = r[:len(r)-len("L")]
+					case strings.HasSuffix(r, "U"):
+						r = r[:len(r)-len("U")]
+					}
+					if _, err := strconv.ParseUint(r, 0, 64); err == nil {
+						w.w("%s%sconst %s%s = %v;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), r)
+						c.macrosEmited.add(nm)
+						break
+					}
+				}
+
+				switch {
+				case fp && strings.HasSuffix(r, "F16"):
+					r = r[:len(r)-len("F16")]
+				case fp && strings.HasSuffix(r, "F128"):
+					r = r[:len(r)-len("F128")]
+				case fp && strings.HasSuffix(r, "F32x"):
+					r = r[:len(r)-len("F32x")]
+				case fp && strings.HasSuffix(r, "F64x"):
+					r = r[:len(r)-len("F64x")]
+				case fp && strings.HasSuffix(r, "F32"):
+					r = r[:len(r)-len("F32")]
+				case fp && strings.HasSuffix(r, "F64"):
+					r = r[:len(r)-len("F64")]
+				case fp && strings.HasSuffix(r, "DD"):
+					r = r[:len(r)-len("DD")]
+				case fp && strings.HasSuffix(r, "DF"):
+					r = r[:len(r)-len("DF")]
+				case fp && strings.HasSuffix(r, "DL"):
+					r = r[:len(r)-len("DL")]
+				case fp && strings.HasSuffix(r, "D"):
+					r = r[:len(r)-len("D")]
+				case fp && strings.HasSuffix(r, "F"):
+					r = r[:len(r)-len("F")]
+				case fp && strings.HasSuffix(r, "L"):
+					r = r[:len(r)-len("L")]
+				}
+				if _, err := strconv.ParseFloat(r, 64); err == nil {
+					switch {
+					case !dot && !exp && strings.HasPrefix(r, "0"):
+						w.w("%s%sconst %s%s = %q;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), r)
+					default:
+						w.w("%s%sconst %s%s = %v;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), r)
+					}
+					c.macrosEmited.add(nm)
+					break
+				}
+
+				w.w("%s%sconst %s%s = %q;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), r)
+				c.macrosEmited.add(nm)
+			case rune(cc.IDENTIFIER):
+				w.w("%s%sconst %s%s = %q;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), r)
+				c.macrosEmited.add(nm)
+			case rune(cc.STRINGLITERAL):
+				w.w("%s%sconst %s%s = %q;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), r[1:len(r)-1])
+				c.macrosEmited.add(nm)
+			case rune(cc.CHARCONST):
+				if _, err := strconv.Unquote(r); err == nil {
+					w.w("%s%sconst %s%s = %v;", sep(m.Name), c.posComment(m), tag(macro), m.Name.Src(), r)
+					c.macrosEmited.add(nm)
+				}
+			default:
+				trc("%q: %v %q", m.Name.SrcStr(), a, r)
+			}
 		}
 	}
 }

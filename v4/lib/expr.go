@@ -4244,8 +4244,7 @@ func (c *ctx) primaryExpressionCharConst(w writer, n *cc.PrimaryExpression, t cc
 	return &b, rt, rmode
 }
 
-func (c *ctx) normalizedMacroReplacementList(m *cc.Macro) string {
-	var r []cc.Token
+func (c *ctx) normalizedMacroReplacementList0(m *cc.Macro) (r []cc.Token) {
 	for _, v := range m.ReplacementList() {
 		switch v.Ch {
 		case ' ', '\n', '\t', '\r', '\f':
@@ -4258,7 +4257,15 @@ func (c *ctx) normalizedMacroReplacementList(m *cc.Macro) string {
 		r = r[1 : len(r)-1]
 	}
 	if len(r) == 1 {
-		return r[0].SrcStr()
+		return r[:1]
+	}
+
+	return nil
+}
+
+func (c *ctx) normalizedMacroReplacementList(m *cc.Macro) string {
+	if a := c.normalizedMacroReplacementList0(m); len(a) == 1 {
+		return a[0].SrcStr()
 	}
 
 	return ""
