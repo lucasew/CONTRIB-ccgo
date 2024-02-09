@@ -164,7 +164,7 @@ func (o *object) collectConsts(file *gc.SourceFile) (consts map[string]string, e
 
 					var b strings.Builder
 					if assert && len(spec.ExprList) == 0 {
-						panic(todo("%q", x.Source(false)))
+						panic(todo("%v: %q", file.EOF.Position().Filename, x.Source(false)))
 					}
 
 					b.Write(spec.ExprList[i].Expr.Source(true))

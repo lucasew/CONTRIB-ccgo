@@ -110,6 +110,7 @@ type Task struct {
 	ansi                         bool // -ansi
 	c                            bool // -c
 	debugLinkerSave              bool // -debug-linker-save, causes pre type checking save of the linker result.
+	evalAllMacros                bool // -eval-all-macros
 	freeStanding                 bool // -ffreestanding
 	fullPaths                    bool // -full-paths
 	header                       bool // -header
@@ -293,6 +294,7 @@ func (t *Task) main() (err error) {
 	set.Opt("ansi", func(arg string) error { t.ansi = true; t.strictISOMode = true; return nil })
 	set.Opt("c", func(arg string) error { t.c = true; return nil })
 	set.Opt("debug-linker-save", func(arg string) error { t.debugLinkerSave = true; return nil })
+	set.Opt("eval-all-macros", func(arg string) error { t.evalAllMacros = true; return nil })
 	set.Opt("exec", func(arg string) error { return opt.Skip(nil) })
 	set.Opt("extended-errors", func(arg string) error { extendedErrors = true; gc.ExtendedErrors = true; return nil })
 	set.Opt("ffreestanding", func(arg string) error {
@@ -516,6 +518,7 @@ func (t *Task) main() (err error) {
 	// 	dmesg("cfg.Predefined=%s", cfg.Predefined)
 	// }
 	cfg.UnsignedEnums = t.unsignedEnums
+	cfg.EvalAllMacros = t.evalAllMacros
 	if ldflag == "" {
 		if err = cfg.AdjustLongDouble(); err != nil {
 			return err
