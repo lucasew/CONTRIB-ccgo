@@ -2,11 +2,17 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package ccgo translates C99 ASTs to Go source code. Work In Progress. API unstable.
+// Package ccgo translates C to Go source code.
 //
-// This package is no longer maintained. Please see the v3 version at
+// This v1 package is obsolete. Please use current ccgo/v4:
 //
-//	https://modernc.org/ccgo/v3
+// # The command
+//
+//	https://modernc.org/ccgo/v4
+//
+// # The library
+//
+//	https://modernc.org/ccgo/v4/lib
 package ccgo // import "modernc.org/ccgo/v2"
 
 //TODO must respect 'volatile' -> use sync.Atomic

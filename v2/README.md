@@ -1,25 +1,13 @@
 # ccgo/v2
 
-Package ccgo translates c99 ASTs to Go. Work In Progress. API unstable.
+Package ccgo translates C to Go source code.
 
-The v1 and v2 versions are no longer maintained. Please see the v3 version at
+This v2 package is obsolete. Please use current ccgo/v4:
 
-	https://modernc.org/ccgo/v3
+# The command
 
-### Installation
+	https://modernc.org/ccgo/v4
 
+# The library
 
-To install or update ccgo and its accompanying tools
-
-     $ go get [-u] modernc.org/ccgo/v2/...
-
-Documentation: [godoc.org/modernc.org/ccgo/v2](http://godoc.org/modernc.org/ccgo/v2)
-
-Building with `make` requires the following Go packages
-
-* github.com/golang/lint/golint
-* github.com/mdempsky/maligned
-* github.com/mdempsky/unconvert
-* honnef.co/go/tools/cmd/unused
-* honnef.co/go/tools/cmd/gosimple
-* github.com/client9/misspell/cmd/misspell
+	https://modernc.org/ccgo/v4/lib
