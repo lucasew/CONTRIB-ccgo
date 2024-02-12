@@ -12,7 +12,7 @@
 //
 // # The library
 //
-//	https://modernc.org/ccgo/v3/lib
+//	https://modernc.org/ccgo/v4/lib
 package ccgo // import "modernc.org/ccgo"
 
 import (
