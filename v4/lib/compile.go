@@ -587,7 +587,16 @@ func (c *ctx) defines(w writer) {
 	sort.Slice(a, func(i, j int) bool { return a[i].Name.SrcStr() < a[j].Name.SrcStr() })
 	for _, m := range a {
 		nm := m.Name.SrcStr()
-		r := c.normalizedMacroReplacementList(m)
+		r0 := c.normalizedMacroReplacementList0(m)
+		if len(r0) != 1 {
+			continue
+		}
+
+		r := r0[0].SrcStr()
+		if r0[0].Ch == rune(cc.IDENTIFIER) && r == nm { // Ignore #define foo foo
+			continue
+		}
+
 		if r != "" {
 			if !c.task.header && c.task.prefixDefineSet {
 				w.w("%s%sconst %s%s = %q;", sep(m.Name), c.posComment(m), tag(define), m.Name.Src(), r)
