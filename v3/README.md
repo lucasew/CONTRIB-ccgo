@@ -1,9 +1,13 @@
 # ccgo/v3
 
-Command ccgo is a C compiler targeting Go.
+Package ccgo translates C to Go source code.
 
-Installation
+This v3 package is obsolete. Please use current ccgo/v4:
 
-    $ go get -u modernc.org/ccgo/v3
+# The command
 
-Documentation: [godoc.org/modernc.org/ccgo/v3](http://godoc.org/modernc.org/ccgo/v3)
+	https://modernc.org/ccgo/v4
+
+# The library
+
+	https://modernc.org/ccgo/v4/lib

@@ -2,7 +2,17 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Command ccgo is a C compiler producing Go code.
+// Package ccgo translates C to Go source code.
+//
+// This v3 package is obsolete. Please use current ccgo/v4:
+//
+// # The command
+//
+//	https://modernc.org/ccgo/v4
+//
+// # The library
+//
+//	https://modernc.org/ccgo/v4/lib
 //
 // Usage
 //
