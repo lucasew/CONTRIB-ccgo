@@ -1,6 +1,6 @@
 # ccgo/v1
 
-Package ccgo translates [cc](https://modernc.org/cc/) ASTs to Go.
+Package ccgo translates C to Go source code.
 
 This v1 package is obsolete. Please use current ccgo/v4:
 

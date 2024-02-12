@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package ccgo translates cc ASTs to Go source code. (Work In Progress)
+// Package ccgo translates C to Go source code.
 //
 // This v1 package is obsolete. Please use current ccgo/v4:
 //
