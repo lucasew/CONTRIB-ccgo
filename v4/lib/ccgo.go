@@ -209,6 +209,10 @@ func (t *Task) main() (err error) {
 		}
 	}()
 
+	if t.goABI, err = gc.NewABI(t.goos, t.goarch); err != nil {
+		return errorf("%v", err)
+	}
+
 	set := opt.NewSet()
 	set.Arg("-cpp", true, func(arg, val string) error { t.cpp = strings.TrimSpace(val); return nil })
 	set.Arg("-goarch", true, func(arg, val string) error { t.goarch = val; return nil })
@@ -430,10 +434,6 @@ func (t *Task) main() (err error) {
 			t.isystem = []string{isystem}
 			t.D = append(t.D, "-D_GNU_SOURCE")
 		}
-	}
-
-	if t.goABI, err = gc.NewABI(t.goos, t.goarch); err != nil {
-		return errorf("%v", err)
 	}
 
 	switch t.goarch {
