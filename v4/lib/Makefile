@@ -47,7 +47,7 @@ clean:
 
 edit:
 	@touch log
-	@if [ -f "Session.vim" ]; then gvim -S & else gvim -p Makefile ccgo.go & fi
+	@if [ -f "Session.vim" ]; then gvim -S & else gvim -p Makefile all_test.go ccgo.go & fi
 
 editor:
 	stringer -output stringer.go -type mode,name
@@ -85,8 +85,8 @@ shorttest:
 	grep -a 'TOTAL\|PASS\|FAIL' log-shorttest || true
 
 shorttest-xwork:
-	# go test -v -timeout 24h -short -tags=ccgo.assert -xwork $$GOPATH/src/modernc.org/libc/v2 -trc -shelltimeout 1m 2>&1 | tee log-shorttest
-	go test -v -timeout 36h -short -tags=ccgo.assert -xwork $$GOPATH/src/modernc.org/libc -trc -shelltimeout 1m 2>&1 | tee log-shorttest
+	# go test -v -timeout 36h -short -tags=ccgo.assert -xwork $$GOPATH/src/modernc.org/libc -trc -shelltimeout 1m 2>&1 | tee log-shorttest
+	go test -v -timeout 24h -short -tags=ccgo.assert -xwork $$GOPATH/src/modernc.org/libc/v2 --libc modernc.org/libc/v2 -trc -shelltimeout 1m 2>&1 | tee log-shorttest
 	grep TOTAL log-shorttest
 	git status testdata
 	git diff testdata/

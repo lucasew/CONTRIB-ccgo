@@ -41,7 +41,6 @@ const (
 	csmithBitfields   = "--bitfields"    // --bitfields | --no-bitfields: enable | disable full-bitfields structs (enabled by default). // Was disabled by default in older versions,
 	csmithNoBitfields = "--no-bitfields" // --bitfields | --no-bitfields: enable | disable full-bitfields structs (enabled by default).
 
-	defaultTestLibcPackage = "modernc.org/libc"
 )
 
 var (
@@ -61,6 +60,7 @@ var (
 	oTraceO       = flag.Bool("trco", false, "print test output")
 	oXWork        = flag.String("xwork", "", "TestExec will use a go.work file for packages in the CSV list")
 	oXTags        = flag.String("xtags", "", "passed to go build of TestSQLite")
+	oLibc         = flag.String("libc", "modernc.org/libc", "")
 
 	cfs         fs.FS
 	goarch      = runtime.GOARCH
@@ -341,7 +341,7 @@ func TestExec(t *testing.T) {
 				}
 			}
 		default:
-			if out, err := shell(true, "go", "get", defaultTestLibcPackage+"@latest"); err != nil {
+			if out, err := shell(true, "go", "get", *oLibc+"@latest"); err != nil {
 				return fmt.Errorf("%s\vFAIL: %v", out, err)
 			}
 		}
@@ -504,7 +504,7 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 				"-verify-types",
 				"--prefix-field=F",
 				"-ignore-vector-functions",
-				"--libc", "modernc.org/libc",
+				"--libc", *oLibc,
 				path,
 			},
 			&out, &out, nil).Main()
@@ -519,7 +519,7 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 				"-verify-types",
 				"--prefix-field=F",
 				"-ignore-vector-functions",
-				"--libc", "modernc.org/libc",
+				"--libc", *oLibc,
 				path,
 			},
 			&out, &out, nil).Main()
@@ -554,7 +554,11 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 	defer func(nm string) { os.Remove(nm) }(bin)
 
 	var shOut []byte
-	if shOut, err = shell(false, "go", "build", "-o", bin, ofn); err != nil {
+	buildArgs := []string{"build"}
+	if s := *oXTags; s != "" {
+		buildArgs = append(buildArgs, fmt.Sprintf("-tags=%s", s))
+	}
+	if shOut, err = shell(false, "go", append(buildArgs, "-o", bin, ofn)...); err != nil {
 		// trc("gc %v %v", path, err)
 		if cCompilerFailed || isTestExecKnownFail(fullPath) {
 			p.skip()
@@ -597,6 +601,10 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 			return firstError(err, *oErr1)
 		}
 	}
+
+	// ofile, _ := os.ReadFile(ofn) //TODO-DBG
+	// trc("\n%s", ofile)           //TODO-DBG
+	// trc("\n%s", goOut)           //TODO-DBG
 
 	cOut = bytes.TrimSpace(cOut)
 	goOut = bytes.TrimSpace(goOut)
@@ -796,6 +804,10 @@ func TestCSmith(t *testing.T) {
 
 	switch s := *oXWork; {
 	case s != "":
+		if out, err := shell(true, "go", "work", "init"); err != nil {
+			t.Fatalf("%s\vFAIL: %v", out, err)
+		}
+
 		if out, err := shell(true, "go", "work", "use", "."); err != nil {
 			t.Fatalf("%s\vFAIL: %v", out, err)
 		}
@@ -806,7 +818,7 @@ func TestCSmith(t *testing.T) {
 			}
 		}
 	default:
-		if out, err := shell(true, "go", "get", defaultTestLibcPackage+"@latest"); err != nil { //TODO- @latest
+		if out, err := shell(true, "go", "get", *oLibc+"@latest"); err != nil { //TODO- @latest
 			t.Fatalf("%s\vFAIL: %v", out, err)
 		}
 	}
@@ -987,7 +999,7 @@ out:
 				"--prefix-field=F",
 				"-ignore-asm-errors",
 				"-ignore-vector-functions",
-				"--libc", "modernc.org/libc",
+				"--libc", *oLibc,
 				"main.c",
 				csp,
 			},
@@ -1105,7 +1117,7 @@ func testSQLiteSimple(t *testing.T) {
 			}
 		}
 	default:
-		if out, err := shell(true, "go", "get", defaultTestLibcPackage+"@latest"); err != nil {
+		if out, err := shell(true, "go", "get", *oLibc+"@latest"); err != nil {
 			t.Fatalf("%s\vFAIL: %v", out, err)
 		}
 	}
@@ -1128,7 +1140,7 @@ func testSQLiteSimple(t *testing.T) {
 		"-verify-types",
 		"-ignore-vector-functions",
 		"-ignore-vector-functions",
-		"--libc", "modernc.org/libc",
+		"--libc", *oLibc,
 		"-o", main,
 		filepath.Join(dir, "shell.c"),
 		filepath.Join(dir, "sqlite3.c"),
@@ -1279,7 +1291,7 @@ func testSQLiteSpeedTest1(t *testing.T) {
 		"-full-paths",
 		"-verify-types",
 		"-ignore-vector-functions",
-		"--libc", "modernc.org/libc",
+		"--libc", *oLibc,
 		"-o", main,
 		filepath.Join(dir, "speedtest1.c"),
 		filepath.Join(dir, "sqlite3.c"),
@@ -1315,7 +1327,7 @@ func testSQLiteSpeedTest1(t *testing.T) {
 			}
 		}
 	default:
-		if out, err := shell(true, "go", "get", defaultTestLibcPackage+"@latest"); err != nil {
+		if out, err := shell(true, "go", "get", *oLibc+"@latest"); err != nil {
 			t.Fatalf("%s\vFAIL: %v", out, err)
 		}
 	}
