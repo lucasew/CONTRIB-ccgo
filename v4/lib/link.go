@@ -551,10 +551,10 @@ type externVar struct {
 }
 
 type linker struct {
+	aliases               map[string]string // redirect what link name: redirect to link name
 	errors                errors
 	externVars            map[string]*externVar // key: linkname
 	externs               map[string]*object
-	weakAliases           map[string]string // redirect what link name: redirect to link name
 	fileLinkNames2GoNames dict
 	fileLinkNames2IDs     dict
 	forceExternalPrefix   nameSet
@@ -645,7 +645,7 @@ func newLinker(task *Task, libc *object) (*linker, error) {
 		synthDecls:     map[string][]byte{},
 		task:           task,
 		tldTypes:       map[string]struct{ linkName, goName string }{},
-		weakAliases:    map[string]string{},
+		aliases:        map[string]string{},
 	}, nil
 }
 
@@ -709,7 +709,7 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 			if _, ok := l.externs[nm]; !ok { // extern is still unresolved
 				l.externs[nm] = object
 				object.requiredFor(nm)
-				l.weakAliases[nm] = to
+				l.aliases[to] = nm
 				if dmesgs {
 					dmesg("extern %s alias resolved in %s", nm, object.id)
 				}
@@ -727,7 +727,7 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 			if _, ok := l.externs[nm]; !ok { // extern is still unresolved
 				l.externs[nm] = object
 				object.requiredFor(nm)
-				l.weakAliases[nm] = to
+				l.aliases[to] = nm
 				if dmesgs {
 					dmesg("extern %s weak alias resolved in %s", nm, object.id)
 				}
@@ -1481,14 +1481,8 @@ func (l *linker) print0(w writer, fi *fnInfo, n interface{}) {
 				return
 			}
 
-			if to := l.weakAliases[id]; to != "" {
-				// if dmesgs {
-				// 	dmesg("redirect id %q nm %q to %q", id, nm, to)
-				// }
+			if to := l.aliases[id]; to != "" {
 				nm = fi.name(to)
-				// if dmesgs {
-				// 	dmesg("new nm %q", nm)
-				// }
 			}
 			if obj.kind == objectPkg {
 				w.w("%s.%s", obj.qualifier, nm)
