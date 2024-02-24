@@ -27,6 +27,9 @@ var testExecKnownFails = map[string]struct{}{
 
 	// BUILD FAIL - compiles but does not build.
 
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/alias-3.c`:                 {}, // BUILD FAIL: "exit status 1"
+	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/alias-3.c`: {}, // BUILD FAIL: "exit status 1"
+
 	`assets/benchmarksgame-team.pages.debian.net/reverse-complement-4.c`: {}, // BUILD FAIL: "exit status 1"
 	`assets/ccgo/bug/sqlite.c`: {}, // BUILD FAIL: "exit status 1"
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010122-1.c`:                        {}, // BUILD FAIL: "exit status 1"

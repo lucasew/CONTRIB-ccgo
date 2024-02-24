@@ -22,6 +22,9 @@ var testExecKnownFails = map[string]struct{}{
 
 	// BUILD FAIL - compiles but does not build.
 
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/alias-3.c`:                 {}, // BUILD FAIL: "exit status 1"
+	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/alias-3.c`: {}, // BUILD FAIL: "exit status 1"
+
 	`assets/CompCert-3.6/test/c/aes.c`:                                                         {}, // BUILD FAIL: "signal: killed"
 	`assets/benchmarksgame-team.pages.debian.net/reverse-complement-4.c`:                       {}, // BUILD FAIL: "exit status 1"
 	`assets/ccgo/bug/sqlite.c`:                                                                 {}, // BUILD FAIL: "exit status 1"
