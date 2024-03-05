@@ -588,13 +588,16 @@ func (c *ctx) defines(w writer) {
 	for _, m := range a {
 		nm := m.Name.SrcStr()
 		r0 := c.normalizedMacroReplacementList0(m)
-		if len(r0) != 1 {
+		if !m.IsConst {
 			continue
 		}
 
-		r := r0[0].SrcStr()
-		if r0[0].Ch == rune(cc.IDENTIFIER) && r == nm { // Ignore #define foo foo
-			continue
+		var r string
+		if len(r0) == 1 {
+			r = r0[0].SrcStr()
+			if r0[0].Ch == rune(cc.IDENTIFIER) && r == nm { // Ignore #define foo foo
+				continue
+			}
 		}
 
 		if r != "" {
