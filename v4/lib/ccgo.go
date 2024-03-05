@@ -424,13 +424,20 @@ func (t *Task) main() (err error) {
 	if dmesgs {
 		dmesg("DBG t@%p.buildLines = %q", t, t.buildLines)
 	}
-	if len(t.isystem) == 0 && !t.freeStanding && !t.nostdlib && t.libc == libcV2 {
+	switch {
+	case len(t.isystem) == 0 && !t.freeStanding && !t.nostdlib && t.libc == libcV2:
 		isystem, err := isystem(t.goos, t.goarch, t.libc)
 		if err != nil {
 			return err
 		}
 
 		if isystem != "" {
+			t.isystem = []string{isystem}
+			t.D = append(t.D, "-D_GNU_SOURCE")
+		}
+	case len(t.isystem) == 0 && !t.freeStanding && !t.nostdlib && t.libc == libcV1:
+		isystem, err := isystem(t.goos, t.goarch, t.libc)
+		if err == nil && isystem != "" {
 			t.isystem = []string{isystem}
 			t.D = append(t.D, "-D_GNU_SOURCE")
 		}
