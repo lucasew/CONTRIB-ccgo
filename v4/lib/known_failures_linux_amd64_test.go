@@ -13,8 +13,14 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/github.com/vnmakarov/mir/c-tests/new/setjmp2.c`: {},
 
 	// Won't fix: sigfpe
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20101011-1.c`:                 {},
-	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/20101011-1.c`: {},
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20101011-1.c`:                    {},
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-1.c`:                 {},
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-2.c`:                 {},
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-3.c`:                 {},
+	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/20101011-1.c`:    {},
+	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-1.c`: {},
+	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-2.c`: {},
+	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-3.c`: {},
 
 	// Won't fix: Architecture specific conversion overflow.
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20031003-1.c`:                 {},
@@ -31,6 +37,10 @@ var testExecKnownFails = map[string]struct{}{
 
 	// Won't fix: return_addr
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/return-addr.c`: {},
+
+	// Won't fix, puts particular return value isn't specified
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/macro-paste.c`: {},
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/whitespace.c`:  {},
 
 	// ==== BUILD FAIL - compiles but does not build.
 
