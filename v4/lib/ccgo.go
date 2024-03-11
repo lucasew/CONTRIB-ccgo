@@ -571,8 +571,19 @@ func (t *Task) main() (err error) {
 
 	// 4 Directories specified with -isystem options are scanned in left-to-right
 	//   order.
+	//
+	// More info from https://gcc.gnu.org/onlinedocs/gcc/Directory-Options.html
+	//
+	// -isystem dir
+	//
+	// Search dir for header files, after all directories specified by -I but
+	// before the standard system directories. Mark it as a system directory, so
+	// that it gets the same special treatment as is applied to the standard system
+	// directories. If dir begins with =, then the = will be replaced by the
+	// sysroot prefix; see --sysroot and -isysroot.
 	cfg.IncludePaths = append(cfg.IncludePaths, t.isystem...)
-	cfg.SysIncludePaths = append(cfg.SysIncludePaths, t.isystem...)
+	// ... but before the standard directories.
+	cfg.SysIncludePaths = append(append([]string(nil), t.isystem...), cfg.SysIncludePaths...)
 
 	// 5 Standard system directories are scanned.
 	cfg.IncludePaths = append(cfg.IncludePaths, cfg.HostIncludePaths...)
