@@ -386,6 +386,10 @@ func (c *ctx) selectionStatement(w writer, n *cc.SelectionStatement) {
 		}
 	}
 
+	if c.setJmp0(w, n) {
+		return
+	}
+
 	switch n.Case {
 	case cc.SelectionStatementIf: // "if" '(' ExpressionList ')' Statement
 		w.w("if %s", c.expr(w, n.ExpressionList, nil, exprBool))
@@ -452,6 +456,143 @@ func (c *ctx) selectionStatement(w writer, n *cc.SelectionStatement) {
 		c.bracedStatement(w, n.Statement)
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
+	}
+}
+
+// C: if (setjmp(jb) == 0) stmt1; else stmt2;
+//
+// Go:
+//
+//	func(jb) {
+//		tls.PushJumpBuffer(jb)
+//
+//		defer func() {
+//			switch x := recover().(type) {
+//			case libc.LongjmpRetval:
+//				stmt2
+//			default:
+//				tls.PopJumpBuffer(jb)
+//			}
+//		}()
+//
+//		stmt1
+//	}(jb)
+func (c *ctx) setJmp0(w writer, n *cc.SelectionStatement) (r bool) {
+	switch n.Case {
+	case
+		cc.SelectionStatementIf,     // "if" '(' ExpressionList ')' Statement
+		cc.SelectionStatementIfElse: // "if" '(' ExpressionList ')' Statement "else" Statement
+
+		// ok
+	default:
+		return false
+	}
+
+	lhs, rhs := c.cmpExprEq(n.ExpressionList)
+	if lhs == nil || !c.isZero(rhs.Value()) {
+		return false
+	}
+
+	arg := c.isSetJmp(lhs)
+	if arg == nil {
+		return false
+	}
+
+	jb := c.expr(w, arg, nil, exprDefault)
+	w.w("func(%sjb uintptr) {", tag(preserve))
+	w.w("\n%stls.%[1]sPushJumpBuffer(%[1]sjb)", tag(preserve))
+	w.w("\ndefer func() {")
+	w.w("\nswitch %srecover().(%[1]stype) {", tag(preserve))
+	w.w("\ncase %s%sLongjmpRetval:", c.task.tlsQualifier, tag(preserve))
+	if n.Statement2 != nil {
+		w.w("\n{")
+		c.statement(w, n.Statement2)
+		w.w("\n};")
+	}
+	w.w("%sdefault:", tag(preserve))
+	w.w("\n%stls.%[1]sPopJumpBuffer(%[1]sjb)", tag(preserve))
+	w.w("\n}")
+	w.w("\n}();")
+	w.w("\n{")
+	c.statement(w, n.Statement)
+	w.w("\n};")
+	w.w("\n}(%s);", jb)
+	return true
+}
+
+func (c *ctx) isSetJmp(n cc.ExpressionNode) (arg cc.ExpressionNode) {
+	for {
+		switch x := n.(type) {
+		case *cc.PostfixExpression:
+			fn, args := c.isCall(x)
+			if fn == nil || len(args) != 1 {
+				return nil
+			}
+
+			if c.isIdentifier(fn) != "setjmp" || len(args) != 1 {
+				return nil
+			}
+
+			return args[0]
+		default:
+			return nil
+			//panic(todo("%v: %T %s", n.Position(), x, cc.NodeSource(n)))
+		}
+	}
+}
+
+func (c *ctx) isIdentifier(n cc.ExpressionNode) string {
+	for {
+		switch x := n.(type) {
+		case *cc.PrimaryExpression:
+			switch x.Case {
+			case cc.PrimaryExpressionIdent:
+				return x.Token.SrcStr()
+			default:
+				return ""
+				// panic(todo("%v: %v %s", n.Position(), x.Case, cc.NodeSource(n)))
+			}
+		default:
+			return ""
+			// panic(todo("%v: %T %s", n.Position(), x, cc.NodeSource(n)))
+		}
+	}
+}
+
+func (c *ctx) isCall(n cc.ExpressionNode) (fn cc.ExpressionNode, args []cc.ExpressionNode) {
+	for {
+		switch x := n.(type) {
+		case *cc.PostfixExpression:
+			switch x.Case {
+			case cc.PostfixExpressionCall:
+				for l := x.ArgumentExpressionList; l != nil; l = l.ArgumentExpressionList {
+					args = append(args, l.AssignmentExpression)
+				}
+				return x.PostfixExpression, args
+			default:
+				return nil, nil
+			}
+		default:
+			return nil, nil
+			// panic(todo("%v: %T %s", n.Position(), x, cc.NodeSource(n)))
+		}
+	}
+}
+
+// If n is 'a == b' return (a, b) else return (nil, nil)
+func (c *ctx) cmpExprEq(n cc.ExpressionNode) (a, b cc.ExpressionNode) {
+	for {
+		switch x := n.(type) {
+		case *cc.EqualityExpression:
+			if x.Case == cc.EqualityExpressionEq {
+				return x.EqualityExpression, x.RelationalExpression
+			}
+
+			return nil, nil
+		default:
+			return nil, nil
+			// panic(todo("%v: %T %s", n.Position(), x, cc.NodeSource(n)))
+		}
 	}
 }
 

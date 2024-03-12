@@ -2039,6 +2039,11 @@ out:
 				c.err(errorf("internal error"))
 			}
 			return &b, n.Type(), mode
+		case "longjmp":
+			jb := c.expr(w, n.ArgumentExpressionList.AssignmentExpression, c.pvoid, exprDefault)
+			val := c.expr(w, n.ArgumentExpressionList.ArgumentExpressionList.AssignmentExpression, c.ast.Int, exprDefault)
+			b.w("%stls.%[1]sLongjmp(%s, %s)", tag(preserve), jb, val)
+			return &b, c.ast.Void, mode
 		}
 
 		switch mode {

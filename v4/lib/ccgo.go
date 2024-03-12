@@ -596,6 +596,8 @@ func (t *Task) main() (err error) {
 	cfg.IncludePaths = append(cfg.IncludePaths, t.idirafter...)
 	cfg.SysIncludePaths = append(cfg.SysIncludePaths, t.idirafter...)
 	// --------------------------------------------------------------------
+	// trc("IncludePaths=%v", cfg.IncludePaths)
+	// trc("SysIncludePaths=%v", cfg.SysIncludePaths)
 
 	t.defs = buildDefs(t.D, t.U)
 	cfg.FS = t.fs
