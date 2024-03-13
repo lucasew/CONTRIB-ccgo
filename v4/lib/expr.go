@@ -1515,7 +1515,13 @@ out:
 					w.w("\n%s = %s;", v, ds)
 					b.w("%s", v)
 				default:
-					c.err(errorf("%v: TODO", pos(n))) // -
+					pt := n.UnaryExpression.Type().Pointer()
+					v := c.f.newAutovar(n, n.UnaryExpression.Type())
+					v2 := c.f.newAutovar(n, pt)
+					w.w("%s = %s;", v2, c.expr(w, n.UnaryExpression, pt, exprUintptr))
+					w.w("(*(*%s)(%s)) -= %d;", c.typ(n, n.UnaryExpression.Type()), unsafePointer(v2), sz)
+					w.w("%s = (*(*%s)(%s));", v, c.typ(n, n.UnaryExpression.Type()), unsafePointer(v2))
+					b.w("%s", v)
 				}
 			default:
 				c.err(errorf("TODO %v", mode)) // -

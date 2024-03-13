@@ -376,7 +376,12 @@ func (c *ctx) compile(ifn, ofn string) (err error) {
 		}
 	}()
 
-	if c.ast, err = cc.Translate(c.cfg, sourcesFor(c.cfg, ifn, c.task)); err != nil {
+	sources, err := sourcesFor(c.cfg, ifn, c.task)
+	if err != nil {
+		return err
+	}
+
+	if c.ast, err = cc.Translate(c.cfg, sources); err != nil {
 		return err
 	}
 

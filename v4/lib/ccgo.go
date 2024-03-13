@@ -62,6 +62,7 @@ type Task struct {
 	idirafter             []string // -idirafter
 	ignoreFile            nameSet  // -ignore-file=<comma separated file list>
 	imports               []string // -import=<comma separated import list>
+	include               []string // -include
 	inputFiles            []string
 	iquote                []string // -iquote
 	isystem               []string // -isystem
@@ -159,12 +160,12 @@ func NewTask(goos, goarch string, args []string, stdout, stderr io.Writer, fs fs
 
 // Exec executes a task having the "-exec=foo" option.
 func (t *Task) Exec() (err error) {
-	if dmesgs {
-		dmesg(
-			"==== task.Exec t.goos=%s t.goarch=%s IsExecEnv()=%v CC=%s\nt.args=%s",
-			t.goos, t.goarch, IsExecEnv(), os.Getenv("CC"), t.args,
-		)
-	}
+	// 	if dmesgs {
+	// 		dmesg(
+	// 			"==== task.Exec t.goos=%s t.goarch=%s IsExecEnv()=%v CC=%s\nt.args=%s",
+	// 			t.goos, t.goarch, IsExecEnv(), os.Getenv("CC"), t.args,
+	// 		)
+	// 	}
 	defer clearExecEnv()
 
 	return t.Main()
@@ -172,12 +173,12 @@ func (t *Task) Exec() (err error) {
 
 // Main executes task.
 func (t *Task) Main() (err error) {
-	if dmesgs {
-		dmesg(
-			"==== task.Main t.goos=%s t.goarch=%s IsExecEnv()=%v CC=%s\nt.args=%s",
-			t.goos, t.goarch, IsExecEnv(), os.Getenv("CC"), t.args,
-		)
-	}
+	// 	if dmesgs {
+	// 		dmesg(
+	// 			"==== task.Main t.goos=%s t.goarch=%s IsExecEnv()=%v CC=%s\nt.args=%s",
+	// 			t.goos, t.goarch, IsExecEnv(), os.Getenv("CC"), t.args,
+	// 		)
+	// 	}
 	if ee := execEnv(); ee != "" {
 		var flags []string
 		if cflags := os.Getenv(cflagsEnvVar); cflags != "" {
@@ -247,6 +248,7 @@ func (t *Task) main() (err error) {
 		return nil
 	})
 	set.Arg("idirafter", true, func(arg, val string) error { t.idirafter = append(t.idirafter, val); return nil })
+	set.Arg("include", true, func(arg, val string) error { t.include = append(t.include, val); return nil })
 	set.Arg("ignore-file", false, func(arg, val string) error {
 		for _, v := range strings.Split(val, ",") {
 			t.ignoreFile.add(v)
@@ -371,9 +373,9 @@ func (t *Task) main() (err error) {
 
 	if err := set.Parse(t.args[1:], func(arg string) error {
 		if strings.HasPrefix(arg, "-") {
-			if dmesgs {
-				dmesg("", errorf("unexpected/unsupported option: %q", arg))
-			}
+			// 			if dmesgs {
+			// 				dmesg("", errorf("unexpected/unsupported option: %q", arg))
+			// 			}
 			return errorf("unexpected/unsupported option: %s", arg)
 		}
 
@@ -421,9 +423,9 @@ func (t *Task) main() (err error) {
 		}
 	}
 
-	if dmesgs {
-		dmesg("DBG t@%p.buildLines = %q", t, t.buildLines)
-	}
+	// 	if dmesgs {
+	// 		dmesg("DBG t@%p.buildLines = %q", t, t.buildLines)
+	// 	}
 	switch {
 	case len(t.isystem) == 0 && !t.freeStanding && !t.nostdlib && t.libc == libcV2:
 		isystem, err := isystem(t.goos, t.goarch, t.libc)
@@ -512,9 +514,9 @@ func (t *Task) main() (err error) {
 	case cpp != "":
 		setenv("CC", cpp)
 	}
-	if dmesgs {
-		dmesg("cc.NewConfig(%q, %q, %q) CC=%q", t.goos, t.goarch, t.cfgArgs, os.Getenv("CC"))
-	}
+	// 	if dmesgs {
+	// 		dmesg("cc.NewConfig(%q, %q, %q) CC=%q", t.goos, t.goarch, t.cfgArgs, os.Getenv("CC"))
+	// 	}
 	cfg, err := cc.NewConfig(t.goos, t.goarch, t.cfgArgs...)
 	setenv("CC", svCC)
 	if err != nil {
@@ -604,7 +606,12 @@ func (t *Task) main() (err error) {
 	t.cfg = cfg
 	if t.E {
 		for _, ifn := range t.inputFiles {
-			if err := cc.Preprocess(cfg, sourcesFor(cfg, ifn, t), t.stdout); err != nil {
+			sources, err := sourcesFor(cfg, ifn, t)
+			if err != nil {
+				return err
+			}
+
+			if err := cc.Preprocess(cfg, sources, t.stdout); err != nil {
 				return err
 			}
 		}
@@ -636,9 +643,9 @@ func (t *Task) arExtract(fn string) (r []string, err error) {
 	}
 
 	out, err := exec.Command(ar, "t", fn).CombinedOutput()
-	if dmesgs {
-		dmesg("fn=%s out=%s err=%v", fn, out, err)
-	}
+	// 	if dmesgs {
+	// 		dmesg("fn=%s out=%s err=%v", fn, out, err)
+	// 	}
 	if err != nil {
 		return nil, errorf("%s: %s\nFAIL: %v", ar, out, err)
 	}
@@ -664,31 +671,31 @@ func (t *Task) arExtract(fn string) (r []string, err error) {
 		cmd := exec.Command(ar, "x", fn)
 		cmd.Dir = tmp
 		out, err = cmd.CombinedOutput()
-		if dmesgs {
-			dmesg("fn=%s out=%s err=%v", fn, out, err)
-		}
+		// 		if dmesgs {
+		// 			dmesg("fn=%s out=%s err=%v", fn, out, err)
+		// 		}
 		if err != nil {
 			return nil, errorf("%s: %s\nFAIL: %v", ar, out, err)
 		}
 	default:
 		out, err = exec.Command(ar, "x", "--output", tmp, fn).CombinedOutput()
-		if dmesgs {
-			dmesg("fn=%s out=%s err=%v", fn, out, err)
-		}
+		// 		if dmesgs {
+		// 			dmesg("fn=%s out=%s err=%v", fn, out, err)
+		// 		}
 		if err != nil {
 			return nil, errorf("%s: %s\nFAIL: %v", ar, out, err)
 		}
 	}
 
-	if dmesgs {
-		for _, v := range r {
-			dmesg("ar extracted %s", v)
-		}
-	}
+	// 	if dmesgs {
+	// 		for _, v := range r {
+	// 			dmesg("ar extracted %s", v)
+	// 		}
+	// 	}
 	return r, nil
 }
 
-func sourcesFor(cfg *cc.Config, fn string, t *Task) (r []cc.Source) {
+func sourcesFor(cfg *cc.Config, fn string, t *Task) (r []cc.Source, err error) {
 	predef := cfg.Predefined
 	if len(t.predef) != 0 {
 		predef += "\n" + strings.Join(t.predef, "\n")
@@ -700,7 +707,33 @@ func sourcesFor(cfg *cc.Config, fn string, t *Task) (r []cc.Source) {
 	if t.defs != "" {
 		r = append(r, cc.Source{Name: "<command-line>", Value: t.defs})
 	}
-	return append(r, cc.Source{Name: fn, FS: cfg.FS})
+	// -include file
+	//
+	// Process file as if #include "file" appeared as the first line of the primary
+	// source file. However, the first directory searched for file is the
+	// preprocessor’s working directory instead of the directory containing the
+	// main source file. If not found there, it is searched for in the remainder of
+	// the #include "…" search chain as normal.
+	//
+	// If multiple -include options are given, the files are included in the order
+	// they appear on the command line.
+	paths := append([]string{"."}, t.include...)
+next:
+	for _, v := range t.include {
+		for _, w := range paths {
+			path := filepath.Join(w, v)
+			fi, err := os.Stat(path)
+			if err != nil || !fi.Mode().IsRegular() {
+				continue
+			}
+
+			r = append(r, cc.Source{Name: path, FS: cfg.FS})
+			continue next
+		}
+
+		return nil, errorf("-include %s: not found", v)
+	}
+	return append(r, cc.Source{Name: fn, FS: cfg.FS}), nil
 }
 
 // -c
@@ -737,7 +770,7 @@ func (t *Task) compile(optO string) error {
 
 func setenv(nm, val string) {
 	os.Setenv(nm, val)
-	if dmesgs {
-		dmesg("os.Setenv(%q, %q)", nm, val)
-	}
+	//	if dmesgs {
+	//		dmesg("os.Setenv(%q, %q)", nm, val)
+	//	}
 }

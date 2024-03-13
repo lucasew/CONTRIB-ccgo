@@ -24,12 +24,12 @@ const (
 )
 
 func (t *Task) exec(args []string) (err error) {
-	if dmesgs {
-		dmesg(
-			"==== task.exec t.goos=%s t.goarch=%s IsExecEnv()=%v CC=%s\nargs=%q\nt.args=%q",
-			t.goos, t.goarch, IsExecEnv(), os.Getenv("CC"), args, t.args,
-		)
-	}
+	// 	if dmesgs {
+	// 		dmesg(
+	// 			"==== task.exec t.goos=%s t.goarch=%s IsExecEnv()=%v CC=%s\nargs=%q\nt.args=%q",
+	// 			t.goos, t.goarch, IsExecEnv(), os.Getenv("CC"), args, t.args,
+	// 		)
+	// 	}
 	if len(args) == 0 {
 		return errorf("-exec: missing command")
 	}
@@ -58,9 +58,9 @@ func (t *Task) exec(args []string) (err error) {
 
 	setenv("PATH", fmt.Sprintf("%s%c%s", dirTemp, os.PathListSeparator, restorePath))
 	var a []string
-	if dmesgs {
-		dmesg("t.routes=%s", t.routes)
-	}
+	// 	if dmesgs {
+	// 		dmesg("t.routes=%s", t.routes)
+	// 	}
 	for _, v := range strings.Split(t.routes, commaSep) {
 		pair := strings.SplitN(v, "=", 2)
 		tool := pair[0]
@@ -73,9 +73,9 @@ func (t *Task) exec(args []string) (err error) {
 		}
 		bin, err = exec.LookPath(bin)
 		if err != nil {
-			if dmesgs {
-				dmesg("%s: %v", tool, err)
-			}
+			// 			if dmesgs {
+			// 				dmesg("%s: %v", tool, err)
+			// 			}
 			continue
 		}
 
@@ -86,32 +86,32 @@ func (t *Task) exec(args []string) (err error) {
 				return errorf("%v", err)
 			}
 
-			if dmesgs {
-				dmesg("symlink %s -> %s", symlink, self)
-			}
+			// 			if dmesgs {
+			// 				dmesg("symlink %s -> %s", symlink, self)
+			// 			}
 		default:
 			symlink := filepath.Join(dirTemp, tool)
 			if err := os.Symlink(self, symlink); err != nil {
 				return errorf("%v", err)
 			}
 
-			if dmesgs {
-				dmesg("symlink %s -> %s", symlink, self)
-			}
+			// 			if dmesgs {
+			// 				dmesg("symlink %s -> %s", symlink, self)
+			// 			}
 		}
 		a = append(a, fmt.Sprintf("%s=%s", tool, bin))
 	}
 	setenv(execEnvVar, strings.Join(a, commaSep))
-	if dmesgs {
-		dmesg("exec.Command(%q, %q)", args[0], args[1:])
-	}
+	// 	if dmesgs {
+	// 		dmesg("exec.Command(%q, %q)", args[0], args[1:])
+	// 	}
 	cmd := exec.Command(args[0], args[1:]...)
 	cmd.Stdout = t.stdout
 	cmd.Stderr = t.stderr
 	err = cmd.Run()
-	if dmesgs {
-		dmesg("exec.Command->%v", err)
-	}
+	// 	if dmesgs {
+	// 		dmesg("exec.Command->%v", err)
+	// 	}
 	return err
 }
 
@@ -189,15 +189,15 @@ func (t *Task) execed(routes string, cflags []string) (err error) {
 				return t.rm(bin, os.Getenv("CCGO_RM"))
 			}
 		default:
-			if dmesgs {
-				dmesg("FAIL")
-			}
+			// 			if dmesgs {
+			// 				dmesg("FAIL")
+			// 			}
 			return errorf("internal error: route %q", pair)
 		}
 	}
-	if dmesgs {
-		dmesg("FAIL cmd=%s", cmd)
-	}
+	// 	if dmesgs {
+	// 		dmesg("FAIL cmd=%s", cmd)
+	// 	}
 	return errorf("internal error: %q", cmd)
 }
 
@@ -216,9 +216,10 @@ func (t *Task) libtool(execLibtool, hostLibtool, hostAR string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		if dmesgs {
-			dmesg("NOTE: %s returns %v", execLibtool, err.(*exec.ExitError).ExitCode())
-		}
+		_ = err
+		// if dmesgs {
+		// 	dmesg("NOTE: %s returns %v", execLibtool, err.(*exec.ExitError).ExitCode())
+		// }
 	}
 	set := opt.NewSet()
 	var args strSlice
@@ -233,9 +234,9 @@ func (t *Task) libtool(execLibtool, hostLibtool, hostAR string) error {
 	})
 	if err := set.Parse(t.args[1:], func(arg string) error {
 		if strings.HasPrefix(arg, "-") {
-			if dmesgs {
-				dmesg("", errorf("unexpected/unsupported option: %q", arg))
-			}
+			// 			if dmesgs {
+			// 				dmesg("", errorf("unexpected/unsupported option: %q", arg))
+			// 			}
 			return errorf("unexpected/unsupported option: %s", arg)
 		}
 
@@ -246,23 +247,23 @@ func (t *Task) libtool(execLibtool, hostLibtool, hostAR string) error {
 	}
 	args2 := strSlice{"-cr", outfn}
 	args2 = append(args2, args...)
-	if dmesgs {
-		dmesg("", args2)
-	}
+	// 	if dmesgs {
+	// 		dmesg("", args2)
+	// 	}
 	cmd = exec.Command(hostAR, args2...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		if dmesgs {
-			dmesg("SKIP2: %s returns %v", hostAR, err.(*exec.ExitError).ExitCode())
-		}
+		// 		if dmesgs {
+		// 			dmesg("SKIP2: %s returns %v", hostAR, err.(*exec.ExitError).ExitCode())
+		// 		}
 		return err
 	}
 
-	if dmesgs {
-		dmesg("OK %v", args2)
-	}
+	// 	if dmesgs {
+	// 		dmesg("OK %v", args2)
+	// 	}
 	return nil
 }
 
@@ -272,9 +273,10 @@ func (t *Task) ln(execLN, hostLN string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		if dmesgs {
-			dmesg("NOTE: %s returns %v", execLN, err.(*exec.ExitError).ExitCode())
-		}
+		_ = err
+		// 		if dmesgs {
+		// 			dmesg("NOTE: %s returns %v", execLN, err.(*exec.ExitError).ExitCode())
+		// 		}
 	}
 	set := opt.NewSet()
 	var args []string
@@ -284,9 +286,9 @@ func (t *Task) ln(execLN, hostLN string) error {
 	set.Opt("fs", func(arg string) error { args = append(args, arg); return nil })
 	if err := set.Parse(t.args[1:], func(arg string) error {
 		if strings.HasPrefix(arg, "-") {
-			if dmesgs {
-				dmesg("", errorf("unexpected/unsupported option: %q", arg))
-			}
+			// 			if dmesgs {
+			// 				dmesg("", errorf("unexpected/unsupported option: %q", arg))
+			// 			}
 			return errorf("unexpected/unsupported option: %s", arg)
 		}
 
@@ -314,9 +316,9 @@ func (t *Task) mv(execMV, hostMV string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		if dmesgs {
-			dmesg("SKIP: %s returns %v", execMV, err.(*exec.ExitError).ExitCode())
-		}
+		// if dmesgs {
+		// 	dmesg("SKIP: %s returns %v", execMV, err.(*exec.ExitError).ExitCode())
+		// }
 		return err
 	}
 
@@ -326,9 +328,9 @@ func (t *Task) mv(execMV, hostMV string) error {
 	set.Opt("f", func(arg string) error { args = append(args, "-f"); return nil })
 	if err := set.Parse(t.args[1:], func(arg string) error {
 		if strings.HasPrefix(arg, "-") {
-			if dmesgs {
-				dmesg("", errorf("unexpected/unsupported option: %q", arg))
-			}
+			// 			if dmesgs {
+			// 				dmesg("", errorf("unexpected/unsupported option: %q", arg))
+			// 			}
 			return errorf("unexpected/unsupported option: %s", arg)
 		}
 
@@ -357,9 +359,9 @@ func (t *Task) rm(execRM, hostRM string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		if dmesgs {
-			dmesg("SKIP: %s returns %v", execRM, err.(*exec.ExitError).ExitCode())
-		}
+		// 		if dmesgs {
+		// 			dmesg("SKIP: %s returns %v", execRM, err.(*exec.ExitError).ExitCode())
+		// 		}
 		return err
 	}
 
@@ -371,9 +373,9 @@ func (t *Task) rm(execRM, hostRM string) error {
 	set.Opt("fr", func(arg string) error { rf = true; return nil })
 	return set.Parse(t.args[1:], func(arg string) error {
 		if strings.HasPrefix(arg, "-") {
-			if dmesgs {
-				dmesg("", errorf("unexpected/unsupported option: %q", arg))
-			}
+			// 			if dmesgs {
+			// 				dmesg("", errorf("unexpected/unsupported option: %q", arg))
+			// 			}
 			return errorf("unexpected/unsupported option: %s", arg)
 		}
 
@@ -397,18 +399,19 @@ func (t *Task) goFile(s string) string {
 }
 
 func (t *Task) cc(execCC, hostCC string, cflags []string) error {
-	if dmesgs {
-		dmesg("cc(%q, %q, %q)", execCC, hostCC, cflags)
-		dmesg("%s %v", execCC, t.args[1:])
-	}
+	// 	if dmesgs {
+	// 		dmesg("cc(%q, %q, %q)", execCC, hostCC, cflags)
+	// 		dmesg("%s %v", execCC, t.args[1:])
+	// 	}
 	cmd := exec.Command(execCC, t.args[1:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		if dmesgs {
-			dmesg("NOTE: %s returns %v", execCC, err.(*exec.ExitError).ExitCode())
-		}
+		_ = err
+		// if dmesgs {
+		// 	dmesg("NOTE: %s returns %v", execCC, err.(*exec.ExitError).ExitCode())
+		// }
 	}
 
 	optE := false
@@ -432,6 +435,7 @@ func (t *Task) cc(execCC, hostCC string, cflags []string) error {
 	set.Arg("current_version", false, func(arg, val string) error { return nil })
 	set.Arg("gz", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("idirafter", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
+	set.Arg("include", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("install_name", true, func(arg, val string) error { return nil })
 	set.Arg("iquote", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("isystem", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
@@ -527,9 +531,9 @@ func (t *Task) cc(execCC, hostCC string, cflags []string) error {
 		}
 
 		if strings.HasPrefix(arg, "-") {
-			if dmesgs {
-				dmesg("", errorf("unexpected/unsupported option: %q", arg))
-			}
+			// 			if dmesgs {
+			// 				dmesg("", errorf("unexpected/unsupported option: %q", arg))
+			// 			}
 			return errorf("unexpected/unsupported option: %s", arg)
 		}
 
@@ -599,26 +603,26 @@ func (t *Task) cc(execCC, hostCC string, cflags []string) error {
 		return nil
 	}
 
-	if dmesgs {
-		dmesg("DBG args=%v", args)
-	}
+	// 	if dmesgs {
+	// 		dmesg("DBG args=%v", args)
+	// 	}
 	t = NewTask(t.goos, t.goarch, args, t.stdout, t.stderr, t.fs)
 	t.isExeced = true
 	return t.main()
 }
 
 func (t *Task) ar(execAR, hostAR string) error {
-	if dmesgs {
-		dmesg("execAR=%s hostAR=%s t.args=%v", execAR, hostAR, t.args)
-	}
+	// 	if dmesgs {
+	// 		dmesg("execAR=%s hostAR=%s t.args=%v", execAR, hostAR, t.args)
+	// 	}
 	cmd := exec.Command(execAR, t.args[1:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		if dmesgs {
-			dmesg("SKIP: %s returns %v", execAR, err.(*exec.ExitError).ExitCode())
-		}
+		// 		if dmesgs {
+		// 			dmesg("SKIP: %s returns %v", execAR, err.(*exec.ExitError).ExitCode())
+		// 		}
 		return err
 	}
 
@@ -627,9 +631,9 @@ func (t *Task) ar(execAR, hostAR string) error {
 	args := strSlice{t.args[0]}
 	if err := set.Parse(t.args[1:], func(arg string) error {
 		if strings.HasPrefix(arg, "-") {
-			if dmesgs {
-				dmesg("", errorf("unexpected/unsupported option: %q", arg))
-			}
+			// 			if dmesgs {
+			// 				dmesg("", errorf("unexpected/unsupported option: %q", arg))
+			// 			}
 			return errorf("unexpected/unsupported option: %s", arg)
 		}
 
@@ -688,17 +692,17 @@ func (t *Task) ar(execAR, hostAR string) error {
 		return err
 	}
 
-	if dmesgs {
-		dmesg("hostAR=%s args[1:]=%v", hostAR, args[1:])
-	}
+	// 	if dmesgs {
+	// 		dmesg("hostAR=%s args[1:]=%v", hostAR, args[1:])
+	// 	}
 	cmd = exec.Command(hostAR, []string(args[1:])...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		if dmesgs {
-			dmesg("SKIP2: %s returns %v", hostAR, err.(*exec.ExitError).ExitCode())
-		}
+		// 		if dmesgs {
+		// 			dmesg("SKIP2: %s returns %v", hostAR, err.(*exec.ExitError).ExitCode())
+		// 		}
 		return err
 	}
 
