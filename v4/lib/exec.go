@@ -453,6 +453,7 @@ func (t *Task) cc(execCC, hostCC string, cflags []string) error {
 	set.Opt("c", func(arg string) error { args.add(arg); return nil })
 	set.Opt("dumpmachine", func(arg string) error { args.add(arg); return nil })
 	set.Opt("dynamiclib", func(arg string) error { return nil })
+	set.Opt("emit-func-aliases", func(arg string) error { args.add(arg); return nil })
 	set.Opt("eval-all-macros", func(arg string) error { args.add(arg); return nil })
 	set.Opt("ffreestanding", func(arg string) error { args.add(arg); return nil })
 	set.Opt("fno-builtin", func(arg string) error { args.add(arg); return nil })

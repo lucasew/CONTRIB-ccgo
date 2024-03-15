@@ -203,11 +203,31 @@ func tag(nm name) string {
 // errHandler is a function called on error.
 type errHandler func(msg string, args ...interface{})
 
+// ---- main.c ----
+// #define weak_alias(old, new) extern __typeof(old) new __attribute__((__weak__, __alias__(#old)))
+//
+// int canonical;
+//
+// weak_alias(canonical, alias1);
+// weak_alias(canonical, alias2);
+//
+// ---- main.o.go ----
+// var Xcanonical ppint32
+//
+// const ___ccgo_meta_json = `{
+// 	"Aliases": {},
+// 	"Visibility": {},
+// 	"WeakAliases": {
+// 		"Xalias1": "Xcanonical",
+// 		"Xalias2": "Xcanonical"
+// 	}
+// }`
+
 // https://www.vishalchovatiya.com/default-handlers-in-c-weak_alias/
 type jsonMeta struct {
-	Aliases     map[string]string // redirect what link name: redirect to link name
+	Aliases     map[string]string // alias: canonical
 	Visibility  map[string]string
-	WeakAliases map[string]string // redirect what link name: redirect to link name
+	WeakAliases map[string]string // alias: canonical
 }
 
 type ctx struct {
@@ -224,7 +244,7 @@ type ctx struct {
 	exprNestLevel       int
 	exprStmtLevel       int
 	externsDeclared     map[string]*cc.Declarator
-	externsDefined      map[string]struct{}
+	externsDefined      map[string]cc.Node
 	externsMentioned    map[string]struct{}
 	f                   *fnCtx
 	fields              map[fielder]*nameSpace
@@ -271,7 +291,7 @@ func newCtx(task *Task, eh errHandler) *ctx {
 		defineTaggedUnions:  map[string]*cc.UnionType{},
 		eh:                  eh,
 		externsDeclared:     map[string]*cc.Declarator{},
-		externsDefined:      map[string]struct{}{},
+		externsDefined:      map[string]cc.Node{},
 		externsMentioned:    map[string]struct{}{},
 		fields:              map[fielder]*nameSpace{},
 		imports:             map[string]string{},
@@ -436,6 +456,9 @@ func (c *ctx) compile(ifn, ofn string) (err error) {
 
 	for n := c.ast.TranslationUnit; n != nil; n = n.TranslationUnit {
 		c.externalDeclaration(c, n.ExternalDeclaration)
+	}
+	if c.task.emitFuncAliases {
+		c.emitFunctionAliases()
 	}
 	for len(c.defineTaggedStructs) != 0 {
 		var a []string

@@ -551,7 +551,7 @@ type externVar struct {
 }
 
 type linker struct {
-	aliases               map[string]string // redirect what link name: redirect to link name
+	aliases               map[string]string // alias: canonical
 	errors                errors
 	externVars            map[string]*externVar // key: linkname
 	externs               map[string]*object
@@ -702,37 +702,37 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 	// Then try aliases
 	for _, linkFile := range linkFiles {
 		object := objects[linkFile]
-		for nm, to := range object.meta.Aliases { // object defines a weak alias for nm
+		for alias, canonical := range object.meta.Aliases { // object defines an alias for canonical
 			// 			if dmesgs {
 			// 				dmesg("extern %s alias in %s", nm, object.id)
 			// 			}
-			if _, ok := l.externs[nm]; !ok { // extern is still unresolved
-				l.externs[nm] = object
-				object.requiredFor(nm)
-				l.aliases[to] = nm
+			if _, ok := l.externs[alias]; !ok { // extern is still unresolved
+				l.externs[alias] = object
+				object.requiredFor(alias)
+				l.aliases[alias] = canonical
 				// 				if dmesgs {
 				// 					dmesg("extern %s alias resolved in %s", nm, object.id)
 				// 				}
 			}
-			tld.add(nm)
+			tld.add(alias)
 		}
 	}
 	// Then try weak aliases
 	for _, linkFile := range linkFiles {
 		object := objects[linkFile]
-		for nm, to := range object.meta.WeakAliases { // object defines a weak alias for nm
+		for alias, canonical := range object.meta.WeakAliases { // object defines a weak alias for canonical
 			// 			if dmesgs {
 			// 				dmesg("extern %s weak alias in %s", nm, object.id)
 			// 			}
-			if _, ok := l.externs[nm]; !ok { // extern is still unresolved
-				l.externs[nm] = object
-				object.requiredFor(nm)
-				l.aliases[to] = nm
+			if _, ok := l.externs[alias]; !ok { // extern is still unresolved
+				l.externs[alias] = object
+				object.requiredFor(alias)
+				l.aliases[alias] = canonical
 				// 				if dmesgs {
 				// 					dmesg("extern %s weak alias resolved in %s", nm, object.id)
 				// 				}
 			}
-			tld.add(nm)
+			tld.add(alias)
 		}
 	}
 	l.tld.registerNameSet(l, tld, true)

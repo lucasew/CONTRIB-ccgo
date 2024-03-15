@@ -13,7 +13,7 @@ require (
 	modernc.org/ccorpus2 v1.5.1
 	modernc.org/fileutil v1.3.0
 	modernc.org/gc/v2 v2.4.1
-	modernc.org/libc v1.43.1
+	modernc.org/libc v1.44.1
 	modernc.org/mathutil v1.6.0
 	modernc.org/opt v0.1.3
 	modernc.org/strutil v1.2.0

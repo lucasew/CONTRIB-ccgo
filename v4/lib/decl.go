@@ -6,6 +6,7 @@ package ccgo // import "modernc.org/ccgo/v4/lib"
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -290,9 +291,9 @@ func (c *ctx) externalDeclaration(w writer, n *cc.ExternalDeclaration) {
 
 		switch d.Linkage() {
 		case cc.External:
-			c.externsDefined[n.FunctionDefinition.Declarator.Name()] = struct{}{}
+			c.externsDefined[n.FunctionDefinition.Declarator.Name()] = n.FunctionDefinition
 		}
-		c.functionDefinition(w, n.FunctionDefinition)
+		c.functionDefinition(w, n.FunctionDefinition, "")
 	case cc.ExternalDeclarationDecl: // Declaration
 		c.declaration(w, n.Declaration, true)
 	case cc.ExternalDeclarationAsmStmt: // AsmStatement
@@ -308,7 +309,40 @@ func (c *ctx) isHeader(n cc.Node) bool {
 	return n != nil && strings.HasSuffix(n.Position().Filename, ".h")
 }
 
-func (c *ctx) functionDefinition(w writer, n *cc.FunctionDefinition) {
+func (c *ctx) emitFunctionAliases() {
+	m := map[string]string{}
+	for alias, canonical := range c.Aliases {
+		if x, ok := m[alias]; ok && x != canonical {
+			c.err(errorf("conflicting aliases: %s -> %s and %s", alias, canonical, x))
+			return
+		}
+
+		m[alias] = canonical
+	}
+	for alias, canonical := range c.WeakAliases {
+		if x, ok := m[alias]; ok && x != canonical {
+			c.err(errorf("conflicting aliases: %s -> %s and %s", alias, canonical, x))
+			return
+		}
+
+		m[alias] = canonical
+	}
+	var a []string
+	for alias := range m {
+		a = append(a, alias)
+	}
+	slices.Sort(a)
+	tx := tag(external)
+	for _, alias := range a {
+		canonical := m[alias][len(tx):]
+		switch x := c.externsDefined[canonical].(type) {
+		case *cc.FunctionDefinition:
+			c.functionDefinition(c, x, alias[len(tx):])
+		}
+	}
+}
+
+func (c *ctx) functionDefinition(w writer, n *cc.FunctionDefinition, alias string) {
 	if n.UsesVectors() {
 		if !c.task.ignoreVectorFunctions {
 			c.err(errorf("%v: function uses vector type(s)", n.Position()))
@@ -320,10 +354,10 @@ func (c *ctx) functionDefinition(w writer, n *cc.FunctionDefinition) {
 		return
 	}
 
-	c.functionDefinition0(w, sep(n), n, n.Declarator, n.CompoundStatement, false)
+	c.functionDefinition0(w, sep(n), n, n.Declarator, n.CompoundStatement, false, alias)
 }
 
-func (c *ctx) functionDefinition0(w writer, sep string, pos cc.Node, d *cc.Declarator, cs *cc.CompoundStatement, local bool) {
+func (c *ctx) functionDefinition0(w writer, sep string, pos cc.Node, d *cc.Declarator, cs *cc.CompoundStatement, local bool, alias string) {
 	ft, ok := d.Type().(*cc.FunctionType)
 	if !ok {
 		c.err(errorf("%v: internal error %v", d.Position(), d.Type()))
@@ -378,10 +412,36 @@ func (c *ctx) functionDefinition0(w writer, sep string, pos cc.Node, d *cc.Decla
 		// trc("s `%s`", s) //TODO-DBG
 		w.w("%s%s%s := func%s", s, c.declaratorTag(d), d.Name(), c.signature(ft, true, false, true))
 	default:
+		nm := d.Name()
+		if alias != "" {
+			nm = alias
+		}
 		// trc("s `%s`", s) //TODO-DBG
-		w.w("%sfunc %s%s%s ", s, c.declaratorTag(d), d.Name(), c.signature(ft, true, isMain, true))
+		w.w("%sfunc %s%s%s ", s, c.declaratorTag(d), nm, c.signature(ft, true, isMain, true))
 	}
-	c.compoundStatement(w, cs, true, "")
+	switch {
+	case alias != "":
+		w.w("{\n")
+		if ft.Result() != nil && ft.Result().Kind() != cc.Void {
+			w.w("return ")
+		}
+		w.w("%s%s(", c.declaratorTag(d), d.Name())
+		w.w("%stls ", tag(ccgo))
+		for _, v := range ft.Parameters() {
+			switch info := c.f.declInfos.info(v.Declarator); {
+			case info != nil && info.d != nil && info.pinned():
+				w.w(", %s_%s ", tag(ccgo), v.Name())
+			default:
+				w.w(", %s", c.f.locals[v.Declarator])
+			}
+		}
+		if ft.IsVariadic() {
+			w.w(", %s%s", tag(ccgo), vaArgName)
+		}
+		w.w(")\n}")
+	default:
+		c.compoundStatement(w, cs, true, "")
+	}
 	w.w("\n\n")
 }
 
@@ -670,15 +730,15 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 	}
 
 	if c.aliasAttr(dt) != "" {
-		toLinkName := tag(external) + c.aliasAttr(dt)
-		if to := c.aliasAttrDecl(dt); to != nil {
-			toLinkName = c.declaratorTag(to) + to.Name()
+		canonicalLinkName := tag(external) + c.aliasAttr(dt)
+		if canonical := c.aliasAttrDecl(dt); canonical != nil {
+			canonicalLinkName = c.declaratorTag(canonical) + canonical.Name()
 		}
 		switch {
 		case c.weakAttr(dt):
-			c.WeakAliases[c.declaratorTag(d)+d.Name()] = toLinkName
+			c.WeakAliases[c.declaratorTag(d)+d.Name()] = canonicalLinkName
 		default:
-			c.Aliases[c.declaratorTag(d)+d.Name()] = toLinkName
+			c.Aliases[c.declaratorTag(d)+d.Name()] = canonicalLinkName
 		}
 		return
 	}
