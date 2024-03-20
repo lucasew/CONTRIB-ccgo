@@ -559,6 +559,11 @@ func (c *ctx) isIdentifier(n cc.ExpressionNode) string {
 	}
 }
 
+func (c *ctx) isCall2(n cc.ExpressionNode) bool {
+	f, _ := c.isCall(n)
+	return f != nil
+}
+
 func (c *ctx) isCall(n cc.ExpressionNode) (fn cc.ExpressionNode, args []cc.ExpressionNode) {
 	for {
 		switch x := n.(type) {
@@ -569,6 +574,13 @@ func (c *ctx) isCall(n cc.ExpressionNode) (fn cc.ExpressionNode, args []cc.Expre
 					args = append(args, l.AssignmentExpression)
 				}
 				return x.PostfixExpression, args
+			default:
+				return nil, nil
+			}
+		case *cc.PrimaryExpression:
+			switch x.Case {
+			case cc.PrimaryExpressionExpr:
+				n = x.ExpressionList
 			default:
 				return nil, nil
 			}

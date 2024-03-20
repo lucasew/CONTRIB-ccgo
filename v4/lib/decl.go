@@ -74,6 +74,7 @@ type fnCtx struct {
 	d                *cc.Declarator
 	declInfos        declInfos
 	flatScopes       map[*cc.Scope]struct{}
+	fnResults        map[cc.ExpressionNode]int64
 	inlineInfo       *inlineInfo
 	locals           map[*cc.Declarator]string // storage: static or automatic, linkage: none -> C renamed
 	maxVaListSize    int64

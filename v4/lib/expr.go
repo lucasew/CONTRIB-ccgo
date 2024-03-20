@@ -2624,10 +2624,25 @@ func (c *ctx) postfixExpressionSelect(w writer, n *cc.PostfixExpression, t cc.Ty
 		return b, rt, rmode
 	}
 
-	var isCall bool
-	if x, ok := n.PostfixExpression.(*cc.PostfixExpression); ok {
-		isCall = x.Case == cc.PostfixExpressionCall
+	isCall := c.isCall2(n.PostfixExpression)
+	if isCall && mode == exprUintptr {
+		if c.f.fnResults == nil {
+			c.f.fnResults = map[cc.ExpressionNode]int64{}
+		}
+		var bp int64
+		switch c.pass {
+		case 1:
+			bp = roundup(c.f.tlsAllocs, bpAlign(t))
+			c.f.fnResults[n] = bp
+			c.f.tlsAllocs += t.Size()
+		case 2:
+			bp = c.f.fnResults[n]
+		}
+		w.w("(*(*%s)(%s)) = %s.%s%s;", c.typ(n, f.Type()), unsafePointer(bpOff(bp)), c.expr(w, n.PostfixExpression, nil, exprDefault), tag(field), c.fieldName(n.PostfixExpression.Type(), f))
+		b.w("(%s)", bpOff(bp))
+		return &b, c.pvoid, mode
 	}
+
 	if u, ok := n.PostfixExpression.Type().(*cc.UnionType); !isCall && ok && u.Size() == f.Type().Size() {
 		switch mode {
 		case exprLvalue, exprDefault, exprSelect:
@@ -3883,9 +3898,6 @@ out:
 			}
 		case *cc.Enumerator:
 			switch {
-			case x.ResolvedIn().Parent == nil && c.exprNestLevel == 1:
-				rt, rmode = t, exprDefault
-				b.w("(%s%s)", tag(enumConst), x.Token.Src())
 			case x.ResolvedIn().Parent == nil:
 				rt, rmode = t, exprDefault
 				switch {
