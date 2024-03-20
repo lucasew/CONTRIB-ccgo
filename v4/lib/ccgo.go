@@ -366,6 +366,7 @@ func (t *Task) main() (err error) {
 	set.Opt("mconsole", func(arg string) error { return nil })
 	set.Opt("municode", func(arg string) error { return nil })
 	set.Opt("pipe", func(arg string) error { return nil })
+	set.Opt("rdynamic", func(arg string) error { return nil })
 	set.Opt("s", func(arg string) error { return nil })
 	set.Opt("shared", func(arg string) error { return nil })
 	set.Opt("static", func(arg string) error { return nil })

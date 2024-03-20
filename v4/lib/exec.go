@@ -505,6 +505,7 @@ func (t *Task) cc(execCC, hostCC string, cflags []string) error {
 	set.Opt("pedantic-errors", func(arg string) error { args.add(arg); return nil })
 	set.Opt("pipe", func(arg string) error { return nil })
 	set.Opt("pthread", func(arg string) error { args.add(arg); return nil })
+	set.Opt("rdynamic", func(arg string) error { args.add(arg); return nil })
 	set.Opt("s", func(arg string) error { args.add(arg); return nil })
 	set.Opt("shared", func(arg string) error { args.add(arg); return nil })
 	set.Opt("static", func(arg string) error { args.add(arg); return nil })
