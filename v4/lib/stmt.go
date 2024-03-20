@@ -194,17 +194,17 @@ func (c *ctx) mustConsume(n cc.ExpressionNode) (r bool) {
 func (c *ctx) labeledStatement(w writer, n *cc.LabeledStatement) {
 	switch n.Case {
 	case cc.LabeledStatementLabel: // IDENTIFIER ':' Statement
-		w.w("%s%s:", tag(preserve), n.Token.Src()) //TODO use nameSpace
+		w.w("%s%s:;", tag(preserve), n.Token.Src()) //TODO use nameSpace
 		c.statement(w, n.Statement)
 	case cc.LabeledStatementCaseLabel: // "case" ConstantExpression ':' Statement
 		switch {
 		case len(c.switchCtx) != 0:
-			w.w("%s:", c.switchCtx[n])
+			w.w("%s:;", c.switchCtx[n])
 		default:
 			if n.CaseOrdinal() != 0 {
 				w.w("fallthrough;")
 			}
-			w.w("case %s:", c.topExpr(nil, n.ConstantExpression, cc.IntegerPromotion(n.Switch().ExpressionList.Type()), exprDefault))
+			w.w("case %s:;", c.topExpr(nil, n.ConstantExpression, cc.IntegerPromotion(n.Switch().ExpressionList.Type()), exprDefault))
 		}
 		c.unbracedStatement(w, n.Statement)
 	case cc.LabeledStatementRange: // "case" ConstantExpression "..." ConstantExpression ':' Statement
@@ -215,7 +215,7 @@ func (c *ctx) labeledStatement(w writer, n *cc.LabeledStatement) {
 	case cc.LabeledStatementDefault: // "default" ':' Statement
 		switch {
 		case len(c.switchCtx) != 0:
-			w.w("%s:", c.switchCtx[n])
+			w.w("%s:;", c.switchCtx[n])
 		default:
 			if n.CaseOrdinal() != 0 {
 				w.w("fallthrough;")
@@ -617,7 +617,7 @@ func (c *ctx) selectionStatementFlat(w writer, n *cc.SelectionStatement) {
 		a := c.label()
 		w.w("if !(%s) { goto %s };", c.expr(w, n.ExpressionList, nil, exprBool), a)
 		c.unbracedStatement(w, n.Statement)
-		w.w("%s:", a)
+		w.w("%s:;", a)
 	case cc.SelectionStatementIfElse: // "if" '(' ExpressionList ')' Statement "else" Statement
 		//	if !expr goto a
 		//	stmt
@@ -628,9 +628,9 @@ func (c *ctx) selectionStatementFlat(w writer, n *cc.SelectionStatement) {
 		b := c.label()
 		w.w("if !(%s) { goto %s };", c.expr(w, n.ExpressionList, nil, exprBool), a)
 		c.unbracedStatement(w, n.Statement)
-		w.w("goto %s; %s:", b, a)
+		w.w("goto %s; %s:;", b, a)
 		c.unbracedStatement(w, n.Statement2)
-		w.w("%s:", b)
+		w.w("%s:;", b)
 	case cc.SelectionStatementSwitch: // "switch" '(' ExpressionList ')' Statement
 		//	switch expr {
 		//	case 1:
@@ -678,7 +678,7 @@ func (c *ctx) selectionStatementFlat(w writer, n *cc.SelectionStatement) {
 		defer c.setBreakCtx(brk)()
 
 		c.unbracedStatement(w, n.Statement)
-		w.w("%s:", brk)
+		w.w("%s:;", brk)
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
 	}
@@ -744,7 +744,7 @@ func (c *ctx) iterationStatement(w writer, n *cc.IterationStatement) {
 				defer c.setBreakCtx(brk)()
 				defer c.setContinueCtx(cont)()
 				c.unbracedStatement(w, n.Statement)
-				w.w("\ngoto %s; %[1]s: ", cont)
+				w.w("\ngoto %s; %[1]s:; ", cont)
 				w.w("\ngoto %s; %[1]s:/**/;//\n", brk)
 			default:
 				c.unbracedStatement(w, n.Statement)
@@ -759,7 +759,7 @@ func (c *ctx) iterationStatement(w writer, n *cc.IterationStatement) {
 			defer c.setContinueCtx(cont)()
 			w.w("for {")
 			c.unbracedStatement(w, n.Statement)
-			w.w("\ngoto %s; %[1]s: ", cont)
+			w.w("\ngoto %s; %[1]s:; ", cont)
 			w.w("%s;if !(%s) { break };", &a, b)
 			w.w("};")
 		default:
@@ -777,7 +777,7 @@ func (c *ctx) iterationStatement(w writer, n *cc.IterationStatement) {
 			w.w("if !%s { break };", c.expr(w, n.ExpressionList2, nil, exprBool))
 		}
 		c.unbracedStatement(w, n.Statement)
-		w.w("\ngoto %s; %[1]s:", cont)
+		w.w("\ngoto %s; %[1]s:;", cont)
 		if n.ExpressionList3 != nil {
 			w.w("%s;", c.expr(w, n.ExpressionList3, nil, exprVoid))
 		}
@@ -791,7 +791,7 @@ func (c *ctx) iterationStatement(w writer, n *cc.IterationStatement) {
 			w.w("if !%s { break };", c.expr(w, n.ExpressionList, nil, exprBool))
 		}
 		c.unbracedStatement(w, n.Statement)
-		w.w("\ngoto %s; %[1]s:", cont)
+		w.w("\ngoto %s; %[1]s:;", cont)
 		if n.ExpressionList2 != nil {
 			w.w("%s;", c.expr(w, n.ExpressionList2, nil, exprVoid))
 		}
@@ -881,10 +881,10 @@ func (c *ctx) iterationStatementFlat(w writer, n *cc.IterationStatement) {
 		//	stmt
 		//	goto cont
 		// brk:
-		w.w("%s:", cont)
+		w.w("%s:;", cont)
 		w.w("if !(%s) { goto %s };", c.expr(w, n.ExpressionList, nil, exprBool), brk)
 		c.unbracedStatement(w, n.Statement)
-		w.w("goto %s; %s:", cont, brk)
+		w.w("goto %s; %s:;", cont, brk)
 	case cc.IterationStatementDo: // "do" Statement "while" '(' ExpressionList ')' ';'
 		// a:
 		//	stmt
@@ -892,10 +892,10 @@ func (c *ctx) iterationStatementFlat(w writer, n *cc.IterationStatement) {
 		//	if expr goto a
 		// brk:
 		a := c.label()
-		w.w("%s:", a)
+		w.w("%s:;", a)
 		c.unbracedStatement(w, n.Statement)
-		w.w("\ngoto %s; %[1]s:", cont)
-		w.w("if (%s) { goto %s }; goto %s; %[3]s:", c.expr(w, n.ExpressionList, nil, exprBool), a, brk)
+		w.w("\ngoto %s; %[1]s:;", cont)
+		w.w("if (%s) { goto %s }; goto %s; %[3]s:;", c.expr(w, n.ExpressionList, nil, exprBool), a, brk)
 	case cc.IterationStatementFor: // "for" '(' ExpressionList ';' ExpressionList ';' ExpressionList ')' Statement
 		//	expr1
 		// a:	if !expr2 goto brk
@@ -909,14 +909,14 @@ func (c *ctx) iterationStatementFlat(w writer, n *cc.IterationStatement) {
 		if b.len() != 0 {
 			w.w("%s;", b)
 		}
-		w.w("%s: ", a)
+		w.w("%s:; ", a)
 		if n.ExpressionList2 != nil {
 			w.w("if !(%s) { goto %s };", c.expr(w, n.ExpressionList2, nil, exprBool), brk)
 		}
 		c.unbracedStatement(w, n.Statement)
-		w.w("goto %s; %[1]s: ", cont)
+		w.w("goto %s; %[1]s:; ", cont)
 		w.w("%s;", c.expr(w, n.ExpressionList3, nil, exprVoid))
-		w.w("goto %s; goto %s; %[2]s:", a, brk)
+		w.w("goto %s; goto %s; %[2]s:;", a, brk)
 	case cc.IterationStatementForDecl: // "for" '(' Declaration ExpressionList ';' ExpressionList ')' Statement
 		//	decl
 		// a:	if !expr goto brk
@@ -927,12 +927,12 @@ func (c *ctx) iterationStatementFlat(w writer, n *cc.IterationStatement) {
 		// brk:
 		a := c.label()
 		c.declaration(w, n.Declaration, false)
-		w.w("%s:", a)
+		w.w("%s:;", a)
 		w.w("if !(%s) { goto %s };", c.expr(w, n.ExpressionList, nil, exprBool), brk)
 		c.unbracedStatement(w, n.Statement)
-		w.w("goto %s; %[1]s: ", cont)
+		w.w("goto %s; %[1]s:; ", cont)
 		w.w("%s;", c.expr(w, n.ExpressionList2, nil, exprVoid))
-		w.w("goto %s; %s:", a, brk)
+		w.w("goto %s; %s:;", a, brk)
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
 	}

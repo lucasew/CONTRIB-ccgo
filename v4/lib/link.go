@@ -1119,7 +1119,7 @@ func (l *linker) postProcess(fn string, b []byte) (r []byte) {
 			inFunc = true
 		case strings.HasPrefix(line, "}"):
 			inFunc = false
-		case s == "", s == ";":
+		case s == "":
 			if inFunc {
 				continue
 			}
