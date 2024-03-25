@@ -1135,3 +1135,81 @@ func bpAlign(t cc.Type) (r int64) {
 	}
 	return r
 }
+
+func sortInitializers(a []*cc.Initializer, group func(int64) int64) (r [][]*cc.Initializer) {
+	// [0]6.7.8/23: The order in which any side effects occur among the
+	// initialization list expressions is unspecified.
+	m := map[int64][]*cc.Initializer{}
+	for _, v := range a {
+		off := group(v.Offset())
+		m[off] = append(m[off], v)
+	}
+	for _, v := range m {
+		sort.Slice(v, func(i, j int) bool {
+			a, b := v[i].Offset(), v[j].Offset()
+			if a < b {
+				return true
+			}
+
+			if a > b {
+				return false
+			}
+
+			c, d := v[i].Field(), v[j].Field()
+			if c == nil || d != nil {
+				return false
+			}
+
+			return c.Index() < d.Index()
+		})
+		r = append(r, v)
+	}
+	sort.Slice(r, func(i, j int) bool { return r[i][0].Offset() < r[j][0].Offset() })
+	return r
+}
+
+//lint:ignore U1000 debug helper
+func dumpInitializer(a []*cc.Initializer, pref string) {
+	for _, v := range a {
+		var t string
+		for p := v.Parent(); p != nil; p = p.Parent() {
+			switch d := p.Type().Typedef(); {
+			case d != nil:
+				t = fmt.Sprintf("[%s].", d.Name()) + t
+			default:
+				switch x, ok := p.Type().(interface{ Tag() cc.Token }); {
+				case ok:
+					tag := x.Tag()
+					t = fmt.Sprintf("[%s].", tag.SrcStr()) + t
+				default:
+					t = fmt.Sprintf("[%s].", p.Type()) + t
+				}
+			}
+		}
+		var fs string
+		if f := v.Field(); f != nil {
+			var ps string
+			for p := f.Parent(); p != nil; p = p.Parent() {
+				ps = ps + fmt.Sprintf("{%q %v}", p.Name(), p.Type())
+			}
+			fs = fmt.Sprintf(
+				" %s(field %q, IsBitfield %v, Offset %v, OffsetBits %v, OuterGroupOffset %v, InOverlapGroup %v, Mask %#0x, ValueBits %v)",
+				ps, f.Name(), f.IsBitfield(), f.Offset(), f.OffsetBits(), f.OuterGroupOffset(), f.InOverlapGroup(), f.Mask(), f.ValueBits(),
+			)
+		}
+		switch v.Case {
+		case cc.InitializerExpr:
+			fmt.Printf("%s %v: order %v off %#05x '%s' %s type %q <- %s%s\n", pref, pos(v.AssignmentExpression), v.Order(), v.Offset(), cc.NodeSource(v.AssignmentExpression), t, v.Type(), v.AssignmentExpression.Type(), fs)
+		case cc.InitializerInitList:
+			if v.InitializerList != nil {
+				if uf := v.InitializerList.UnionField(); uf != nil {
+					fmt.Printf("%s· union field %q %s\n", pref, uf.Name(), uf.Type())
+				}
+			}
+			s := pref + "· " + fs
+			for l := v.InitializerList; l != nil; l = l.InitializerList {
+				dumpInitializer([]*cc.Initializer{l.Initializer}, s)
+			}
+		}
+	}
+}

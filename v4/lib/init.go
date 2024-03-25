@@ -27,8 +27,6 @@ type initPatch struct {
 
 func (c *ctx) initializerOuter(w writer, n *cc.Initializer, t cc.Type) (r *buf) {
 	a := c.initalizerFlatten(n, nil)
-	// trc("==== OUTER")
-	// dumpInitializer(a, "")
 	return c.initializer(w, n, a, t, 0, false)
 }
 
@@ -48,13 +46,6 @@ func (c *ctx) initalizerFlatten(n *cc.Initializer, a []*cc.Initializer) (r []*cc
 }
 
 func (c *ctx) initializer(w writer, n cc.Node, a []*cc.Initializer, t cc.Type, off0 int64, arrayElem bool) (r *buf) {
-	// p := n.Position()
-	// if len(a) != 0 {
-	// 	p = a[0].Position()
-	// }
-	// trc("==== (init A) typ %s off0 %#0x (%v:) (from %v: %v: %v:)", t, off0, p, origin(4), origin(3), origin(2))
-	// dumpInitializer(a, "")
-	// defer trc("---- (init Z) typ %s off0 %#0x (%v:)", t, off0, p)
 	if cc.IsScalarType(t) {
 		if len(a) == 0 {
 			c.err(errorf("TODO"))
@@ -86,8 +77,6 @@ func (c *ctx) initializer(w writer, n cc.Node, a []*cc.Initializer, t cc.Type, o
 				default:
 					return r
 				}
-			default:
-				// trc("%v: %T %s", in.AssignmentExpression.Position(), x, cc.NodeSource(in.AssignmentExpression))
 			}
 		}
 		r = c.topExpr(w, in.AssignmentExpression, t, exprDefault)
@@ -123,7 +112,6 @@ func (c *ctx) initializer(w writer, n cc.Node, a []*cc.Initializer, t cc.Type, o
 
 		return c.initializerUnion(w, n, a, x, off0, arrayElem)
 	default:
-		// trc("%v: in type %v, a[0] expr type %v, t %v", a[0].Position(), a[0].Type(), a[0].AssignmentExpression.Type(), t)
 		c.err(errorf("TODO %T", x))
 		return nil
 	}
@@ -178,19 +166,10 @@ func (c *ctx) isZeroInitializerSlice(s []*cc.Initializer) bool {
 		}
 	}
 
-	// switch {
-	// case len(s) == 0:
-	// 	trc("ZERO len(s)=%v", len(s))
-	// default:
-	// 	trc("%s: ZERO %s", s[0].Position(), cc.NodeSource(s[0]))
-	// }
 	return true
 }
 
 func (c *ctx) initializerArray(w writer, n cc.Node, a []*cc.Initializer, t *cc.ArrayType, off0 int64) (r *buf) {
-	// trc("==== (array A, size %v) %s off0 %#0x (%v:)", t.Size(), t, off0, pos(n))
-	// dumpInitializer(a, "")
-	// trc("---- (array Z)")
 	var b buf
 	b.w("%s{", c.typ(n, t))
 	if c.isZeroInitializerSlice(a) {
@@ -274,9 +253,6 @@ func (c *ctx) initializerArray(w writer, n cc.Node, a []*cc.Initializer, t *cc.A
 }
 
 func (c *ctx) initializerStruct(w writer, n cc.Node, a []*cc.Initializer, t *cc.StructType, off0 int64) (r *buf) {
-	// trc("==== %v: (struct A, size %v) %s off0 %#0x", n.Position(), t.Size(), t, off0)
-	// dumpInitializer(a, "")
-	// defer trc("---- %v: (struct Z, size %v) %s off0 %#0x", n.Position(), t.Size(), t, off0)
 	var b buf
 	switch {
 	case t.HasFlexibleArrayMember():
@@ -321,7 +297,6 @@ func (c *ctx) initializerStruct(w writer, n cc.Node, a []*cc.Initializer, t *cc.
 			}
 
 			flds = append(flds, f)
-			// trc("appended: flds[%d] %q %s off %#0x ogo %#0x sz %#0x", len(flds)-1, f.Name(), f.Type(), f.Offset(), f.OuterGroupOffset(), f.Type().Size())
 			continue
 		}
 
@@ -338,24 +313,10 @@ func (c *ctx) initializerStruct(w writer, n cc.Node, a []*cc.Initializer, t *cc.
 
 		return flds[i-1].OuterGroupOffset()
 	})
-	// trc("==== initializers (A)")
-	// for i, v := range s {
-	// 	for j, w := range v {
-	// 		if w.Field() == nil {
-	// 			trc("%d.%d: %q off %v, %s", i, j, "", w.Offset(), cc.NodeSource(w.AssignmentExpression))
-	// 			continue
-	// 		}
-
-	// 		trc("%d.%d: %q off %v foff %v, fogo %v, %s", i, j, w.Field().Name(), w.Offset(), w.Field().Offset(), w.Field().OuterGroupOffset(), cc.NodeSource(w.AssignmentExpression))
-	// 	}
-	// }
-	// trc("==== initializers (Z)")
 	for _, v := range s {
 		first := v[0]
 		off := first.Offset() - off0
-		// trc("first.Offset() %#0x, off %#0x", first.Offset(), off)
 		for off > flds[0].Offset()+flds[0].Type().Size()-1 {
-			// trc("skip %q off %#0x", flds[0].Name(), flds[0].Offset())
 			flds = flds[1:]
 			if len(flds) == 0 {
 				panic(todo("", n.Position()))
@@ -363,12 +324,6 @@ func (c *ctx) initializerStruct(w writer, n cc.Node, a []*cc.Initializer, t *cc.
 		}
 		f := flds[0]
 		if f.IsBitfield() {
-			// trc("==== %v: TODO bitfield", cpos(n))
-			// trc("%q %s off %#0x ogo %#0x sz %#0x", f.Name(), f.Type(), f.Offset(), f.OuterGroupOffset(), f.Type().Size())
-			// for i, v := range v {
-			// 	trc("%d: %q %s", i, v.Field().Name(), cc.NodeSource(v.AssignmentExpression))
-			// }
-			// trc("----")
 			for len(flds) != 0 && flds[0].OuterGroupOffset() == f.OuterGroupOffset() {
 				flds = flds[1:]
 			}
@@ -394,7 +349,6 @@ func (c *ctx) initializerStruct(w writer, n cc.Node, a []*cc.Initializer, t *cc.
 		for isEmpty(v[0].Type()) {
 			v = v[1:]
 		}
-		// trc("f %q %s off %#0x v[0].Type() %v", f.Name(), f.Type(), f.Offset(), v[0].Type())
 		flds = flds[1:]
 		if !c.isZeroInitializerSlice(v) {
 			if s := c.initializer(w, n, v, f.Type(), off0+f.Offset(), false); !bytes.Equal(s.bytes(), zeroFuncPtr) {
@@ -407,9 +361,6 @@ func (c *ctx) initializerStruct(w writer, n cc.Node, a []*cc.Initializer, t *cc.
 }
 
 func (c *ctx) initializerUnion(w writer, n cc.Node, a []*cc.Initializer, t *cc.UnionType, off0 int64, arrayElem bool) (r *buf) {
-	// trc("==== %v: (union A, size %v) %s off0 %#0x, arrayElem %v", n.Position(), t.Size(), t, off0, arrayElem)
-	// dumpInitializer(a, "")
-	// trc("---- (union Z)")
 	var b buf
 	if c.isZeroInitializerSlice(a) {
 		b.w("%s{}", c.typ(n, t))
@@ -426,14 +377,9 @@ func (c *ctx) initializerUnion(w writer, n cc.Node, a []*cc.Initializer, t *cc.U
 
 	switch len(a) {
 	case 1:
-		// switch f := a[0].Field(); {
-		// case f != nil && f.Index() == 0:
-		// 	b.w("(%s{%s%s: %s})", c.typ(n, t), tag(field), f.Name(), c.topExpr(w, a[0].AssignmentExpression, f.Type(), exprDefault))
-		// default:
 		b.w("(*(*%s)(%sunsafe.%sPointer(&struct{ ", c.typ(n, t), tag(importQualifier), tag(preserve))
 		b.w("%s", c.initializerUnionOne(w, n, a, t, off0))
 		b.w(")))")
-		// }
 	default:
 		b.w("(*(*%s)(%sunsafe.%sPointer(&", c.typ(n, t), tag(importQualifier), tag(preserve))
 		b.w("%s", c.initializerUnionMany(w, n, a, t, off0, arrayElem))
@@ -443,13 +389,9 @@ func (c *ctx) initializerUnion(w writer, n cc.Node, a []*cc.Initializer, t *cc.U
 }
 
 func (c *ctx) initializerUnionMany(w writer, n cc.Node, a []*cc.Initializer, t *cc.UnionType, off0 int64, arrayElem bool) (r *buf) {
-	// trc("==== %v: (union many A.%v, size %v) type %s off0 %#0x, arrayElem %v", n.Position(), c.pass, t.Size(), t, off0, arrayElem)
-	// dumpInitializer(a, "")
-	// trc("---- (union many Z)")
 	var arrayElemOff int64
 	if arrayElem {
 		arrayElemOff = off0 - off0%t.Size()
-		// trc("adjust %#0x(%[1]v)", arrayElemOff)
 	}
 	var b buf
 	var paths [][]*cc.Initializer
@@ -460,14 +402,6 @@ func (c *ctx) initializerUnionMany(w writer, n cc.Node, a []*cc.Initializer, t *
 		}
 		paths = append(paths, path)
 	}
-	// for _, v := range paths {
-	// 	var a []string
-	// 	for _, w := range v {
-	// 		a = append(a, w.Type().String())
-	// 	}
-	// 	trc("path A %q", a)
-	// }
-	// var common []*cc.Initializer
 	var lca *cc.Initializer
 	for {
 		var path *cc.Initializer
@@ -491,31 +425,17 @@ func (c *ctx) initializerUnionMany(w writer, n cc.Node, a []*cc.Initializer, t *
 			goto done
 		}
 
-		// common = append(common, lca)
 		for i, v := range paths {
 			paths[i] = v[:len(v)-1]
 		}
 	}
 done:
-	// for _, v := range paths {
-	// 	var a []string
-	// 	for _, w := range v {
-	// 		a = append(a, w.Type().String())
-	// 	}
-	// 	trc("path Z %q", a)
-	// }
-	// var aa []string
-	// for _, v := range common {
-	// 	aa = append(aa, v.Type().String())
-	// }
-	// trc("common %q", aa)
 	if lca == nil {
 		w.w("panic(`TODO %v: (%v:)`);", pos(n), origin(1))
 		b.w("(%s{})", c.typ(n, t))
 		return &b
 	}
 
-	// trc("lca0 %s, size %v, off %v", lca.Type(), lca.Type().Size(), lca.Offset())
 	lcaType, lcaOff := c.fixLCA(t, lca, a, off0)
 	if lcaType == nil {
 		w.w("panic(`TODO %v: (%v:)`);", pos(n), origin(1))
@@ -523,9 +443,7 @@ done:
 		return &b
 	}
 
-	// trc("lcaType %s, size %v, lcaOff %v", lcaType, lcaType.Size(), lcaOff)
 	if lcaType.Size() == t.Size() {
-		// trc("%v: size ok, initializer(%s off0 %v)", n.Position(), lcaType, off0)
 		return c.initializer(w, n, a, lcaType, off0, false)
 	}
 
@@ -533,88 +451,99 @@ done:
 	post := t.Size() - lcaType.Size() - pre
 	b.w("struct{")
 	if lcaOff != 0 {
-		// trc("pre %v", pre)
 		b.w("%s_ [%d]byte;", tag(preserve), pre)
 	}
 	b.w("%sf ", tag(preserve))
 	b.w("%s ", c.typ(n, lcaType))
 	if post != 0 {
-		// trc("post %v", post)
 		b.w("; %s_ [%d]byte", tag(preserve), post)
 	}
 	b.w("}{%sf: ", tag(preserve))
-	// trc("size not ok, initializer(%s off0 %v)", lcaType, off0)
 	b.w("%s", c.initializer(w, n, a, lcaType, off0, false))
 	b.w("}")
 	return &b
 }
 
 func (c *ctx) fixLCA(t *cc.UnionType, lca *cc.Initializer, a []*cc.Initializer, off0 int64) (rt cc.Type, off int64) {
-	// trc("fixLCA off0 %v\n%5d t   %s\n%5d lca %s", off0, t.Size(), t, lca.Type().Size(), lca.Type())
 	rt = lca.Type()
 	switch {
 	case rt.Size() > t.Size():
-		// trc("too big")
+		return rt, lca.Offset()
 	case rt != t:
-		// ;trc("size ok and types are different")
 		return rt, lca.Offset()
 	}
 
-	// trc("self or big, search")
 	okField, okName := true, true
 	for _, v := range a {
 		if v.Field() == nil {
 			okField = false
 			okName = false
-			// trc("nofield")
 			break
 		}
 
 		if v.Field().Name() == "" {
-			// trc("noname")
 			okName = false
 			break
 		}
 	}
 
-	// trc("", okField, okName)
 	if okField && okName {
 	nextUf:
 		for i := 0; i < t.NumFields(); i++ {
 			uf := t.FieldByIndex(i)
-			// trc("%d: %q %s", i, uf.Name(), uf.Type())
+		ok:
 			for _, v := range a {
 				af := v.Field()
-				// trc("%T", af)
-				x, ok := uf.Type().(interface{ FieldByName(string) *cc.Field })
-				if !ok {
-					// trc("continue uf cannot FieldByName")
+				fs := c.findFields(uf.Type(), af.Name(), 0)
+				if len(fs) == 0 {
 					continue nextUf
 				}
 
-				f := x.FieldByName(af.Name())
-				if f == nil {
-					// trc("continue no field %q", af.Name())
-					continue nextUf
+				for _, f := range fs {
+					if v.Offset()-off0 != f.off {
+						continue
+					}
+
+					if v.Type().Size() != f.f.Type().Size() {
+						continue
+					}
+
+					continue ok
 				}
 
-				// ufOff := uf.Offset()
-				// ufSize := uf.Type().Size()
-				fOff := f.Offset()
-				vOff := v.Offset()
-				// trc("ufOff %v, ufSize %v, fOff %v, vOff %v", ufOff, ufSize, fOff, vOff)
-				if !(vOff-off0 == fOff && f.Type().Size() == v.Type().Size()) {
-					// trc("continue bad off")
-					continue nextUf
-				}
+				continue nextUf
 			}
 			return uf.Type(), lca.Offset() + uf.Offset()
 		}
 	}
 
 	f := t.FieldByIndex(0)
-	// trc("uf[0] %q %s, %v", f.Name(), f.Type(), f.Type().Size())
 	return f.Type(), f.Offset()
+}
+
+type fld struct {
+	f   *cc.Field
+	off int64
+}
+
+func (c *ctx) findFields(t cc.Type, fn string, off int64) (r []fld) {
+	x, ok := t.(interface {
+		FieldByIndex(int) *cc.Field
+		NumFields() int
+	})
+	if !ok {
+		return nil
+	}
+
+	for i := 0; i < x.NumFields(); i++ {
+		f := x.FieldByIndex(i)
+		if f.Name() == fn {
+			r = append(r, fld{f: f, off: off + f.Offset()})
+		}
+
+		r = append(r, c.findFields(f.Type(), fn, f.Offset())...)
+	}
+	return r
 }
 
 func (c *ctx) initializerUnionOne(w writer, n cc.Node, a []*cc.Initializer, t *cc.UnionType, off0 int64) (r *buf) {
@@ -644,82 +573,4 @@ func (c *ctx) initializerUnionOne(w writer, n cc.Node, a []*cc.Initializer, t *c
 	}
 	b.w("}")
 	return &b
-}
-
-func sortInitializers(a []*cc.Initializer, group func(int64) int64) (r [][]*cc.Initializer) {
-	// [0]6.7.8/23: The order in which any side effects occur among the
-	// initialization list expressions is unspecified.
-	m := map[int64][]*cc.Initializer{}
-	for _, v := range a {
-		off := group(v.Offset())
-		m[off] = append(m[off], v)
-	}
-	for _, v := range m {
-		sort.Slice(v, func(i, j int) bool {
-			a, b := v[i].Offset(), v[j].Offset()
-			if a < b {
-				return true
-			}
-
-			if a > b {
-				return false
-			}
-
-			c, d := v[i].Field(), v[j].Field()
-			if c == nil || d != nil {
-				return false
-			}
-
-			return c.Index() < d.Index()
-		})
-		r = append(r, v)
-	}
-	sort.Slice(r, func(i, j int) bool { return r[i][0].Offset() < r[j][0].Offset() })
-	return r
-}
-
-//lint:ignore U1000 debug helper
-func dumpInitializer(a []*cc.Initializer, pref string) {
-	for _, v := range a {
-		var t string
-		for p := v.Parent(); p != nil; p = p.Parent() {
-			switch d := p.Type().Typedef(); {
-			case d != nil:
-				t = fmt.Sprintf("[%s].", d.Name()) + t
-			default:
-				switch x, ok := p.Type().(interface{ Tag() cc.Token }); {
-				case ok:
-					tag := x.Tag()
-					t = fmt.Sprintf("[%s].", tag.SrcStr()) + t
-				default:
-					t = fmt.Sprintf("[%s].", p.Type()) + t
-				}
-			}
-		}
-		var fs string
-		if f := v.Field(); f != nil {
-			var ps string
-			for p := f.Parent(); p != nil; p = p.Parent() {
-				ps = ps + fmt.Sprintf("{%q %v}", p.Name(), p.Type())
-			}
-			fs = fmt.Sprintf(
-				" %s(field %q, IsBitfield %v, Offset %v, OffsetBits %v, OuterGroupOffset %v, InOverlapGroup %v, Mask %#0x, ValueBits %v)",
-				ps, f.Name(), f.IsBitfield(), f.Offset(), f.OffsetBits(), f.OuterGroupOffset(), f.InOverlapGroup(), f.Mask(), f.ValueBits(),
-			)
-		}
-		switch v.Case {
-		case cc.InitializerExpr:
-			fmt.Printf("%s %v: order %v off %#05x '%s' %s type %q <- %s%s\n", pref, pos(v.AssignmentExpression), v.Order(), v.Offset(), cc.NodeSource(v.AssignmentExpression), t, v.Type(), v.AssignmentExpression.Type(), fs)
-		case cc.InitializerInitList:
-			if v.InitializerList != nil {
-				if uf := v.InitializerList.UnionField(); uf != nil {
-					fmt.Printf("%s· union field %q %s\n", pref, uf.Name(), uf.Type())
-				}
-			}
-			s := pref + "· " + fs
-			for l := v.InitializerList; l != nil; l = l.InitializerList {
-				dumpInitializer([]*cc.Initializer{l.Initializer}, s)
-			}
-		}
-	}
 }
