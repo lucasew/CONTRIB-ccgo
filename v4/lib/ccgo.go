@@ -102,6 +102,7 @@ type Task struct {
 	std          string // -std
 	stderr       io.Writer
 	stdout       io.Writer
+	target       string
 	tlsQualifier string // eg. "libc."
 
 	intSize int
@@ -155,6 +156,7 @@ func NewTask(goos, goarch string, args []string, stdout, stderr io.Writer, fs fs
 		prefixAnonType: "_",
 		stderr:         stderr,
 		stdout:         stdout,
+		target:         fmt.Sprintf("%s/%s", goos, goarch),
 		tlsQualifier:   tag(importQualifier) + "libc.",
 	}
 }

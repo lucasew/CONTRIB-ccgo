@@ -162,7 +162,6 @@ var testExecKnownFails = map[string]struct{}{
 
 	// ==== COMPILE FAIL - does not compile.
 
-	`assets/benchmarksgame-team.pages.debian.net/fasta-4.c`:                                             {}, // COMPILE FAIL: "fasta-4.o.go:659:3: undefined: \"fwrite_unlocked\" external (all_test.go:448:1: all_test.go:535:testExec1: ccgo.go:192:Main: ccgo.go:581:main: link.go:302:link: link.go:823:link:)"
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-3.c`:                                        {}, // COMPILE FAIL: "\"mandelbrot-3.c:27:21: unsupported vector type: v2df (expr.go:524:expr0: expr.go:3817:primaryExpression: expr.go:4273:primaryExpressionFloatConst: type.go:60:verifyTyp: type.go:65:typ0: type.go:455:is..."
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-4.c`:                                        {}, // COMPILE FAIL: "\"mandelbrot-4.c:19:21: unsupported vector type: v2df (expr.go:524:expr0: expr.go:3817:primaryExpression: expr.go:4273:primaryExpressionFloatConst: type.go:60:verifyTyp: type.go:65:typ0: type.go:455:is..."
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-8.c`:                                        {}, // COMPILE FAIL: "\"mandelbrot-8.c:16:30: unsupported vector type: Vec (expr.go:1198:checkVolatileExpr: expr.go:101:expr: expr.go:530:expr0: expr.go:1682:unaryExpression: type.go:422:isValidType: type.go:455:isValidType..."

@@ -276,7 +276,13 @@ func (c *ctx) compoundStatement(w writer, n *cc.CompoundStatement, fnBlock bool,
 			w.w("}();")
 		}
 		if c.f.callsAlloca {
-			w.w("defer %stls.FreeAlloca()();", tag(ccgo))
+			switch c.task.target {
+			case "linux/amd64", "linux/loong64": // New alloca mechanism
+				w.w("%stls.AllocaEntry();", tag(ccgo))
+				w.w("\ndefer %stls.AllocaExit();", tag(ccgo))
+			default:
+				w.w("defer %stls.FreeAlloca()();", tag(ccgo))
+			}
 		}
 	default:
 		if !flat {
