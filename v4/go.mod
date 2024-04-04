@@ -13,7 +13,7 @@ require (
 	modernc.org/ccorpus2 v1.5.1
 	modernc.org/fileutil v1.3.0
 	modernc.org/gc/v2 v2.4.1
-	modernc.org/libc v1.49.0
+	modernc.org/libc v1.49.1
 	modernc.org/mathutil v1.6.0
 	modernc.org/opt v0.1.3
 	modernc.org/strutil v1.2.0
@@ -28,7 +28,7 @@ require (
 	golang.org/x/sys v0.18.0 // indirect
 	lukechampine.com/uint128 v1.2.0 // indirect
 	modernc.org/cc/v3 v3.41.0 // indirect
-	modernc.org/memory v1.7.2 // indirect
+	modernc.org/memory v1.8.0 // indirect
 	modernc.org/sortutil v1.2.0 // indirect
 	modernc.org/token v1.1.0 // indirect
 )
