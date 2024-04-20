@@ -672,7 +672,26 @@ func (c *ctx) declaration(w writer, n *cc.Declaration, external bool) {
 	case cc.DeclarationAssert: // StaticAssertDeclaration
 		// nop
 	case cc.DeclarationAuto: // "__auto_type" Declarator '=' Initializer ';'
-		c.err(errorf("TODO %v", n.Case))
+		sep0 := sep(n)
+		var info *declInfo
+		d := n.Declarator
+		if c.f == nil {
+			sep0 = c.cdoc(sep0, n)
+			info = c.f.declInfos.info(d)
+		}
+		nm := d.Name()
+		linkName := c.declaratorTag(d) + nm
+		switch c.pass {
+		case 1:
+			if d.Linkage() == cc.None {
+				c.f.registerLocal(d)
+			}
+		case 2:
+			if nm := c.f.locals[d]; nm != "" {
+				linkName = nm
+			}
+		}
+		c.initDeclaratorInit(w, sep0, info, d, n.Initializer, linkName)
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
 	}
@@ -852,119 +871,123 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 			}
 		}
 	case cc.InitDeclaratorInit: // Declarator Asm '=' Initializer
-		t := d.Type()
-		if t.Kind() == cc.Struct && t.(*cc.StructType).HasFlexibleArrayMember() {
-			t = n.Initializer.Type()
-		}
-		if d.StorageDuration() == cc.Static {
-			if d.Linkage() == cc.None && (d.ReadCount() == 0 || c.f.inlineInfo != nil) && d.Name() == "__func__" {
-				return
-			}
-
-			var initPatches []initPatch
-			c.initPatch = func(off int64, b *buf) { initPatches = append(initPatches, initPatch{d, off, b}) }
-
-			defer func() {
-				c.initPatch = nil
-				if len(initPatches) == 0 {
-					return
-				}
-
-				var b buf
-				b.w("{")
-				b.w("\n\tp := %sunsafe.%sPointer(&%s%s)", tag(importQualifier), tag(preserve), c.declaratorTag(d), d.Name())
-				for _, v := range initPatches {
-					b.w("\n\t*(*uintptr)(%sunsafe.%sAdd(p, %v)) = %s", tag(importQualifier), tag(preserve), v.off, v.b)
-				}
-				b.w("\n};")
-				switch d.Linkage() {
-				case cc.External, cc.Internal:
-					w.w("\n\nfunc init() %s", &b)
-					w.w("\n\n")
-				case cc.None:
-					w.w("\n\nvar %s_ = func() %s", tag(preserve), &b)
-				default:
-					c.err(errorf("TODO %v", d.Linkage()))
-				}
-			}()
-		}
-
-		c.defineType(w, sep, n, t)
-		switch {
-		case d.Linkage() == cc.Internal:
-			w.w("%s%svar %s = %s;", sep, c.posComment(n), linkName, c.initializerOuter(w, n.Initializer, t))
-		case d.IsStatic():
-			switch c.pass {
-			case 1:
-				// nop
-			case 2:
-				if nm := c.f.locals[d]; nm != "" {
-					switch {
-					case cc.IsIntegerType(t) && n.Initializer.AssignmentExpression != nil && c.isZero(n.Initializer.AssignmentExpression.Value()):
-						w.w("%s%svar %s %s;", sep, c.posComment(n), nm, c.typ(d, t))
-					default:
-						w.w("%s%svar %s = %s;", sep, c.posComment(n), nm, c.initializerOuter(w, n.Initializer, t))
-					}
-					break
-				}
-
-				fallthrough
-			default:
-				w.w("%s%svar %s = %s;", sep, c.posComment(n), linkName, c.initializerOuter(w, n.Initializer, t))
-			}
-		default:
-			switch {
-			case info != nil && info.pinned():
-				switch {
-				case t.Kind() == cc.Union && n.Initializer.Type().Size() == t.Size():
-					w.w("%s%s*(*%s)(%s) = %[3]s{};", sep, c.posComment(n), c.typ(d, t), unsafePointer(bpOff(info.bpOff)))
-					u := c.unbracedInitilizer(n.Initializer)
-					w.w("%s%s*(*%s)(%s) = %s;", sep, c.posComment(n), c.typ(d, u.Type()), unsafePointer(bpOff(info.bpOff)), c.initializerOuter(w, u, u.Type()))
-				default:
-					if b := c.initCode(w,
-						func(off int64) string {
-							return unsafePointer(bpOff(info.bpOff + off))
-						},
-						n.Initializer, t); b != nil {
-						switch t.Kind() {
-						case cc.Struct, cc.Union, cc.Array:
-							w.w("%s%s*(*%s)(%s) = %[3]s{};", sep, c.posComment(n), c.typ(d, t), unsafePointer(bpOff(info.bpOff)))
-						}
-						w.w("%s%s%s;", sep, c.posComment(n), b)
-						break
-					}
-
-					w.w("%s%s*(*%s)(%s) = %s;", sep, c.posComment(n), c.typ(d, t), unsafePointer(bpOff(info.bpOff)), c.initializerOuter(w, n.Initializer, t))
-				}
-			default:
-				switch {
-				case d.LexicalScope().Parent == nil:
-					switch {
-					case cc.IsScalarType(t) && n.Initializer.AssignmentExpression != nil && c.isZero(n.Initializer.AssignmentExpression.Value()):
-						w.w("%s%svar %s %s;", sep, c.posComment(n), linkName, c.typ(d, t))
-					default:
-						w.w("%s%svar %s = %s;", sep, c.posComment(n), linkName, c.initializerOuter(w, n.Initializer, t))
-					}
-				default:
-					if c.unbracedInitilizer(n.Initializer).Case != cc.InitializerExpr {
-						if b := c.initCode(w,
-							func(off int64) string {
-								return unsafe("Add", fmt.Sprintf("%s, %d", unsafePointer(fmt.Sprintf("&%s", linkName)), off))
-							},
-							n.Initializer, t); b != nil {
-							w.w("%s%s%s;", sep, c.posComment(n), b)
-							break
-						}
-					}
-
-					w.w("%s%s%s = %s;", sep, c.posComment(n), linkName, c.initializerOuter(w, n.Initializer, t))
-				}
-			}
-		}
-
+		c.initDeclaratorInit(w, sep, info, d, n.Initializer, linkName)
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
 	}
+}
+
+func (c *ctx) initDeclaratorInit(w writer, sep string, info *declInfo, d *cc.Declarator, initializer *cc.Initializer, linkName string) {
+	t := d.Type()
+	if t.Kind() == cc.Struct && t.(*cc.StructType).HasFlexibleArrayMember() {
+		t = initializer.Type()
+	}
+	if d.StorageDuration() == cc.Static {
+		if d.Linkage() == cc.None && (d.ReadCount() == 0 || c.f.inlineInfo != nil) && d.Name() == "__func__" {
+			return
+		}
+
+		var initPatches []initPatch
+		c.initPatch = func(off int64, b *buf) { initPatches = append(initPatches, initPatch{d, off, b}) }
+
+		defer func() {
+			c.initPatch = nil
+			if len(initPatches) == 0 {
+				return
+			}
+
+			var b buf
+			b.w("{")
+			b.w("\n\tp := %sunsafe.%sPointer(&%s%s)", tag(importQualifier), tag(preserve), c.declaratorTag(d), d.Name())
+			for _, v := range initPatches {
+				b.w("\n\t*(*uintptr)(%sunsafe.%sAdd(p, %v)) = %s", tag(importQualifier), tag(preserve), v.off, v.b)
+			}
+			b.w("\n};")
+			switch d.Linkage() {
+			case cc.External, cc.Internal:
+				w.w("\n\nfunc init() %s", &b)
+				w.w("\n\n")
+			case cc.None:
+				w.w("\n\nvar %s_ = func() %s", tag(preserve), &b)
+			default:
+				c.err(errorf("TODO %v", d.Linkage()))
+			}
+		}()
+	}
+
+	c.defineType(w, sep, d, t)
+	switch {
+	case d.Linkage() == cc.Internal:
+		w.w("%s%svar %s = %s;", sep, c.posComment(d), linkName, c.initializerOuter(w, initializer, t))
+	case d.IsStatic():
+		switch c.pass {
+		case 1:
+			// nop
+		case 2:
+			if nm := c.f.locals[d]; nm != "" {
+				switch {
+				case cc.IsIntegerType(t) && initializer.AssignmentExpression != nil && c.isZero(initializer.AssignmentExpression.Value()):
+					w.w("%s%svar %s %s;", sep, c.posComment(d), nm, c.typ(d, t))
+				default:
+					w.w("%s%svar %s = %s;", sep, c.posComment(d), nm, c.initializerOuter(w, initializer, t))
+				}
+				break
+			}
+
+			fallthrough
+		default:
+			w.w("%s%svar %s = %s;", sep, c.posComment(d), linkName, c.initializerOuter(w, initializer, t))
+		}
+	default:
+		switch {
+		case info != nil && info.pinned():
+			switch {
+			case t.Kind() == cc.Union && initializer.Type().Size() == t.Size():
+				w.w("%s%s*(*%s)(%s) = %[3]s{};", sep, c.posComment(d), c.typ(d, t), unsafePointer(bpOff(info.bpOff)))
+				u := c.unbracedInitilizer(initializer)
+				w.w("%s%s*(*%s)(%s) = %s;", sep, c.posComment(d), c.typ(d, u.Type()), unsafePointer(bpOff(info.bpOff)), c.initializerOuter(w, u, u.Type()))
+			default:
+				if b := c.initCode(w,
+					func(off int64) string {
+						return unsafePointer(bpOff(info.bpOff + off))
+					},
+					initializer, t); b != nil {
+					switch t.Kind() {
+					case cc.Struct, cc.Union, cc.Array:
+						w.w("%s%s*(*%s)(%s) = %[3]s{};", sep, c.posComment(d), c.typ(d, t), unsafePointer(bpOff(info.bpOff)))
+					}
+					w.w("%s%s%s;", sep, c.posComment(d), b)
+					break
+				}
+
+				w.w("%s%s*(*%s)(%s) = %s;", sep, c.posComment(d), c.typ(d, t), unsafePointer(bpOff(info.bpOff)), c.initializerOuter(w, initializer, t))
+			}
+		default:
+			switch {
+			case d.LexicalScope().Parent == nil:
+				switch {
+				case cc.IsScalarType(t) && initializer.AssignmentExpression != nil && c.isZero(initializer.AssignmentExpression.Value()):
+					w.w("%s%svar %s %s;", sep, c.posComment(d), linkName, c.typ(d, t))
+				default:
+					w.w("%s%svar %s = %s;", sep, c.posComment(d), linkName, c.initializerOuter(w, initializer, t))
+				}
+			default:
+				if c.unbracedInitilizer(initializer).Case != cc.InitializerExpr {
+					if b := c.initCode(w,
+						func(off int64) string {
+							return unsafe("Add", fmt.Sprintf("%s, %d", unsafePointer(fmt.Sprintf("&%s", linkName)), off))
+						},
+						initializer, t); b != nil {
+						w.w("%s%s%s;", sep, c.posComment(d), b)
+						break
+					}
+				}
+
+				w.w("%s%s%s = %s;", sep, c.posComment(d), linkName, c.initializerOuter(w, initializer, t))
+			}
+		}
+	}
+
 }
 
 func (c *ctx) isVLA(t cc.Type) (*cc.ArrayType, bool) {
