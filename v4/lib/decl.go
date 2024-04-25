@@ -280,15 +280,13 @@ func (c *ctx) externalDeclaration(w writer, n *cc.ExternalDeclaration) {
 		// the function to be inlined. If any uses of the function remain, they refer
 		// to the single copy in the library.
 
-		//TODO Fix the inliner bug when the inlined function takes address of its parameter.
-		// Or teach the linker to consolidate copies of the non-inlined functions.
-
-		// if d.Type().Attributes().AlwaysInline() ||
-		// 	d.Type().Attributes().GNUInline() ||
-		// 	d.IsInline() && c.isHeader(d) {
-		// 	c.inlineFuncs[d] = n.FunctionDefinition
-		// 	return
-		// }
+		if (d.Type().Attributes().AlwaysInline() ||
+			d.Type().Attributes().GNUInline() ||
+			d.IsInline() && c.isHeader(d)) &&
+			!c.takesParamAddress(d) {
+			c.inlineFuncs[d] = n.FunctionDefinition
+			return
+		}
 
 		switch d.Linkage() {
 		case cc.External:
@@ -306,9 +304,19 @@ func (c *ctx) externalDeclaration(w writer, n *cc.ExternalDeclaration) {
 	}
 }
 
-// func (c *ctx) isHeader(n cc.Node) bool {
-// 	return n != nil && strings.HasSuffix(n.Position().Filename, ".h")
-// }
+func (c *ctx) takesParamAddress(d *cc.Declarator) bool {
+	ft := d.Type().(*cc.FunctionType)
+	for _, v := range ft.Parameters() {
+		if v.Declarator != nil && v.Declarator.AddressTaken() {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *ctx) isHeader(n cc.Node) bool {
+	return n != nil && strings.HasSuffix(n.Position().Filename, ".h")
+}
 
 func (c *ctx) emitFunctionAliases() {
 	m := map[string]string{}
