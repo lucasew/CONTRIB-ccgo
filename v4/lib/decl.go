@@ -280,10 +280,9 @@ func (c *ctx) externalDeclaration(w writer, n *cc.ExternalDeclaration) {
 		// the function to be inlined. If any uses of the function remain, they refer
 		// to the single copy in the library.
 
-		if (d.Type().Attributes().AlwaysInline() ||
+		if d.Type().Attributes().AlwaysInline() ||
 			d.Type().Attributes().GNUInline() ||
-			d.IsInline() && c.isHeader(d)) &&
-			!c.takesParamAddress(d) {
+			d.IsInline() && c.isHeader(d) {
 			c.inlineFuncs[d] = n.FunctionDefinition
 			return
 		}
@@ -302,16 +301,6 @@ func (c *ctx) externalDeclaration(w writer, n *cc.ExternalDeclaration) {
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
 	}
-}
-
-func (c *ctx) takesParamAddress(d *cc.Declarator) bool {
-	ft := d.Type().(*cc.FunctionType)
-	for _, v := range ft.Parameters() {
-		if v.Declarator != nil && v.Declarator.AddressTaken() {
-			return true
-		}
-	}
-	return false
 }
 
 func (c *ctx) isHeader(n cc.Node) bool {
@@ -385,8 +374,18 @@ func (c *ctx) functionDefinition0(w writer, sep string, pos cc.Node, d *cc.Decla
 
 	c.isValidType1(d, ft, true)
 	f0, pass := c.f, c.pass
+	var cft *cc.FunctionType
+	if c.f != nil {
+		cft = c.f.t
+	}
 	c.f = c.newFnCtx(d, ft, cs)
-	defer func() { c.f = f0; c.pass = pass }()
+	defer func() {
+		c.f = f0
+		c.pass = pass
+		if c.f != nil {
+			c.f.t = cft
+		}
+	}()
 	c.pass = 1
 	for _, v := range ft.Parameters() {
 		if v.Declarator != nil {

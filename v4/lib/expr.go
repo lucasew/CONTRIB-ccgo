@@ -3486,6 +3486,12 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, mode mode
 			return
 		}
 
+		for _, v := range ft.Parameters() {
+			if v.Declarator != nil {
+				c.f.registerLocal(v.Declarator)
+			}
+		}
+
 		var vaOff int64
 		if c.pass == 1 && ft.IsVariadic() {
 			n := 8 * (len(args) - ft.MinArgs() + 2)
@@ -3538,6 +3544,13 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, mode mode
 			}
 		}
 
+		if c.pass == 2 {
+			for i, v := range ft.Parameters() {
+				if d := v.Declarator; d != nil && c.f.declInfos.info(d).pinned() {
+					w.w("*(*%s)(%s) = %s;", c.typ(n, d.Type()), unsafePointer(bpOff(c.f.declInfos.info(d).bpOff)), nfo.replacedParams[i])
+				}
+			}
+		}
 		for l := inlineFD.CompoundStatement.BlockItemList; l != nil; l = l.BlockItemList {
 			c.blockItem(w, l.BlockItem)
 		}
@@ -3978,6 +3991,10 @@ out:
 							switch {
 							case mode == exprVoid:
 								w.w("%s_ = %s;", tag(preserve), nfo.replacedParams[i])
+							case mode == exprUintptr:
+								c.f.declInfos.takeAddress(x)
+								b.w("(%s)", bpOff(c.f.declInfos.info(x).bpOff))
+								return &b, v.Type().Pointer(), exprUintptr
 							default:
 								b.w("(%s)", nfo.replacedParams[i])
 							}
