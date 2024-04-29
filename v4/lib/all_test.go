@@ -1147,7 +1147,7 @@ func testSQLiteSimple(t *testing.T) {
 		filepath.Join(dir, "patch.c"),
 	}
 	switch target {
-	case "darwin/arm64", "linux/arm64":
+	case "darwin/arm64", "linux/arm64", "freebsd/arm64":
 		ccgoArgs = append(ccgoArgs, "-ignore-unsupported-alignment")
 	}
 	if *oKeep {
