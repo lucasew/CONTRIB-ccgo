@@ -162,6 +162,7 @@ func TestGoAlign(t *testing.T) {
 		"freebsd/386",
 		"freebsd/amd64",
 		"freebsd/arm",
+		"freebsd/arm64",
 		"linux/386",
 		"linux/amd64",
 		"linux/arm",
@@ -1298,7 +1299,7 @@ func testSQLiteSpeedTest1(t *testing.T) {
 		filepath.Join(dir, "patch.c"),
 	}
 	switch target {
-	case "darwin/arm64":
+	case "darwin/arm64", "freebsd/arm64":
 		ccgoArgs = append(ccgoArgs, "-ignore-unsupported-alignment")
 	}
 	if *oKeep {
