@@ -4625,7 +4625,6 @@ assets/github.com/vnmakarov/mir/c-tests/lacc/convert-float-double.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/convert-int-float.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/convert-unsigned-float.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/copy-struct.c
-assets/github.com/vnmakarov/mir/c-tests/lacc/declaration-default-int.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/declarator-abstract.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/declarator-complex.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/declarator-parens.c
