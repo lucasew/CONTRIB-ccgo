@@ -31,6 +31,7 @@ var testExecKnownFails = map[string]struct{}{
 	//TODO
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c`:                 {}, // EXEC FAIL: "assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c: : FAIL: signal: abort trap (.:0:: .:0:: asm_arm64.s:1197:goexit: asm_arm64.s:1197:goexit: all_test.go:428:1: all_test..."
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c`: {}, // EXEC FAIL: "assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c: : FAIL: signal: abort trap (.:0:: .:0:: asm_arm64.s:1197:goexit: asm_arm64.s:1197:goexit: all_test.go..."
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/declaration-default-int.c`:                            {}, // EXEC FAIL: "assets/github.com/vnmakarov/mir/c-tests/lacc/declaration-default-int.c: : FAIL: exit status 51 (.:0:: .:0:: asm_arm64.s:1222:goexit: asm_arm64.s:1222:goexit: all_test.go:439:1: all_test.go:590:testExe..."
 
 	// ==== BUILD FAIL - compiles but does not build.
 
