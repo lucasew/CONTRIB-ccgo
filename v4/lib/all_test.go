@@ -1193,7 +1193,7 @@ func testSQLiteSimple(t *testing.T) {
 
 	shell := "./shell"
 	if runtime.GOOS == "windows" {
-		shell = "shell.exe"
+		shell = "./shell.exe"
 	}
 	args := []string{"build"}
 	if s := *oXTags; s != "" {
@@ -1368,7 +1368,7 @@ func testSQLiteSpeedTest1(t *testing.T) {
 
 	executable := "./speedtest1"
 	if runtime.GOOS == "windows" {
-		executable = "speedtest1.exe"
+		executable = "./speedtest1.exe"
 	}
 	args := []string{"build"}
 	if s := *oXTags; s != "" {
