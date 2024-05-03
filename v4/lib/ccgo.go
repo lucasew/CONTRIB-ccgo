@@ -217,6 +217,9 @@ func (t *Task) main() (err error) {
 		return errorf("%v", err)
 	}
 
+	// Defaults
+	t.prefixField = "F"
+
 	set := opt.NewSet()
 	set.Arg("-cpp", true, func(arg, val string) error { t.cpp = strings.TrimSpace(val); return nil })
 	set.Arg("-goarch", true, func(arg, val string) error { t.goarch = val; return nil })
