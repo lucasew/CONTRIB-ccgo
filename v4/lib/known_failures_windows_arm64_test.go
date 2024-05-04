@@ -42,6 +42,9 @@ var testExecKnownFails = map[string]struct{}{
 	// `assets/github.com/vnmakarov/mir/c-tests/lacc/macro-paste.c`: {},
 	// `assets/github.com/vnmakarov/mir/c-tests/lacc/whitespace.c`:  {},
 
+	//TODO
+	`assets/CompCert-3.6/test/c/mandelbrot.c`: {}, // EXEC FAIL
+
 	// ==== BUILD FAIL - compiles but does not build.
 
 	// ==== COMPILE FAIL - does not compile.

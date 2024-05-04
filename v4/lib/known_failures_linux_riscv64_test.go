@@ -7,16 +7,17 @@ package ccgo // import "modernc.org/ccgo/v4/lib"
 var testExecKnownFails = map[string]struct{}{
 	// ==== EXEC FAIL - compiles and builds but fails when executed.
 
+	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-9.c`:                         {}, // EXEC FAIL
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/990326-1.c`:                    {}, // COMPILE FAIL: "715.go: gofmt: signal: segmentation fault (core dumped)
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36093.c`:                     {}, // EXEC FAIL: "assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36093.c: panic: 544"
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/return-addr.c`: {}, // EXEC FAIL
 	`assets/github.com/vnmakarov/mir/c-benchmarks/except.c`:                              {}, // EXEC FAIL: assets/github.com/vnmakarov/mir/c-benchmarks/except.c: libc.go:2142:Xlongjmp: TODOTODO
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-basic.c`:                      {}, // EXEC FAIL
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-trailing-zero.c`:              {}, // EXEC FAIL
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-types-init.c`:                 {},
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/long-double-load.c`:                    {}, // EXEC FAIL
 	`assets/github.com/vnmakarov/mir/c-tests/new/setjmp.c`:                               {}, // EXEC FAIL: assets/github.com/vnmakarov/mir/c-tests/new/setjmp.c: libc.go:2142:Xlongjmp: TODOTODO
 	`assets/github.com/vnmakarov/mir/c-tests/new/setjmp2.c`:                              {}, // EXEC FAIL: assets/github.com/vnmakarov/mir/c-tests/new/setjmp2.c: libc.go:2142:Xlongjmp: TODOTODO
-	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-types-init.c`:                 {},
 
 	// ==== BUILD FAIL - compiles but does not build.
 

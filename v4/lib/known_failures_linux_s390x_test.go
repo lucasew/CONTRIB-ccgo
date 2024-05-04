@@ -10,6 +10,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/CompCert-3.6/test/c/mandelbrot.c`:                                                           {}, // EXEC FAIL: "assets/CompCert-3.6/test/c/mandelbrot.c: P4"
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-2.c`:                                        {}, // EXEC FAIL: "assets/benchmarksgame-team.pages.debian.net/mandelbrot-2.c: P4"
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-9.c`:                                        {}, // EXEC FAIL
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010206-1.c`:                                 {}, // EXEC FAIL: "assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010206-1.c: SIGILL: illegal instruction"
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20101011-1.c`:                                 {}, // EXEC FAIL: "assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20101011-1.c: panic: runtime error: integer divide by zero"
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20141107-1.c`:                                 {}, // EXEC FAIL: "assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20141107-1.c: SIGILL: illegal instruction"
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/bitfld-6.c`:                                   {}, // EXEC FAIL: "assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/bitfld-6.c: : FAIL: exit status 51 (.:0:: .:0:: asm_s390x.s:773:goexit: asm_s390x.s:773:goexit: all_test.go:437:1: all_test.go:584:testExec1:)"

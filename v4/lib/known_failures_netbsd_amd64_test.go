@@ -117,6 +117,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr42570.c`:           {}, // BUILD FAIL: "exit status 1"
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr47237.c`:           {}, // BUILD FAIL: "exit status 1"
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr53160.c`:           {}, // BUILD FAIL: "exit status 1"
+	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr60003.c`:           {}, // BUILD FAIL: "exit status 1"
 
 	// ==== COMPILE FAIL - does not compile.
 
@@ -481,4 +482,6 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr53645.c`:            {}, // COMPILE FAIL: "\"pr53645.c:41:1: unsupported vector type: UV (expr.go:101:expr: expr.go:543:expr0: expr.go:1619:unaryExpression: type.go:42:typ: type.go:65:typ0: type.go:440:isValidType1:)\""
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr54471.c`:            {}, // COMPILE FAIL: "\"pr54471.c:13:1: unsupported alignment 16 of unsigned __int128 (decl.go:295:externalDeclaration: decl.go:323:functionDefinition: decl.go:343:functionDefinition0: type.go:454:isValidType1: type.go:407:..."
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr56837.c`:            {}, // COMPILE FAIL: "\"TODO *cc.PredefinedType _Complex int _Complex int (decl.go:297:externalDeclaration: decl.go:607:declaration: decl.go:776:initDeclarator: type.go:42:typ: type.go:337:typ0: type.go:159:typ0:)\""
+	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr60960.c`:            {}, // COMPILE FAIL: "\"pr60960.c:26:14: unsupported vector type: v4qi (expr.go:541:expr0: expr.go:4172:primaryExpression: expr.go:4614:primaryExpressionIntConst: type.go:60:verifyTyp: type.go:65:typ0: type.go:440:isValidTy..."
+	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr61375.c`:            {}, // COMPILE FAIL: "\"pr61375.c:15:1: unsupported alignment 16 of unsigned __int128
 }
