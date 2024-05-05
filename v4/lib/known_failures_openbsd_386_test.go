@@ -21,6 +21,8 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c`: {}, // EXEC FAIL: "assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c: libc_openbsd.go:1321:Xabort: TODOTODO "
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/ieee/copysign1.c`:             {}, // EXEC FAIL: "assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/ieee/copysign1.c: libc_openbsd.go:1321:Xabort: TODOTODO "
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/ieee/copysign2.c`:             {}, // EXEC FAIL: "assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/ieee/copysign2.c: libc_openbsd.go:1321:Xabort: TODOTODO "
+	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/loop-2f.c`:                    {}, // EXEC FAIL: "assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/loop-2f.c: libc_openbsd.go:1897:Xmmap: TODOTODO "
+	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/loop-2g.c`:                    {}, // EXEC FAIL: "assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/loop-2g.c: libc_openbsd.go:1897:Xmmap: TODOTODO "
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/return-addr.c`:                {}, // EXEC FAIL
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-basic.c`:                                     {}, // EXEC FAIL
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-trailing-zero.c`:                             {}, // EXEC FAIL

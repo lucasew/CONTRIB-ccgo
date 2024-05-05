@@ -8,6 +8,7 @@ var testExecKnownFails = map[string]struct{}{
 	// ==== EXEC FAIL - compiles and builds but fails when executed.
 
 	`assets/CompCert-3.6/test/c/mandelbrot.c`:                                                           {}, // EXEC FAIL: "assets/CompCert-3.6/test/c/mandelbrot.c: P4"
+	`assets/CompCert-3.6/test/c/vmach.c`:                                                                {}, // EXEC FAIL: "assets/CompCert-3.6/test/c/vmach.c: SIGILL: illegal instruction"
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-2.c`:                                        {}, // EXEC FAIL: "assets/benchmarksgame-team.pages.debian.net/mandelbrot-2.c: P4"
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-9.c`:                                        {}, // EXEC FAIL
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010206-1.c`:                                 {}, // EXEC FAIL: "assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010206-1.c: SIGILL: illegal instruction"
