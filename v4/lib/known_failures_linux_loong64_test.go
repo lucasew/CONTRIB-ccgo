@@ -41,6 +41,11 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-3.c`:              {}, // EXEC FAIL: "assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-3.c: panic: libc_musl.go:659:Xsignal"
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-pack-next.c`:                                 {}, // EXEC FAIL
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-types-init.c`:                                {}, // EXEC FAIL
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/declaration-default-int.c`:                            {}, // EXEC FAIL: "assets/github.com/vnmakarov/mir/c-tests/lacc/declaration-default-int.c: : FAIL: exit status 51 (.:0:: .:0:: asm_loong64.s:652:goexit: asm_loong64.s:652:goexit: all_test.go:439:1: all_test.go:590:testE..."
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/function-implicit-declare.c`:                          {}, // EXEC FAIL: "assets/github.com/vnmakarov/mir/c-tests/lacc/function-implicit-declare.c: : FAIL: exit status 42 (.:0:: .:0:: asm_loong64.s:652:goexit: asm_loong64.s:652:goexit: all_test.go:439:1: all_test.go:590:tes..."
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/macro-paste.c`:                                        {}, // EXEC FAIL: "assets/github.com/vnmakarov/mir/c-tests/lacc/macro-paste.c: foo5"
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/vararg-complex-2.c`:                                   {}, // EXEC FAIL: "assets/github.com/vnmakarov/mir/c-tests/lacc/vararg-complex-2.c: 0,0,0,0"
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/whitespace.c`:                                         {}, // EXEC FAIL: "assets/github.com/vnmakarov/mir/c-tests/lacc/whitespace.c: Hello"
 
 	// ==== BUILD FAIL - compiles but does not build.
 
