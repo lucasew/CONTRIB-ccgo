@@ -43,13 +43,22 @@ var testExecKnownFails = map[string]struct{}{
 	// `assets/github.com/vnmakarov/mir/c-tests/lacc/whitespace.c`:  {},
 
 	//TODO
-	`assets/CompCert-3.6/test/c/bisect.c`:     {}, // EXEC FAIL
-	`assets/CompCert-3.6/test/c/fftw.c`:       {}, // EXEC FAIL
-	`assets/CompCert-3.6/test/c/mandelbrot.c`: {}, // EXEC FAIL
-	`assets/CompCert-3.6/test/c/perlin.c`:     {}, // EXEC FAIL
+	`assets/CompCert-3.6/test/c/bisect.c`:                                {}, // EXEC FAIL
+	`assets/CompCert-3.6/test/c/fftw.c`:                                  {}, // EXEC FAIL
+	`assets/CompCert-3.6/test/c/mandelbrot.c`:                            {}, // EXEC FAIL
+	`assets/CompCert-3.6/test/c/perlin.c`:                                {}, // EXEC FAIL
+	`assets/benchmarksgame-team.pages.debian.net/fasta-3.c`:              {}, // EXEC FAIL: "assets/benchmarksgame-team.pages.debian.net/fasta-3.c: >ONE Homo sapiens alu"
+	`assets/benchmarksgame-team.pages.debian.net/fasta-8.c`:              {}, // EXEC FAIL: "assets/benchmarksgame-team.pages.debian.net/fasta-8.c: >ONE Homo sapiens alu"
+	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-2.c`:         {}, // EXEC FAIL
+	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-9.c`:         {}, // EXEC FAIL
+	`assets/benchmarksgame-team.pages.debian.net/reverse-complement-2.c`: {}, // EXEC FAIL: "assets/benchmarksgame-team.pages.debian.net/reverse-complement-2.c: Exception 0x80000001 0x0 0x21daefff 0xb9
 
 	// ==== BUILD FAIL - compiles but does not build.
 
+	`assets/benchmarksgame-team.pages.debian.net/reverse-complement-4.c`: {}, // BUILD FAIL: "exit status 1"
+
 	// ==== COMPILE FAIL - does not compile.
+
+	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-8.c`: {}, // COMPILE FAIL: "\"mandelbrot-8.c:16:30: unsupported vector type: Vec (expr.go:1216:checkVolatileExpr: expr.go:101:expr: expr.go:547:expr0: expr.go:1706:unaryExpression: type.go:407:isValidType: type.go:440:isValidType..."
 
 }
