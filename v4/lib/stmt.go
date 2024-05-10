@@ -194,7 +194,7 @@ func (c *ctx) mustConsume(n cc.ExpressionNode) (r bool) {
 func (c *ctx) labeledStatement(w writer, n *cc.LabeledStatement) {
 	switch n.Case {
 	case cc.LabeledStatementLabel: // IDENTIFIER ':' Statement
-		w.w("%s%s:;", tag(preserve), n.Token.Src()) //TODO use nameSpace
+		w.w("goto %s%s; %[1]s%s:;", tag(preserve), n.Token.Src()) //TODO use nameSpace
 		c.statement(w, n.Statement)
 	case cc.LabeledStatementCaseLabel: // "case" ConstantExpression ':' Statement
 		switch {

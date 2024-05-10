@@ -613,46 +613,69 @@ func (t *Task) cc(execCC, hostCC string, cflags []string) error {
 	return t.main()
 }
 
-func (t *Task) ar(execAR, hostAR string) error {
-	// 	if dmesgs {
-	// 		dmesg("execAR=%s hostAR=%s t.args=%v", execAR, hostAR, t.args)
-	// 	}
+func (t *Task) ar(execAR, hostAR string) (err error) {
+	// if dmesgs {
+	// 	dmesg("execAR=%s hostAR=%s t.args=%v", execAR, hostAR, t.args)
+	// 	defer func() {
+	// 		if err != nil {
+	// 			dmesg("t.ar() -> err=%v", err)
+	// 		}
+	// 	}()
+	// }
 	cmd := exec.Command(execAR, t.args[1:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	// if dmesgs {
+	// 	wd, _ := os.Getwd()
+	// 	wd, _ = filepath.Abs(wd)
+	// 	dmesg("WD=%s", wd)
+	// 	for _, v := range t.args[3:] {
+	// 		switch fi, err := os.Stat(v); {
+	// 		case err != nil:
+	// 			dmesg("%v NOT FOUND (A) err=%v", v, err)
+	// 		default:
+	// 			dmesg("%v FOUND (A) sz=%v", v, fi.Size())
+	// 		}
+	// 	}
+	// }
 	if err := cmd.Run(); err != nil {
-		// 		if dmesgs {
-		// 			dmesg("SKIP: %s returns %v", execAR, err.(*exec.ExitError).ExitCode())
-		// 		}
+		if dmesgs {
+			dmesg("SKIP: %s returns %v", execAR, err.(*exec.ExitError).ExitCode())
+		}
 		return err
 	}
 
 	set := opt.NewSet()
 	var argN, members int
+	basenames := map[string]string{} // base: path
 	args := strSlice{t.args[0]}
+	var out string
 	if err := set.Parse(t.args[1:], func(arg string) error {
 		if strings.HasPrefix(arg, "-") {
-			// 			if dmesgs {
-			// 				dmesg("", errorf("unexpected/unsupported option: %q", arg))
-			// 			}
+			// if dmesgs {
+			// 	dmesg("", errorf("unexpected/unsupported option: %q", arg))
+			// }
 			return errorf("unexpected/unsupported option: %s", arg)
 		}
 
 		argN++
 		switch argN {
 		case 1: // keyletters
-			var out string
 			for _, c := range arg {
 				switch sc := string(c); sc {
 				case
 					"c", // create the archive
 					"q", // quick append
 					"r", // insert member
-					"u": // update
+					"u", // update
+					"x": // extract
 
 					out += sc
-				case "s": // add index
+				case
+					"s", // add index
+					"t": // display content
+
 					// nop
 				default:
 					return errorf("TODO #%d: %q: faked args=%q", argN, arg, t.args)
@@ -668,7 +691,6 @@ func (t *Task) ar(execAR, hostAR string) error {
 			args.add(arg + "go") // archive.ago
 			return nil
 		default:
-			basenames := map[string]string{} // base: path
 			switch filepath.Ext(arg) {
 			case ".lo", ".o":
 				nm := arg + ".go"
@@ -678,9 +700,12 @@ func (t *Task) ar(execAR, hostAR string) error {
 						return errorf("duplicate basename %s: %s", ex, nm)
 					}
 
+					basenames[bn] = arg
 					members++
 					args.add(nm)
-				}
+				} // else if dmesgs {
+				// dmesg("arg=%v .go version NOT FOUND: %v", arg, nm)
+				// }
 				return nil
 			case ".def":
 				return nil
@@ -694,17 +719,32 @@ func (t *Task) ar(execAR, hostAR string) error {
 		return err
 	}
 
-	// 	if dmesgs {
-	// 		dmesg("hostAR=%s args[1:]=%v", hostAR, args[1:])
+	if out == "" {
+		return nil
+	}
+
+	// if dmesgs {
+	// 	dmesg("hostAR=%s args[1:]=%v", hostAR, args[1:])
+	// 	wd, _ := os.Getwd()
+	// 	wd, _ = filepath.Abs(wd)
+	// 	dmesg("WD=%s", wd)
+	// 	for _, v := range args[3:] {
+	// 		switch fi, err := os.Stat(v); {
+	// 		case err != nil:
+	// 			dmesg("%v NOT FOUND (B) err=%v", v, err)
+	// 		default:
+	// 			dmesg("%v FOUND (B) sz=%v", v, fi.Size())
+	// 		}
 	// 	}
+	// }
 	cmd = exec.Command(hostAR, []string(args[1:])...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		// 		if dmesgs {
-		// 			dmesg("SKIP2: %s returns %v", hostAR, err.(*exec.ExitError).ExitCode())
-		// 		}
+		// if dmesgs {
+		// 	dmesg("SKIP2: %s returns %v", hostAR, err.(*exec.ExitError).ExitCode())
+		// }
 		return err
 	}
 
