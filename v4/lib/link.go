@@ -563,6 +563,7 @@ type linker struct {
 	goTags                []string
 	imports               []*object
 	importsByPath         map[string]*object
+	libAliases            map[string]string // linkname: aka linkname, generate var aka = name for aliased functions
 	libc                  *object
 	maxUintptr            uint64
 	out                   io.Writer
@@ -634,18 +635,19 @@ func newLinker(task *Task, libc *object) (*linker, error) {
 		maxUintptr = math.MaxUint32
 	}
 	return &linker{
+		aliases:        map[string]string{},
 		externVars:     map[string]*externVar{},
 		externs:        map[string]*object{},
 		fset:           token.NewFileSet(),
 		goTags:         goTags[:],
 		importsByPath:  map[string]*object{},
+		libAliases:     map[string]string{},
 		libc:           libc,
 		maxUintptr:     maxUintptr,
 		stringLiterals: map[string]int64{},
 		synthDecls:     map[string][]byte{},
 		task:           task,
 		tldTypes:       map[string]struct{ linkName, goName string }{},
-		aliases:        map[string]string{},
 	}, nil
 }
 
@@ -667,21 +669,53 @@ func (l *linker) w(s string, args ...interface{}) {
 	}
 }
 
+func (l *linker) registerLibAliases(obj *object) error {
+	for aka, name := range obj.meta.Aliases {
+		// eg. "XFcPatternDestroy": "XIA__FcPatternDestroy"
+		visibility := obj.meta.Visibility[aka]
+		// eg. "XFcPatternDestroy": "default"
+		if visibility != "default" {
+			continue
+		}
+
+		ex := l.libAliases[name]
+		if ex != "" && ex != aka {
+			return errorf("conflicting function alias %q: %q and %q", aka, ex, name)
+		}
+
+		l.libAliases[name] = aka
+		// if dmesgs && {
+		// 	dmesg("ALIASED[%q]=%q", aka, name)
+		// }
+	}
+	return nil
+}
+
 func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object) (err error) {
-	// 	if dmesgs {
+	//	if dmesgs {
+	//		dmesg("packageName=%v inputFiles=%v inputArchives=%v linkFiles=%v", l.task.packageName, l.task.inputFiles, l.task.inputArchives, linkFiles)
 	// 		dmesg("link(%q, %q)", ofn, linkFiles)
 	// 		defer func() {
 	// 			if err != nil {
 	// 				dmesg("", errorf("", err))
 	// 			}
 	//		}()
-	// 	}
+	//	}
+
+	// ccgo -o libfoo.go libfoo.a
+	handleLibAliases := (l.task.packageName != "" && l.task.packageName != "main") && len(l.task.inputFiles) == 0 && len(l.task.inputArchives) == 1
 
 	//TODO Force a link error for things not really supported or that only panic at runtime.
 	var tld nameSet
 	// Build the symbol table. First try normal definitions.
 	for _, linkFile := range linkFiles {
 		object := objects[linkFile]
+		if handleLibAliases {
+			if err := l.registerLibAliases(object); err != nil {
+				return err
+			}
+		}
+
 		// 		if dmesgs {
 		// 			dmesg("checking object.id=%s", object.id)
 		// 		}
@@ -1066,11 +1100,27 @@ var (
 				l.print0(&b, fi, n)
 				l.synthDecls[nm2] = b.bytes()
 			case *gc.FunctionDecl:
-				if ln := x.FunctionName.Src(); l.isMeta(x, ln) || l.task.header {
+				ln := x.FunctionName.Src()
+				if l.isMeta(x, ln) || l.task.header {
 					break
 				}
 
 				l.funcDecl(x)
+				if len(l.libAliases) == 0 {
+					break
+				}
+
+				if !strings.HasPrefix(ln, tag(external)) {
+					break
+				}
+
+				aliasNm := l.libAliases[ln]
+				if aliasNm == "" || !strings.HasPrefix(aliasNm, tag(external)) {
+					break
+				}
+
+				// trc("ALIAS %q -> %q", aliasNm, ln)
+				l.w("\n\nvar %s = %s\n\n", aliasNm, ln)
 			default:
 				l.err(errorf("TODO %T", x))
 			}

@@ -63,6 +63,7 @@ type Task struct {
 	ignoreFile            nameSet  // -ignore-file=<comma separated file list>
 	imports               []string // -import=<comma separated import list>
 	include               []string // -include
+	inputArchives         []string
 	inputFiles            []string
 	iquote                []string // -iquote
 	isystem               []string // -isystem
@@ -407,6 +408,7 @@ func (t *Task) main() (err error) {
 			nm += "go" // foo.a -> foo.ago
 			fallthrough
 		case strings.HasSuffix(arg, ".ago"):
+			t.inputArchives = append(t.inputArchives, nm)
 			list, err := t.arExtract(nm)
 			if err != nil {
 				return err
