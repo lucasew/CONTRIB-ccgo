@@ -1340,6 +1340,7 @@ assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr48335-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr48381.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr48517.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr48596.c
+assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr48641.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr48734.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr48742.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr48767.c
@@ -4403,6 +4404,7 @@ assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr91597.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr91632.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr92140.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr93402.c
+assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr93434.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr93582.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr93744-1.c
 assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr93744-2.c
@@ -4667,6 +4669,7 @@ assets/github.com/vnmakarov/mir/c-tests/lacc/declarator-parens.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/declare-auto-func.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/deref-address-offset.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/deref-array.c
+assets/github.com/vnmakarov/mir/c-tests/lacc/deref-compare-float.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/deref-deep.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/deref-store.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/deref.c
@@ -4683,6 +4686,7 @@ assets/github.com/vnmakarov/mir/c-tests/lacc/fact.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/field-chain-assign.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/float-arithmetic.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/float-branch.c
+assets/github.com/vnmakarov/mir/c-tests/lacc/float-compare-equal.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/float-compare-nan.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/float-compare.c
 assets/github.com/vnmakarov/mir/c-tests/lacc/float-function.c

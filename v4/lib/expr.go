@@ -181,8 +181,26 @@ func (c *ctx) convert(n cc.ExpressionNode, w writer, s *buf, from, to cc.Type, f
 		return c.convertToPointer(n, s, from, to.(*cc.PointerType), fromMode, toMode)
 	}
 
+	if fromMode == exprBool && cc.IsScalarType(to) && toMode == exprDefault {
+		return c.convertBoolToScalar(n, s, from, to, fromMode, toMode)
+	}
+
 	// trc("%v: %s", n.Position(), cc.NodeSource(n))
 	// trc("TODO %q %s %s -> %s %s", s, from, fromMode, to, toMode)
+	c.err(errorf("TODO %q %s %s -> %s %s", s, from, fromMode, to, toMode))
+	return s //TODO
+}
+
+func (c *ctx) convertBoolToScalar(n cc.ExpressionNode, s *buf, from cc.Type, to cc.Type, fromMode, toMode mode) (r *buf) {
+	var b buf
+	switch fromMode {
+	case exprBool:
+		switch toMode {
+		case exprDefault:
+			b.w("(%s(%s%sBool32(%s)))", c.typ(n, to), c.task.tlsQualifier, tag(preserve), s)
+			return &b
+		}
+	}
 	c.err(errorf("TODO %q %s %s -> %s %s", s, from, fromMode, to, toMode))
 	return s //TODO
 }
