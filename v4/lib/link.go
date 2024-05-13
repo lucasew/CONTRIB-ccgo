@@ -1548,6 +1548,15 @@ func (l *linker) print0(w writer, fi *fnInfo, n interface{}) {
 		return
 	}
 
+	if x, ok := n.(*gc.BinaryExpr); ok {
+		switch x.Op.Ch {
+		case gc.LOR:
+			if bytes.Equal(x.A.Source(false), x.B.Source(false)) {
+				n = x.A
+			}
+		}
+	}
+
 	t := reflect.TypeOf(n)
 	v := reflect.ValueOf(n)
 	var zero reflect.Value

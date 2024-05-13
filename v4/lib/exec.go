@@ -292,22 +292,29 @@ func (t *Task) ln(execLN, hostLN string) error {
 			return errorf("unexpected/unsupported option: %s", arg)
 		}
 
-		args = append(args, t.goFile(arg))
-		files++
+		if arg := t.goFile(arg); arg != "" {
+			args = append(args, t.goFile(arg))
+			files++
+		}
 		return nil
 	}); err != nil {
 		return err
 	}
-	if files != 2 {
-		return errorf("real LN=%q, faked args=%q", hostLN, t.args)
-	}
-
-	if _, err := os.Stat(args[0]); err != nil {
+	switch files {
+	case 0:
 		return nil
-	}
+	case 2:
+		if _, err := os.Stat(args[0]); err != nil {
+			return nil
+		}
 
-	shell0(60*time.Second, true, hostLN, args...)
-	return nil
+		shell0(60*time.Second, true, hostLN, args...)
+		return nil
+	case 1:
+		fallthrough
+	default:
+		return errorf("real LN=%q, faked args=%q args=%v files=%v", hostLN, t.args, args, files)
+	}
 }
 
 func (t *Task) mv(execMV, hostMV string) error {
@@ -391,10 +398,14 @@ func (t *Task) rm(execRM, hostRM string) error {
 
 func (t *Task) goFile(s string) string {
 	switch filepath.Ext(s) {
+	case ".go":
+		return s
 	case ".lo", ".o":
 		return s + ".go"
-	default:
+	case ".a":
 		return s + "go"
+	default:
+		return ""
 	}
 }
 
