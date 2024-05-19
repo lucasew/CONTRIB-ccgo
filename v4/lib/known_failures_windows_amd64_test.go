@@ -51,6 +51,8 @@ var testExecKnownFails = map[string]struct{}{
 
 	// ==== BUILD FAIL - compiles but does not build.
 
+	`assets/benchmarksgame-team.pages.debian.net/reverse-complement-4.c`: {}, // BUILD FAIL: "exit status 1"
+
 	// ==== COMPILE FAIL - does not compile.
 
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-3.c`: {}, // COMPILE FAIL: "\"mandelbrot-3.c:27:21: unsupported vector type: v2df (expr.go:541:expr0: expr.go:4174:primaryExpression: expr.go:4646:primaryExpressionFloatConst: type.go:60:verifyTyp: type.go:65:typ0: type.go:440:is..."
