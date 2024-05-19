@@ -52,6 +52,7 @@ var testExecKnownFails = map[string]struct{}{
 	// ==== BUILD FAIL - compiles but does not build.
 
 	`assets/benchmarksgame-team.pages.debian.net/reverse-complement-4.c`: {}, // BUILD FAIL: "exit status 1"
+	`assets/ccgo/bug/sqlite.c`: {}, // BUILD FAIL: "exit status 1"
 
 	// ==== COMPILE FAIL - does not compile.
 
