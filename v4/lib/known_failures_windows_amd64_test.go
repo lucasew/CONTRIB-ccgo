@@ -176,7 +176,6 @@ var testExecKnownFails = map[string]struct{}{
 
 	// ==== COMPILE FAIL - does not compile.
 
-
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-3.c`:                                {}, // COMPILE FAIL: "\"mandelbrot-3.c:27:21: unsupported vector type: v2df (expr.go:541:expr0: expr.go:4174:primaryExpression: expr.go:4646:primaryExpressionFloatConst: type.go:60:verifyTyp: type.go:65:typ0: type.go:440:is..."
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-8.c`:                                {}, // COMPILE FAIL: "\"mandelbrot-8.c:16:30: unsupported vector type: Vec (expr.go:1216:checkVolatileExpr: expr.go:101:expr: expr.go:547:expr0: expr.go:1706:unaryExpression: type.go:407:isValidType: type.go:440:isValidType..."
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot.c`:                                  {}, // COMPILE FAIL: "\"mandelbrot.c:23:15: unsupported vector type: v2df (expr.go:541:expr0: expr.go:4174:primaryExpression: expr.go:4646:primaryExp
