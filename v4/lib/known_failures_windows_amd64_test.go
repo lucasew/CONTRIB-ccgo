@@ -52,6 +52,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20031003-1.c`:                                 {}, // EXEC FAIL: "assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20031003-1.c: libc_windows.go:1754:Xabort: TODOTODO "
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/941014-2.c`:                                   {}, // EXEC FAIL
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c`:                 {}, // EXEC FAIL: "assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c: libc_windows.go:1754:Xabort: TODOTODO "
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36321.c`:                                    {}, // EXEC FAIL: "assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36321.c: libc_windows.go:1754:Xabort: TODOTODO
 	`assets/github.com/AbsInt/CompCert/test/c/mandelbrot.c`:                                             {}, // EXEC FAIL
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/20031003-1.c`:                 {}, // EXEC FAIL: "assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/20031003-1.c: libc_windows.go:1754:Xabort: TODOTODO "
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/941014-2.c`:                   {}, // EXEC FAIL
