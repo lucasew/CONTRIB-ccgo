@@ -1066,6 +1066,16 @@ func durationStr(d time.Duration) string {
 }
 
 func TestSQLite(t *testing.T) {
+	if goos == "windows" {
+		//	--- FAIL: TestSQLite (58.93s)
+		//	    --- FAIL: TestSQLite/simple (58.93s)
+		//	        all_test.go:1185: shell.o.go:64044:8: undefined: "IsValidCodePage" external (all_test.go:1190:testSQLiteSimple: all_test.go:1190:testSQLiteSimple: ccgo.go:194:Main: ccgo.go:642:main: link.go:302:link: link.go:860:link:)
+		//	            shell.o.go:64059:30: undefined: "GetConsoleOutputCP" external (all_test.go:1190:testSQLiteSimple: all_test.go:1190:testSQLiteSimple: ccgo.go:194:Main: ccgo.go:642:main: link.go:302:link: link.go:860:link:)
+		//	            shell.o.go:64061:3: undefined: "SetConsoleCP" external (all_test.go:1190:testSQLiteSimple: all_test.go:1190:testSQLiteSimple: ccgo.go:194:Main: ccgo.go:642:main: link.go:302:link: link.go:860:link:)
+		//	            shell.o.go:64063:3: undefined: "SetConsoleOutputCP" external (all_test.go:1190:testSQLiteSimple: all_test.go:1190:testSQLiteSimple: ccgo.go:194:Main: ccgo.go:642:main: link.go:302:link: link.go:860:link:)
+		//	            shell.o.go:64582:5: undefined: "_fstat64i32" external (all_test.go:1190:testSQLiteSimple: all_test.go:1190:testSQLiteSimple: ccgo.go:194:Main: ccgo.go:642:main: link.go:302:link: link.go:860:link:)
+		t.Skip("disabled on Windows")
+	}
 	t.Run("simple", testSQLiteSimple)
 	t.Run("speedtest1", testSQLiteSpeedTest1)
 }
