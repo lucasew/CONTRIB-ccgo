@@ -441,6 +441,7 @@ func (t *Task) cc(execCC, hostCC string, cflags []string) error {
 	set.Arg("MT", true, func(arg, val string) error { return nil })
 	set.Arg("O", true, func(arg, val string) error { args.add(arg + val); return nil })
 	set.Arg("U", true, func(arg, val string) error { args.add(arg + val); return nil })
+	set.Arg("arch", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("build-lines", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("compatibility_version", true, func(arg, val string) error { return nil })
 	set.Arg("current_version", false, func(arg, val string) error { return nil })
