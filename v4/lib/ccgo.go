@@ -369,6 +369,7 @@ func (t *Task) main() (err error) {
 	set.Opt("S", func(arg string) error { return nil })
 	set.Opt("dumpmachine", func(arg string) error { return nil })
 	set.Opt("dynamiclib", func(arg string) error { return nil })
+	set.Opt("headerpad_max_install_names", func(arg string) error { return nil })
 	set.Opt("herror_on_warning", func(arg string) error { return nil })
 	set.Opt("mconsole", func(arg string) error { return nil })
 	set.Opt("municode", func(arg string) error { return nil })
