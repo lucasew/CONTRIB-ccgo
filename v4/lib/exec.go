@@ -511,6 +511,7 @@ func (t *Task) cc(execCC, hostCC string, cflags []string) error {
 	set.Opt("mno-tbm", func(arg string) error { args.add(arg); return nil })
 	set.Opt("mno-xop", func(arg string) error { args.add(arg); return nil })
 	set.Opt("municode", func(arg string) error { args.add(arg); return nil })
+	set.Opt("mwindows", func(arg string) error { args.add(arg); return nil })
 	set.Opt("nostdinc", func(arg string) error { args.add(arg); return nil })
 	set.Opt("nostdlib", func(arg string) error { args.add(arg); return nil })
 	set.Opt("pedantic", func(arg string) error { args.add(arg); return nil })

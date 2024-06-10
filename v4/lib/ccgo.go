@@ -373,6 +373,7 @@ func (t *Task) main() (err error) {
 	set.Opt("herror_on_warning", func(arg string) error { return nil })
 	set.Opt("mconsole", func(arg string) error { return nil })
 	set.Opt("municode", func(arg string) error { return nil })
+	set.Opt("mwindows", func(arg string) error { return nil })
 	set.Opt("pipe", func(arg string) error { return nil })
 	set.Opt("rdynamic", func(arg string) error { return nil })
 	set.Opt("s", func(arg string) error { return nil })
