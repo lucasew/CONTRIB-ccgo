@@ -304,7 +304,12 @@ func (c *ctx) externalDeclaration(w writer, n *cc.ExternalDeclaration) {
 }
 
 func (c *ctx) isHeader(n cc.Node) bool {
-	return n != nil && strings.HasSuffix(n.Position().Filename, ".h")
+	if n == nil {
+		return false
+	}
+
+	return strings.HasSuffix(n.Position().Filename, ".h") ||
+		c.task.goos == "windows" && strings.HasSuffix(n.Position().Filename, ".inl")
 }
 
 func (c *ctx) emitFunctionAliases() {
