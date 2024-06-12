@@ -6,6 +6,7 @@ package ccgo // import "modernc.org/ccgo/v4/lib"
 
 import (
 	"fmt"
+	"path/filepath"
 	"slices"
 	"sort"
 	"strings"
@@ -592,6 +593,67 @@ func (c *ctx) scanComments(s string, n cc.Node) (r []string) {
 	return r
 }
 
+func (c *ctx) winapi(w writer, d *cc.Declarator, decl cc.Node, dl *cc.Declaration) {
+	nm := d.Name()
+	ft := d.Type().(*cc.FunctionType)
+	w.w("\n\nvar %sproc%s = %[1]sdll.NewProc(%[3]sGoString(%q))", tag(preserve), nm, c.task.tlsQualifier, nm+"\x00")
+	w.w("\n\n")
+	if s := cc.NodeSource(dl); s != "" {
+		w.w("\n// %s", s)
+	}
+	w.w("\nfunc %s%s%s {", c.declaratorTag(d), nm, c.winapiSignature(d, ft))
+	w.w("\n%sr0, %[1]s_, %[1]serr := %[1]ssyscall.%[1]sSyscallN(%[1]sproc%s.%[1]sAddr()", tag(preserve), nm)
+	for i, v := range ft.Parameters() {
+		if i == 0 && v.Type().Kind() == cc.Void {
+			break
+		}
+
+		nm := v.Name()
+		w.w(", ")
+		rp := ""
+		if v.Type().Kind() != cc.Ptr {
+			w.w("%suintptr(", tag(preserve))
+			rp = ")"
+		}
+		w.w("%s_%s%s ", tag(preserve), nm, rp)
+	}
+	w.w(")")
+	w.w("\nif %serr != 0 {", tag(preserve))
+	w.w("\n*(*%sint32)(%[1]sunsafe.%[1]sPointer(%s__errno_location(%stls))) = %[1]sint32(%[1]serr)", tag(preserve), tag(external), tag(ccgo))
+	w.w("\n}")
+	if ft.Result().Kind() != cc.Void {
+		w.w("\nreturn %s(%sr0)", c.typ2(nil, ft.Result(), true), tag(preserve))
+	}
+	w.w("\n}")
+}
+
+func (c *ctx) winapiSignature(n cc.Node, f *cc.FunctionType) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "(%stls *%s%sTLS", tag(ccgo), c.task.tlsQualifier, tag(preserve))
+	for i, v := range f.Parameters() {
+		if i == 0 && v.Type().Kind() == cc.Void {
+			break
+		}
+
+		nm := v.Name()
+		b.WriteString(", ")
+		fmt.Fprintf(&b, "%s_%s ", tag(preserve), nm)
+		b.WriteString(c.typ2(v, v.Type().Decay(), true))
+	}
+	if f.IsVariadic() {
+		c.err(errorf("%v: variadic syscalls not supported", c.pos(n)))
+		return ""
+	}
+
+	b.WriteByte(')')
+	if f.Result().Kind() != cc.Void {
+		fmt.Fprintf(&b, " (%s%s ", tag(ccgo), retvalName)
+		b.WriteString(c.typ2(nil, f.Result(), true))
+		b.WriteByte(')')
+	}
+	return b.String()
+}
+
 func (c *ctx) signature(f *cc.FunctionType, paramNames, isMain, useNames bool) string {
 	var b strings.Builder
 	switch {
@@ -677,7 +739,7 @@ func (c *ctx) declaration(w writer, n *cc.Declaration, external bool) {
 				sep0 = c.cdoc(sep0, n)
 			}
 			for l := n.InitDeclaratorList; l != nil; l = l.InitDeclaratorList {
-				c.initDeclarator(w, sep0+sep(l.InitDeclarator), l.InitDeclarator, external)
+				c.initDeclarator(w, sep0+sep(l.InitDeclarator), l.InitDeclarator, external, n)
 				sep0 = ""
 			}
 		}
@@ -741,7 +803,7 @@ func (c *ctx) visbilityAttr(t cc.Type) (r string) {
 	return ""
 }
 
-func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExternal bool) {
+func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExternal bool, dl *cc.Declaration) {
 	d := n.Declarator
 	if sc := d.LexicalScope(); sc.Parent == nil {
 		hasInitializer := false
@@ -779,6 +841,13 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 		c.externsDeclared[d.Name()] = d
 	}
 
+	if dt.Kind() == cc.Function && d.Linkage() == cc.External && len(c.task.winapi) != 0 {
+		b := filepath.Base(d.Position().Filename)
+		if _, ok := c.task.winapi[b]; ok {
+			c.winapi(w, d, n, dl)
+			return
+		}
+	}
 	if dt.Kind() == cc.Function || d.IsExtern() && dt.IsIncomplete() {
 		return
 	}

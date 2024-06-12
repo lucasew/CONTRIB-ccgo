@@ -104,7 +104,8 @@ type Task struct {
 	stderr       io.Writer
 	stdout       io.Writer
 	target       string
-	tlsQualifier string // eg. "libc."
+	tlsQualifier string              // eg. "libc."
+	winapi       map[string]struct{} // --winapi
 
 	intSize int
 
@@ -159,6 +160,7 @@ func NewTask(goos, goarch string, args []string, stdout, stderr io.Writer, fs fs
 		stdout:         stdout,
 		target:         fmt.Sprintf("%s/%s", goos, goarch),
 		tlsQualifier:   tag(importQualifier) + "libc.",
+		winapi:         map[string]struct{}{},
 	}
 }
 
@@ -302,6 +304,13 @@ func (t *Task) main() (err error) {
 		}
 		return nil
 	})
+	set.Arg("-winapi", false, func(arg, val string) error {
+		for _, v := range strings.Split(val, ",") {
+			t.winapi[v] = struct{}{}
+		}
+		return nil
+	})
+
 	set.Opt("E", func(arg string) error { t.E = true; return nil })
 	set.Opt("absolute-paths", func(arg string) error { t.absolutePaths = true; return nil })
 	set.Opt("ansi", func(arg string) error { t.ansi = true; t.strictISOMode = true; return nil })
@@ -348,6 +357,7 @@ func (t *Task) main() (err error) {
 	set.Opt("positions", func(arg string) error { t.positions = true; return nil })
 	set.Opt("pthread", func(arg string) error { t.pthread = true; t.cfgArgs = append(t.cfgArgs, arg); return nil })
 	set.Opt("unsigned-enums", func(arg string) error { t.unsignedEnums = true; return nil })
+	set.Opt("verify-types", func(arg string) error { t.verifyTypes = true; return nil })
 	set.Opt("verify-types", func(arg string) error { t.verifyTypes = true; return nil })
 
 	// Ignored
