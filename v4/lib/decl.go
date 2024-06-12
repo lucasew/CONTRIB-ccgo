@@ -596,6 +596,17 @@ func (c *ctx) scanComments(s string, n cc.Node) (r []string) {
 func (c *ctx) winapi(w writer, d *cc.Declarator, decl cc.Node, dl *cc.Declaration) {
 	nm := d.Name()
 	ft := d.Type().(*cc.FunctionType)
+	if ft.IsVariadic() {
+		return // Must resolve manually
+	}
+
+	for _, v := range ft.Parameters() {
+		switch v.Type().Kind() {
+		case cc.Struct, cc.Union:
+			return // Must resolve manually
+		}
+	}
+
 	w.w("\n\nvar %sproc%s = %[1]sdll.NewProc(%[3]sGoString(%q))", tag(preserve), nm, c.task.tlsQualifier, nm+"\x00")
 	w.w("\n\n")
 	if s := cc.NodeSource(dl); s != "" {
@@ -613,6 +624,9 @@ func (c *ctx) winapi(w writer, d *cc.Declarator, decl cc.Node, dl *cc.Declaratio
 		}
 
 		nm := v.Name()
+		if nm == "" {
+			nm = fmt.Sprint(i)
+		}
 		w.w(", ")
 		rp := ""
 		if v.Type().Kind() != cc.Ptr {
@@ -640,6 +654,9 @@ func (c *ctx) winapiSignature(n cc.Node, f *cc.FunctionType) string {
 		}
 
 		nm := v.Name()
+		if nm == "" {
+			nm = fmt.Sprint(i)
+		}
 		b.WriteString(", ")
 		fmt.Fprintf(&b, "%s_%s ", tag(preserve), nm)
 		b.WriteString(c.typ2(v, v.Type().Decay(), true))
