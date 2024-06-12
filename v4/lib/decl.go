@@ -602,7 +602,11 @@ func (c *ctx) winapi(w writer, d *cc.Declarator, decl cc.Node, dl *cc.Declaratio
 		w.w("\n// %s", s)
 	}
 	w.w("\nfunc %s%s%s {", c.declaratorTag(d), nm, c.winapiSignature(d, ft))
-	w.w("\n%sr0, %[1]s_, %[1]serr := %[1]ssyscall.%[1]sSyscallN(%[1]sproc%s.%[1]sAddr()", tag(preserve), nm)
+	r0 := "_"
+	if ft.Result().Kind() != cc.Void {
+		r0 = "r0"
+	}
+	w.w("\n%s%s, %[1]s_, %[1]serr := %[1]ssyscall.%[1]sSyscallN(%[1]sproc%[3]s.%[1]sAddr()", tag(preserve), r0, nm)
 	for i, v := range ft.Parameters() {
 		if i == 0 && v.Type().Kind() == cc.Void {
 			break
