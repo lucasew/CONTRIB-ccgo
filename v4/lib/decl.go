@@ -593,8 +593,14 @@ func (c *ctx) scanComments(s string, n cc.Node) (r []string) {
 	return r
 }
 
-func (c *ctx) winapi(w writer, d *cc.Declarator, decl cc.Node, dl *cc.Declaration) {
+// https://github.com/golang/go/issues/44020
+
+func (c *ctx) winapi(w writer, d *cc.Declarator, dl *cc.Declaration) {
 	nm := d.Name()
+	if c.task.hidden.has(nm) {
+		return
+	}
+
 	if c.winapiFuncs == nil {
 		c.winapiFuncs = map[string]struct{}{}
 	}
@@ -608,10 +614,34 @@ func (c *ctx) winapi(w writer, d *cc.Declarator, decl cc.Node, dl *cc.Declaratio
 		return // Must resolve manually
 	}
 
-	for _, v := range ft.Parameters() {
+	var off int64
+	bpOffs := make([]int64, len(ft.Parameters()))
+	var nms []string
+	for i, v := range ft.Parameters() {
+		if i == 0 && v.Type().Kind() == cc.Void {
+			break
+		}
+
+		nm := v.Name()
+		if nm == "" {
+			nm = fmt.Sprint(i)
+		}
+		nms = append(nms, nm)
+		bpOffs[i] = -1
 		switch v.Type().Kind() {
 		case cc.Struct, cc.Union:
-			return // Must resolve manually
+			switch c.task.goarch {
+			case "amd64":
+				switch sz := v.Type().Size(); sz {
+				case 1, 2, 4, 8:
+					// ok
+				default:
+					bpOffs[i] = off
+					off += roundup(sz, 16)
+				}
+			default:
+				c.err(fmt.Errorf("unsupported winapi target %s/%s", c.task.goos, c.task.goarch))
+			}
 		}
 	}
 
@@ -621,6 +651,27 @@ func (c *ctx) winapi(w writer, d *cc.Declarator, decl cc.Node, dl *cc.Declaratio
 		w.w("\n// %s", s)
 	}
 	w.w("\nfunc %s%s%s {", c.declaratorTag(d), nm, c.winapiSignature(d, ft))
+	if off != 0 {
+		w.w("\n%sbp := %sAlloc(%v)", tag(preserve), c.task.tlsQualifier, off)
+		w.w("\n%sdefer %sFree(%v)", tag(preserve), c.task.tlsQualifier, off)
+		for i, v := range ft.Parameters() {
+			if i == 0 && v.Type().Kind() == cc.Void {
+				break
+			}
+
+			if bpOffs[i] < 0 {
+				continue
+			}
+
+			pt := v.Type()
+			switch c.task.goarch {
+			case "amd64":
+				w.w("\n*(*%s)(%s) = %s%s", c.typ(nil, pt), unsafePointer(bpOff(bpOffs[i])), tag(preserve), nms[i])
+			default:
+				c.err(fmt.Errorf("%v: internal error", origin(1)))
+			}
+		}
+	}
 	r0 := "_"
 	if ft.Result().Kind() != cc.Void {
 		r0 = "r0"
@@ -631,17 +682,29 @@ func (c *ctx) winapi(w writer, d *cc.Declarator, decl cc.Node, dl *cc.Declaratio
 			break
 		}
 
-		nm := v.Name()
-		if nm == "" {
-			nm = fmt.Sprint(i)
-		}
+		nm := fmt.Sprintf("%s_%s", tag(preserve), nms[i])
 		w.w(", ")
-		rp := ""
-		if v.Type().Kind() != cc.Ptr {
-			w.w("%suintptr(", tag(preserve))
-			rp = ")"
+		switch v.Type().Kind() {
+		case cc.Struct, cc.Union:
+			switch c.task.goarch {
+			case "amd64":
+				switch sz := v.Type().Size(); sz {
+				case 1, 2, 4, 8:
+					w.w("%suintptr(*(*int%v)(%s))", tag(preserve), sz*8, unsafePointer("&"+nm))
+				default:
+					bpOff(bpOffs[i])
+				}
+			default:
+				c.err(fmt.Errorf("%v: internal error", origin(1)))
+			}
+		default:
+			rp := ""
+			if v.Type().Kind() != cc.Ptr {
+				w.w("%suintptr(", tag(preserve))
+				rp = ")"
+			}
+			w.w("%s%s ", nm, rp)
 		}
-		w.w("%s_%s%s ", tag(preserve), nm, rp)
 	}
 	w.w(")")
 	w.w("\nif %serr != 0 {", tag(preserve))
@@ -650,7 +713,7 @@ func (c *ctx) winapi(w writer, d *cc.Declarator, decl cc.Node, dl *cc.Declaratio
 	if ft.Result().Kind() != cc.Void {
 		w.w("\nreturn %s(%sr0)", c.typ2(nil, ft.Result(), true), tag(preserve))
 	}
-	w.w("\n}")
+	w.w("\n}\n")
 }
 
 func (c *ctx) winapiSignature(n cc.Node, f *cc.FunctionType) string {
@@ -873,7 +936,7 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 	if dt.Kind() == cc.Function && d.Linkage() == cc.External && len(c.task.winapi) != 0 {
 		b := filepath.Base(d.Position().Filename)
 		if _, ok := c.task.winapi[b]; ok {
-			c.winapi(w, d, n, dl)
+			c.winapi(w, d, dl)
 			return
 		}
 	}
