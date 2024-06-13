@@ -268,6 +268,7 @@ type ctx struct {
 	unsignedInts  [9]cc.Type
 	verify        map[cc.Type]struct{}
 	void          cc.Type
+	winapiFuncs   map[string]struct{}
 
 	nextID int
 	pass   int // 0: out of function, 1: func 1st pass, 2: func 2nd pass.

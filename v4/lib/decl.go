@@ -595,6 +595,14 @@ func (c *ctx) scanComments(s string, n cc.Node) (r []string) {
 
 func (c *ctx) winapi(w writer, d *cc.Declarator, decl cc.Node, dl *cc.Declaration) {
 	nm := d.Name()
+	if c.winapiFuncs == nil {
+		c.winapiFuncs = map[string]struct{}{}
+	}
+	if _, ok := c.winapiFuncs[nm]; ok {
+		return
+	}
+
+	c.winapiFuncs[nm] = struct{}{}
 	ft := d.Type().(*cc.FunctionType)
 	if ft.IsVariadic() {
 		return // Must resolve manually
