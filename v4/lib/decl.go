@@ -610,10 +610,6 @@ func (c *ctx) winapi(w writer, d *cc.Declarator, dl *cc.Declaration) {
 
 	c.winapiFuncs[nm] = struct{}{}
 	ft := d.Type().(*cc.FunctionType)
-	if ft.IsVariadic() {
-		return // Must resolve manually
-	}
-
 	var off int64
 	bpOffs := make([]int64, len(ft.Parameters()))
 	var nms []string
@@ -651,6 +647,12 @@ func (c *ctx) winapi(w writer, d *cc.Declarator, dl *cc.Declaration) {
 		w.w("\n// %s", s)
 	}
 	w.w("\nfunc %s%s%s {", c.declaratorTag(d), nm, c.winapiSignature(d, ft))
+	if ft.IsVariadic() {
+		w.w("\npanic(651)")
+		w.w("\n}\n")
+		return
+	}
+
 	if off != 0 {
 		w.w("\n%sbp := %sAlloc(%v)", tag(preserve), c.task.tlsQualifier, off)
 		w.w("\n%sdefer %sFree(%v)", tag(preserve), c.task.tlsQualifier, off)
@@ -706,6 +708,9 @@ func (c *ctx) winapi(w writer, d *cc.Declarator, dl *cc.Declaration) {
 			w.w("%s%s ", nm, rp)
 		}
 	}
+	if ft.IsVariadic() {
+		w.w(", %sva_list", tag(preserve))
+	}
 	w.w(")")
 	w.w("\nif %serr != 0 {", tag(preserve))
 	w.w("\n*(*%sint32)(%[1]sunsafe.%[1]sPointer(%s__errno_location(%stls))) = %[1]sint32(%[1]serr)", tag(preserve), tag(external), tag(ccgo))
@@ -733,10 +738,8 @@ func (c *ctx) winapiSignature(n cc.Node, f *cc.FunctionType) string {
 		b.WriteString(c.typ2(v, v.Type().Decay(), true))
 	}
 	if f.IsVariadic() {
-		c.err(errorf("%v: variadic syscalls not supported", c.pos(n)))
-		return ""
+		fmt.Fprintf(&b, ", %sva_list %[1]suintptr", tag(preserve))
 	}
-
 	b.WriteByte(')')
 	if f.Result().Kind() != cc.Void {
 		fmt.Fprintf(&b, " (%s%s ", tag(ccgo), retvalName)
