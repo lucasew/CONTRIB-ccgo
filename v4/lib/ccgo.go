@@ -147,8 +147,6 @@ func NewTask(goos, goarch string, args []string, stdout, stderr io.Writer, fs fs
 	return &Task{
 		archiveLinkFiles: map[string]struct{}{},
 		args:             args,
-		buildLines: fmt.Sprintf(`//go:build %[1]s && %[2]s
-// +build %[1]s,%[2]s`, goos, goarch),
 		compiledfFiles: map[string]string{},
 		routes:         "ar,cc,clang,gcc,libtool,ln,mv,rm",
 		libc:           defaultLibcPackage,
@@ -446,9 +444,9 @@ func (t *Task) main() (err error) {
 		}
 	}
 
-	// 	if dmesgs {
-	// 		dmesg("DBG t@%p.buildLines = %q", t, t.buildLines)
-	// 	}
+	if t.buildLines == "" {
+		t.buildLines = fmt.Sprintf("//go:build %[1]s && %[2]s", t.goos, t.goarch)
+	}
 	switch {
 	case len(t.isystem) == 0 && !t.freeStanding && !t.nostdlib && t.libc == libcV2:
 		isystem, err := isystem(t.goos, t.goarch, t.libc)

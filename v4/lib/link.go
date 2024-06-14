@@ -222,9 +222,9 @@ func (t *Task) link() (err error) {
 	var libc *object
 	var linkFiles []string
 	for _, v := range t.linkFiles {
-		// 		if dmesgs {
-		// 			dmesg("%v: link file %s", origin(1), v)
-		// 		}
+		// if dmesgs {
+		// 	dmesg("%v: link file %s", origin(1), v)
+		// }
 		var object *object
 		switch {
 		case strings.HasPrefix(v, "-l="):
@@ -307,7 +307,7 @@ func (t *Task) link() (err error) {
 
 func (t *Task) getPkgSymbols(importPath string) (r *object, err error) {
 	if dmesgs {
-		dmesg("==== import %q", importPath)
+		dmesg("==== import %q t.goos=%v t.goarch=%v", importPath, t.goos, t.goarch)
 	}
 	// if dmesgs {
 	// 	defer func() {
@@ -345,9 +345,9 @@ func (t *Task) getPkgSymbols(importPath string) (r *object, err error) {
 
 	r = newObject(objectPkg, importPath)
 	for _, fn := range pkg.GoFiles {
-		// 		if dmesgs {
-		// 			dmesg("importing file %q", fn)
-		// 		}
+		// if dmesgs {
+		// 	dmesg("importing file %q", fn)
+		// }
 		b, err := os.ReadFile(fn)
 		if err != nil {
 			return nil, errorf("%s: %v", importPath, err)
@@ -368,9 +368,9 @@ func (t *Task) getPkgSymbols(importPath string) (r *object, err error) {
 					break
 				}
 
-				// 				if dmesgs {
-				// 					dmesg("imported func %q", x.FunctionName.Src())
-				// 				}
+				// if dmesgs {
+				// 	dmesg("imported func %q", x.FunctionName.Src())
+				// }
 				r.externs.add(x.FunctionName.Src())
 			case *gc.VarDecl:
 				for _, v := range x.VarSpecs {
