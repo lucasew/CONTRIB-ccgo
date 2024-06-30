@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -519,11 +520,38 @@ func (c *ctx) compile(ifn, ofn string) (err error) {
 		return err
 	}
 
+	if c.task.winapiTest == "dump" {
+		c.winapiTest(c)
+	}
 	s := string(b)
 	a = strings.Split(s, "`")
 	s = strutil.JoinFields(a, "|")
 	c.w("\n\nconst %s%s = `%s`", tag(meta), jsonMetaRawName, s)
 	return nil
+}
+
+func (c *ctx) winapiTest(w writer) {
+	var a []string
+	for k := range c.winapiFuncs {
+		a = append(a, k)
+	}
+	if len(a) == 0 {
+		return
+	}
+
+	slices.Sort(a)
+	w.w("\n\nfunc init() {")
+	w.w("\nfor %s_, nm := range []string{", tag(preserve))
+	for _, nm := range a {
+		w.w("\n%q,", nm)
+	}
+	w.w("\n}{")
+	w.w("\nfunc() {")
+	w.w("defer func() { if recover() != nil { println(nm)}}()")
+	w.w("\ndll.NewProc(nm).Addr()")
+	w.w("\n}()")
+	w.w("\n}")
+	w.w("\n}")
 }
 
 func (c *ctx) typeID(t cc.Type) string {

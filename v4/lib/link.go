@@ -581,8 +581,9 @@ type linker struct {
 	undefsReported        nameSet
 	unsafeName            string
 
-	closed     bool
-	needFpFunc bool
+	closed      bool
+	keepStrings bool
+	needFpFunc  bool
 }
 
 func newLinker(task *Task, libc *object) (*linker, error) {
@@ -641,6 +642,7 @@ func newLinker(task *Task, libc *object) (*linker, error) {
 		fset:           token.NewFileSet(),
 		goTags:         goTags[:],
 		importsByPath:  map[string]*object{},
+		keepStrings:    task.keepStrings,
 		libAliases:     map[string]string{},
 		libc:           libc,
 		maxUintptr:     maxUintptr,
@@ -1401,7 +1403,9 @@ func (l *linker) newFnInfo(n gc.Node) (r *fnInfo) {
 					r.linkNames.add(nm)
 				}
 			case gc.STRING_LIT:
-				r.linker.stringLit(tok.Src(), true)
+				if !l.keepStrings {
+					r.linker.stringLit(tok.Src(), true)
+				}
 			}
 		}, nil)
 	}
@@ -1541,6 +1545,11 @@ func (l *linker) print0(w writer, fi *fnInfo, n interface{}) {
 
 			w.w("%s", nm)
 		case gc.STRING_LIT:
+			if l.keepStrings {
+				w.w("%s", x.Src())
+				break
+			}
+
 			w.w("%s", l.stringLit(x.Src(), false))
 		default:
 			w.w("%s", x.Src())

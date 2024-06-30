@@ -593,29 +593,57 @@ func (c *ctx) scanComments(s string, n cc.Node) (r []string) {
 	return r
 }
 
+func (c *ctx) isVaList(t cc.Type) bool {
+	d := t.Typedef()
+	if d == nil {
+		return false
+	}
+
+	nm := d.Name()
+	return nm == "va_list" || nm == "__builtin_va_list"
+}
+
 // https://github.com/golang/go/issues/44020
 
 func (c *ctx) winapi(w writer, d *cc.Declarator, dl *cc.Declaration) {
 	nm := d.Name()
+	if strings.Contains(nm, "mingw_") || strings.Contains(nm, "_ms_") || strings.Contains(nm, "_stdio_common_") {
+		return // not supported via a syscall
+	}
+
 	if c.task.hidden.has(nm) {
 		return
 	}
 
-	if c.winapiFuncs == nil {
-		c.winapiFuncs = map[string]struct{}{}
-	}
 	if _, ok := c.winapiFuncs[nm]; ok {
 		return
 	}
 
-	c.winapiFuncs[nm] = struct{}{}
 	ft := d.Type().(*cc.FunctionType)
+	if ft.IsVariadic() {
+		return // not supported in a syscall on all windows targets
+	}
+
+	switch ft.Result().Kind() {
+	case cc.Float, cc.Double, cc.LongDouble:
+		return // not supported in a syscall on all windows targets
+	}
+
 	var off int64
 	bpOffs := make([]int64, len(ft.Parameters()))
 	var nms []string
 	for i, v := range ft.Parameters() {
 		if i == 0 && v.Type().Kind() == cc.Void {
 			break
+		}
+
+		switch v.Type().Kind() {
+		case cc.Float, cc.Double, cc.LongDouble:
+			return // not supported in a syscall on all windows targets
+		}
+
+		if c.isVaList(v.Type()) {
+			return // not supported in a syscall on all windows targets
 		}
 
 		nm := v.Name()
@@ -627,7 +655,7 @@ func (c *ctx) winapi(w writer, d *cc.Declarator, dl *cc.Declaration) {
 		switch v.Type().Kind() {
 		case cc.Struct, cc.Union:
 			switch c.task.goarch {
-			case "amd64":
+			case "amd64", "arm64":
 				switch sz := v.Type().Size(); sz {
 				case 1, 2, 4, 8:
 					// ok
@@ -635,88 +663,183 @@ func (c *ctx) winapi(w writer, d *cc.Declarator, dl *cc.Declaration) {
 					bpOffs[i] = off
 					off += roundup(sz, 16)
 				}
+			case "386":
+				switch sz := v.Type().Size(); sz {
+				case 1, 2, 4:
+					// ok
+				default:
+					bpOffs[i] = off
+					off += roundup(sz, 16) //TODO 16: verify 386 ABI requirements
+				}
 			default:
 				c.err(fmt.Errorf("unsupported winapi target %s/%s", c.task.goos, c.task.goarch))
 			}
 		}
 	}
 
-	w.w("\n\nvar %sproc%s = %[1]sdll.NewProc(%[3]sGoString(%q))", tag(preserve), nm, c.task.tlsQualifier, nm+"\x00")
+	if c.winapiFuncs == nil {
+		c.winapiFuncs = map[string]struct{}{}
+	}
+	c.winapiFuncs[nm] = struct{}{}
+	w.w("\n\nvar %sproc%s = %[1]sdll.NewProc(%q)", tag(preserve), nm, c.task.tlsQualifier, nm)
+	if c.task.winapiTest == "panic" {
+		w.w("\nvar %s_ = %[1]sproc%s.%[1]sAddr()", tag(preserve), nm)
+	}
 	w.w("\n\n")
 	if s := cc.NodeSource(dl); s != "" {
 		w.w("\n// %s", s)
 	}
 	w.w("\nfunc %s%s%s {", c.declaratorTag(d), nm, c.winapiSignature(d, ft))
-	if ft.IsVariadic() {
-		w.w("\npanic(651)")
-		w.w("\n}\n")
-		return
+	for _, v := range ft.Parameters() {
+		switch x := v.Type().(type) {
+		case *cc.FunctionType:
+			w.w("\n%slibc.%[1]s%s__ccgo_SyscallFP(); panic(657)}", tag(preserve), tag(external))
+			return
+		case *cc.PointerType:
+			if x.Elem().Kind() == cc.Function {
+				w.w("\n%slibc.%[1]s%s__ccgo_SyscallFP(); panic(663)}", tag(preserve), tag(external))
+				return
+			}
+		}
 	}
 
-	if off != 0 {
-		w.w("\n%sbp := %sAlloc(%v)", tag(preserve), c.task.tlsQualifier, off)
-		w.w("\n%sdefer %sFree(%v)", tag(preserve), c.task.tlsQualifier, off)
+	w.w("\nif %s__ccgo_strace {", tag(preserve))
+	if len(nms) != 0 {
+		var args, args2 []string
+		for _, v := range nms {
+			args = append(args, fmt.Sprintf("%s=%%+v", v))
+			args2 = append(args2, fmt.Sprintf("%s_%s", tag(preserve), v))
+		}
+		w.w("\ntrc(%q, %s)", strings.Join(args, " "), strings.Join(args2, ", "))
+	} else {
+		w.w("\ntrc(\"\")")
+	}
+	if ft.Result().Kind() != cc.Void {
+		w.w("\ndefer func() { trc(`%s%s->%%+v`, r) }()", tag(external), nm)
+	}
+	w.w("\n}")
+	switch {
+	case ft.IsVariadic():
+		panic(todo("internal error"))
+		// if off != 0 {
+		// 	c.err(fmt.Errorf("%v: internal error", origin(1)))
+		// }
+		// vnms = append(vnms, fmt.Sprintf("%sva_list", tag(preserve)))
+		// w.w("\n%sr0, %[1]sr1, %[1]serr := %[1]ssyscall.%[1]sSyscallN(%[1]sproc%[2]s.%[1]sAddr(), %[1]s%[3]s__ccgo_variadicSyscallArgs(%s)...", tag(preserve), nm, tag(external), strings.Join(vnms, ", "))
+	default:
+		if off != 0 {
+			w.w("\n%sbp := %[1]stls.%[1]sAlloc(%[3]v)", tag(preserve), c.task.tlsQualifier, off)
+			w.w("\ndefer %stls.%[1]sFree(%[3]v)", tag(preserve), c.task.tlsQualifier, off)
+			for i, v := range ft.Parameters() {
+				if i == 0 && v.Type().Kind() == cc.Void {
+					break
+				}
+
+				if bpOffs[i] < 0 {
+					continue
+				}
+
+				pt := v.Type()
+				switch c.task.goarch {
+				case "amd64", "arm64", "386": //TODO
+					w.w("\n*(*%s)(%s) = %s_%s", c.typ(nil, pt), unsafePointer(bpOff(bpOffs[i])), tag(preserve), nms[i])
+				default:
+					c.err(fmt.Errorf("%v: internal error", origin(1)))
+				}
+			}
+		}
+		w.w("\n%sr0, %[1]sr1, %[1]serr := %[1]ssyscall.%[1]sSyscallN(%[1]sproc%[2]s.%[1]sAddr()", tag(preserve), nm)
 		for i, v := range ft.Parameters() {
 			if i == 0 && v.Type().Kind() == cc.Void {
 				break
 			}
 
-			if bpOffs[i] < 0 {
-				continue
-			}
-
-			pt := v.Type()
-			switch c.task.goarch {
-			case "amd64":
-				w.w("\n*(*%s)(%s) = %s%s", c.typ(nil, pt), unsafePointer(bpOff(bpOffs[i])), tag(preserve), nms[i])
-			default:
-				c.err(fmt.Errorf("%v: internal error", origin(1)))
-			}
-		}
-	}
-	r0 := "_"
-	if ft.Result().Kind() != cc.Void {
-		r0 = "r0"
-	}
-	w.w("\n%s%s, %[1]s_, %[1]serr := %[1]ssyscall.%[1]sSyscallN(%[1]sproc%[3]s.%[1]sAddr()", tag(preserve), r0, nm)
-	for i, v := range ft.Parameters() {
-		if i == 0 && v.Type().Kind() == cc.Void {
-			break
-		}
-
-		nm := fmt.Sprintf("%s_%s", tag(preserve), nms[i])
-		w.w(", ")
-		switch v.Type().Kind() {
-		case cc.Struct, cc.Union:
-			switch c.task.goarch {
-			case "amd64":
-				switch sz := v.Type().Size(); sz {
-				case 1, 2, 4, 8:
-					w.w("%suintptr(*(*int%v)(%s))", tag(preserve), sz*8, unsafePointer("&"+nm))
+			nm := fmt.Sprintf("%s_%s", tag(preserve), nms[i])
+			w.w(", ")
+			switch v.Type().Kind() {
+			case cc.Struct, cc.Union:
+				switch c.task.goarch {
+				case "amd64", "arm64":
+					switch sz := v.Type().Size(); sz {
+					case 1, 2, 4, 8:
+						w.w("%suintptr(*(*int%v)(%s))", tag(preserve), sz*8, unsafePointer("&"+nm))
+					default:
+						w.w("%s", bpOff(bpOffs[i]))
+					}
+				case "386":
+					switch sz := v.Type().Size(); sz {
+					case 1, 2, 4:
+						w.w("%suintptr(*(*int%v)(%s))", tag(preserve), sz*8, unsafePointer("&"+nm))
+					default:
+						w.w("%s", bpOff(bpOffs[i]))
+					}
 				default:
-					bpOff(bpOffs[i])
+					c.err(fmt.Errorf("%v: internal error", origin(1)))
 				}
+			case cc.LongLong, cc.ULongLong:
+				if c.task.goarch == "386" {
+					w.w("%suintptr(%s), %[1]suintptr(%s>>32)", tag(preserve), nm)
+					break
+				}
+
+				fallthrough
 			default:
-				c.err(fmt.Errorf("%v: internal error", origin(1)))
+				rp := ""
+				if v.Type().Kind() != cc.Ptr {
+					w.w("%suintptr(", tag(preserve))
+					rp = ")"
+				}
+				w.w("%s%s ", nm, rp)
 			}
-		default:
-			rp := ""
-			if v.Type().Kind() != cc.Ptr {
-				w.w("%suintptr(", tag(preserve))
-				rp = ")"
-			}
-			w.w("%s%s ", nm, rp)
 		}
-	}
-	if ft.IsVariadic() {
-		w.w(", %sva_list", tag(preserve))
 	}
 	w.w(")")
 	w.w("\nif %serr != 0 {", tag(preserve))
-	w.w("\n*(*%sint32)(%[1]sunsafe.%[1]sPointer(%s__errno_location(%stls))) = %[1]sint32(%[1]serr)", tag(preserve), tag(external), tag(ccgo))
+	w.w("\nif %s__ccgo_strace {", tag(preserve))
+	w.w("\ntrc(`r0=%%v r1=%%v err=%%v`, r0, r1, err)")
+	w.w("}")
+	switch {
+	case c.task.winapiNoErrno:
+		w.w("\n%stls.SetLastError(%[1]suint32(%[1]serr))", tag(preserve))
+	default:
+		w.w("\n%stls.%[1]ssetErrno(%[1]sint32(%[1]serr))", tag(preserve))
+	}
 	w.w("\n}")
-	if ft.Result().Kind() != cc.Void {
-		w.w("\nreturn %s(%sr0)", c.typ2(nil, ft.Result(), true), tag(preserve))
+	switch rt := ft.Result(); rt.Kind() {
+	case cc.Void:
+		// nop
+	case cc.Struct, cc.Union:
+		switch c.task.goarch {
+		case "amd64", "arm64":
+			switch rt.Size() {
+			case 1, 2, 4, 8:
+				w.w("\nreturn *(*%s)(%s)", c.typ2(nil, rt, true), unsafePointer(fmt.Sprintf("&%sr0", tag(preserve))))
+			default:
+				c.err(fmt.Errorf("%v: internal error: return struct/union of size %v from a syscall: %s", origin(1), rt.Size(), nm))
+			}
+		case "386":
+			switch rt.Size() {
+			case 1, 2, 4:
+				w.w("\nreturn *(*%s)(%s)", c.typ2(nil, rt, true), unsafePointer(fmt.Sprintf("&%sr0", tag(preserve))))
+			case 8:
+				w.w("\n*(*uintptr)(unsafe.Pointer(&r)) = r0")
+				w.w("\n*(*uintptr)(unsafe.Add(unsafe.Pointer(&r), 4)) = r1")
+				w.w("\nreturn r")
+			default:
+				c.err(fmt.Errorf("%v: internal error: return struct/union of size %v from a syscall: %s", origin(1), rt.Size(), nm))
+			}
+		default:
+			c.err(fmt.Errorf("%v: internal error: return struct/union of size %v from a syscall", origin(1), rt.Size()))
+		}
+	case cc.LongLong, cc.ULongLong:
+		if c.task.goarch == "386" {
+			w.w("\nreturn %s(%sr0)|%[1]s(%sr1>>32)", c.typ2(nil, rt, true), tag(preserve))
+			break
+		}
+
+		fallthrough
+	default:
+		w.w("\nreturn %s(%sr0)", c.typ2(nil, rt, true), tag(preserve))
 	}
 	w.w("\n}\n")
 }

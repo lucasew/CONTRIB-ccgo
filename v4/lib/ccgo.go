@@ -106,6 +106,8 @@ type Task struct {
 	target       string
 	tlsQualifier string              // eg. "libc."
 	winapi       map[string]struct{} // --winapi
+	winapiTest   string              // --winapi-test
+	winabi       string              // --winabi
 
 	intSize int
 
@@ -126,6 +128,9 @@ type Task struct {
 	ignoreVectorFunctions        bool // -ignore-vector-functions
 	isExeced                     bool // -exec ...
 	keepObjectFiles              bool // -keep-object-files
+	keepStrings                  bool // -keep-strings
+	m32                          bool // -m32
+	m64                          bool // -m64
 	noBuiltin                    bool // -fno-builtin
 	noObjFmt                     bool // -no-object-file-format
 	nostdinc                     bool // -nostdinc
@@ -140,6 +145,7 @@ type Task struct {
 	strictISOMode                bool // -ansi or stc=c90
 	unsignedEnums                bool // -unsigned-enums
 	verifyTypes                  bool // -verify-types
+	winapiNoErrno                bool // --winapi-no-errno
 }
 
 // NewTask returns a newly created Task. args[0] is the command name.
@@ -147,18 +153,18 @@ func NewTask(goos, goarch string, args []string, stdout, stderr io.Writer, fs fs
 	return &Task{
 		archiveLinkFiles: map[string]struct{}{},
 		args:             args,
-		compiledfFiles: map[string]string{},
-		routes:         "ar,cc,clang,gcc,libtool,ln,mv,rm",
-		libc:           defaultLibcPackage,
-		fs:             fs,
-		goarch:         goarch,
-		goos:           goos,
-		prefixAnonType: "_",
-		stderr:         stderr,
-		stdout:         stdout,
-		target:         fmt.Sprintf("%s/%s", goos, goarch),
-		tlsQualifier:   tag(importQualifier) + "libc.",
-		winapi:         map[string]struct{}{},
+		compiledfFiles:   map[string]string{},
+		routes:           "ar,cc,clang,gcc,libtool,ln,mv,rm",
+		libc:             defaultLibcPackage,
+		fs:               fs,
+		goarch:           goarch,
+		goos:             goos,
+		prefixAnonType:   "_",
+		stderr:           stderr,
+		stdout:           stdout,
+		target:           fmt.Sprintf("%s/%s", goos, goarch),
+		tlsQualifier:     tag(importQualifier) + "libc.",
+		winapi:           map[string]struct{}{},
 	}
 }
 
@@ -213,10 +219,6 @@ func (t *Task) main() (err error) {
 			os.RemoveAll(v)
 		}
 	}()
-
-	if t.goABI, err = gc.NewABI(t.goos, t.goarch); err != nil {
-		return errorf("%v", err)
-	}
 
 	// Defaults
 	t.prefixField = "F"
@@ -302,6 +304,8 @@ func (t *Task) main() (err error) {
 		}
 		return nil
 	})
+	set.Arg("-winabi", false, func(arg, val string) error { t.winabi = val; return nil })
+	set.Arg("-winapi-test", false, func(arg, val string) error { t.winapiTest = val; return nil })
 	set.Arg("-winapi", false, func(arg, val string) error {
 		for _, v := range strings.Split(val, ",") {
 			t.winapi[v] = struct{}{}
@@ -332,20 +336,9 @@ func (t *Task) main() (err error) {
 	set.Opt("ignore-unsupported-atomic-sizes", func(arg string) error { t.ignoreUnsupportedAtomicSizes = true; return nil })
 	set.Opt("ignore-vector-functions", func(arg string) error { t.ignoreVectorFunctions = true; return nil })
 	set.Opt("keep-object-files", func(arg string) error { t.keepObjectFiles = true; return nil })
-	set.Opt("m32", func(arg string) error {
-		if t.goABI.Types[gc.Pointer].Size != 4 {
-			return errorf("-m32 not supported on %s/%s", t.goos, t.goarch)
-		}
-
-		return nil
-	})
-	set.Opt("m64", func(arg string) error {
-		if t.goABI.Types[gc.Pointer].Size != 8 {
-			return errorf("-m64 not supported on %s/%s", t.goos, t.goarch)
-		}
-
-		return nil
-	})
+	set.Opt("keep-strings", func(arg string) error { t.keepStrings = true; return nil })
+	set.Opt("m32", func(arg string) error { t.m32 = true; return nil })
+	set.Opt("m64", func(arg string) error { t.m64 = true; return nil })
 	set.Opt("mlong-double-64", func(arg string) error { t.cfgArgs = append(t.cfgArgs, arg); return nil })
 	set.Opt("no-object-file-format", func(arg string) error { t.noObjFmt = true; return nil })
 	set.Opt("nostdinc", func(arg string) error { t.nostdinc = true; t.cfgArgs = append(t.cfgArgs, arg); return nil })
@@ -357,6 +350,7 @@ func (t *Task) main() (err error) {
 	set.Opt("unsigned-enums", func(arg string) error { t.unsignedEnums = true; return nil })
 	set.Opt("verify-types", func(arg string) error { t.verifyTypes = true; return nil })
 	set.Opt("verify-types", func(arg string) error { t.verifyTypes = true; return nil })
+	set.Opt("-winapi-no-errno", func(arg string) error { t.winapiNoErrno = true; return nil })
 
 	// Ignored
 	set.Arg("MF", true, func(arg, val string) error { return nil })
@@ -442,6 +436,18 @@ func (t *Task) main() (err error) {
 		default:
 			return errorf("parsing %v: %v", t.args[1:], err)
 		}
+	}
+
+	if t.goABI, err = gc.NewABI(t.goos, t.goarch); err != nil {
+		return errorf("%v", err)
+	}
+
+	if t.m32 && t.goABI.Types[gc.Pointer].Size != 4 {
+		return errorf("-m32 not supported on %s/%s", t.goos, t.goarch)
+	}
+
+	if t.m64 && t.goABI.Types[gc.Pointer].Size != 8 {
+		return errorf("-m64 not supported on %s/%s", t.goos, t.goarch)
 	}
 
 	if t.buildLines == "" {

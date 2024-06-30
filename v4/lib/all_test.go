@@ -49,7 +49,8 @@ var (
 	oCSmithClimit = flag.Duration("csmithc", 1*time.Minute, "")
 	oDebug        = flag.Bool("debug", false, "")
 	oErr1         = flag.Bool("err1", false, "first error line only")
-	oKeep         = flag.Bool("keep", false, "keep temp directories")
+	oKeep         = flag.Bool("keep", false, "keep temp directories (only with -work)")
+	oLibc         = flag.String("libc", "modernc.org/libc", "")
 	oPanic        = flag.Bool("panic", false, "panic on miscompilation")
 	oShellTime    = flag.Duration("shelltimeout", 3600*time.Second, "shell() time limit")
 	oStackTrace   = flag.Bool("trcstack", false, "")
@@ -58,9 +59,8 @@ var (
 	oTraceCC      = flag.Bool("trccc", false, "trace TestExec C compiler errors")
 	oTraceF       = flag.Bool("trcf", false, "print test file content")
 	oTraceO       = flag.Bool("trco", false, "print test output")
-	oXWork        = flag.String("xwork", "", "TestExec will use a go.work file for packages in the CSV list")
 	oXTags        = flag.String("xtags", "", "passed to go build of TestSQLite")
-	oLibc         = flag.String("libc", "modernc.org/libc", "")
+	oXWork        = flag.String("xwork", "", "TestExec will use a go.work file for packages in the CSV list")
 
 	cfs         fs.FS
 	goarch      = runtime.GOARCH
@@ -314,15 +314,24 @@ func TestExec(t *testing.T) {
 
 		tmp = temp
 
-		defer func() {
-			os.RemoveAll(tmp)
-		}()
+		switch {
+		case *oKeep:
+			t.Logf("keeping dir %s\n", tmp)
+		default:
+			defer func() {
+				os.RemoveAll(tmp)
+			}()
+		}
 	default:
 		tmp = t.TempDir()
 	}
 
 	if err := inDir(tmp, func() error {
 		if out, err := shell(true, "go", "mod", "init", "test"); err != nil {
+			return fmt.Errorf("%s\vFAIL: %v", out, err)
+		}
+
+		if out, err := shell(true, "go", "get", *oLibc+"@latest"); err != nil {
 			return fmt.Errorf("%s\vFAIL: %v", out, err)
 		}
 
@@ -340,10 +349,6 @@ func TestExec(t *testing.T) {
 				if out, err := shell(true, "go", "work", "use", v); err != nil {
 					return fmt.Errorf("%s\vFAIL: %v", out, err)
 				}
-			}
-		default:
-			if out, err := shell(true, "go", "get", *oLibc+"@latest"); err != nil {
-				return fmt.Errorf("%s\vFAIL: %v", out, err)
 			}
 		}
 
@@ -474,8 +479,6 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 		}
 	}
 
-	defer os.Remove(ofn)
-
 	cbinRC := -1
 	var cOut []byte
 	if execute && !cCompilerFailed {
@@ -490,7 +493,12 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 
 	ofn += ".go"
 
-	defer os.Remove(ofn)
+	switch {
+	case *oKeep:
+		t.Logf("keeping file %s\n", ofn)
+	default:
+		defer os.Remove(ofn)
+	}
 
 	var out bytes.Buffer
 	switch {
@@ -505,7 +513,8 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 				"-verify-types",
 				"--prefix-field=F",
 				"-ignore-vector-functions",
-				"--libc", *oLibc,
+				"-keep-object-files",
+				// "--libc", *oLibc,
 				path,
 			},
 			&out, &out, nil).Main()
@@ -520,7 +529,10 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 				"-verify-types",
 				"--prefix-field=F",
 				"-ignore-vector-functions",
-				"--libc", *oLibc,
+				"-keep-object-files",
+				"-positions",
+				"-full-paths",
+				// "--libc", *oLibc,
 				path,
 			},
 			&out, &out, nil).Main()
@@ -587,7 +599,7 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 				return nil
 			}
 
-			err := errorf("%s: %s: FAIL: %v", fullPath, goOut, err)
+			err := errorf("%s: %s: FAIL: %v\ngobinRC=%vcbinRC=%v", fullPath, goOut, err, gobinRC, cbinRC)
 			if *oPanic {
 				panic(err)
 			}
@@ -597,7 +609,7 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 				return nil
 			}
 
-			trc("`%s`: {}, // EXEC FAIL: %v", fullPath, firstError(err, true))
+			trc("`%s`: {}, // EXEC FAIL: %v", fullPath, firstError(err, *oErr1))
 			p.err(err)
 			return firstError(err, *oErr1)
 		}
@@ -789,7 +801,7 @@ func TestCSmith(t *testing.T) {
 	defer func() {
 		switch {
 		case *oKeep:
-			fmt.Printf("%s kept\n", temp)
+			t.Logf("keeping dir %s\n", temp)
 		default:
 			os.RemoveAll(temp)
 		}
@@ -1099,7 +1111,7 @@ func testSQLiteSimple(t *testing.T) {
 
 	switch {
 	case *oKeep:
-		t.Log(temp)
+		t.Logf("keeping dir %s\n", temp)
 	default:
 		defer os.RemoveAll(temp)
 	}
@@ -1276,7 +1288,7 @@ func testSQLiteSpeedTest1(t *testing.T) {
 
 	switch {
 	case *oKeep:
-		t.Log(temp)
+		t.Logf("keeping dir %s\n", temp)
 	default:
 		defer os.RemoveAll(temp)
 	}
