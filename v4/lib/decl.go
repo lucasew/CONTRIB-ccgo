@@ -603,20 +603,42 @@ func (c *ctx) isVaList(t cc.Type) bool {
 	return nm == "va_list" || nm == "__builtin_va_list"
 }
 
+func (c *ctx) typeIsOrHasFunctionPointer(t cc.Type) (r bool) {
+	switch x := t.(type) {
+	case *cc.PointerType:
+		return c.typeIsOrHasFunctionPointer(x.Elem())
+	case *cc.FunctionType:
+		return true
+	case *cc.StructType:
+		for i := 0; i < x.NumFields(); i++ {
+			if c.typeIsOrHasFunctionPointer(x.FieldByIndex(i).Type()) {
+				return true
+			}
+		}
+	case *cc.UnionType:
+		for i := 0; i < x.NumFields(); i++ {
+			if c.typeIsOrHasFunctionPointer(x.FieldByIndex(i).Type()) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // https://github.com/golang/go/issues/44020
 
 func (c *ctx) winapi(w writer, d *cc.Declarator, dl *cc.Declaration) {
 	nm := d.Name()
-	if strings.Contains(nm, "mingw_") || strings.Contains(nm, "_ms_") || strings.Contains(nm, "_stdio_common_") {
-		return // not supported via a syscall
-	}
-
 	if c.task.hidden.has(nm) {
 		return
 	}
 
 	if _, ok := c.winapiFuncs[nm]; ok {
 		return
+	}
+
+	if strings.Contains(nm, "mingw_") || strings.Contains(nm, "_ms_") || strings.Contains(nm, "_stdio_common_") {
+		return // not supported via a syscall
 	}
 
 	ft := d.Type().(*cc.FunctionType)
@@ -691,15 +713,9 @@ func (c *ctx) winapi(w writer, d *cc.Declarator, dl *cc.Declaration) {
 	}
 	w.w("\nfunc %s%s%s {", c.declaratorTag(d), nm, c.winapiSignature(d, ft))
 	for _, v := range ft.Parameters() {
-		switch x := v.Type().(type) {
-		case *cc.FunctionType:
-			w.w("\n%slibc.%[1]s%s__ccgo_SyscallFP(); panic(657)}", tag(preserve), tag(external))
+		if c.typeIsOrHasFunctionPointer(v.Type()) {
+			w.w("\n%slibc.%[1]s%s__ccgo_SyscallFP(); panic(717)}", tag(preserve), tag(external))
 			return
-		case *cc.PointerType:
-			if x.Elem().Kind() == cc.Function {
-				w.w("\n%slibc.%[1]s%s__ccgo_SyscallFP(); panic(663)}", tag(preserve), tag(external))
-				return
-			}
 		}
 	}
 
