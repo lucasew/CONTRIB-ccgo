@@ -603,21 +603,29 @@ func (c *ctx) isVaList(t cc.Type) bool {
 	return nm == "va_list" || nm == "__builtin_va_list"
 }
 
-func (c *ctx) typeIsOrHasFunctionPointer(t cc.Type) (r bool) {
+func (c *ctx) typeIsOrHasFunctionPointer(m map[*cc.PointerType]struct{}, t cc.Type) (r bool) {
 	switch x := t.(type) {
 	case *cc.PointerType:
-		return c.typeIsOrHasFunctionPointer(x.Elem())
+		if _, ok := m[x]; ok {
+			return false
+		}
+
+		if m == nil {
+			m = map[*cc.PointerType]struct{}{}
+		}
+		m[x] = struct{}{}
+		return c.typeIsOrHasFunctionPointer(m, x.Elem())
 	case *cc.FunctionType:
 		return true
 	case *cc.StructType:
 		for i := 0; i < x.NumFields(); i++ {
-			if c.typeIsOrHasFunctionPointer(x.FieldByIndex(i).Type()) {
+			if c.typeIsOrHasFunctionPointer(m, x.FieldByIndex(i).Type()) {
 				return true
 			}
 		}
 	case *cc.UnionType:
 		for i := 0; i < x.NumFields(); i++ {
-			if c.typeIsOrHasFunctionPointer(x.FieldByIndex(i).Type()) {
+			if c.typeIsOrHasFunctionPointer(m, x.FieldByIndex(i).Type()) {
 				return true
 			}
 		}
@@ -713,8 +721,8 @@ func (c *ctx) winapi(w writer, d *cc.Declarator, dl *cc.Declaration) {
 	}
 	w.w("\nfunc %s%s%s {", c.declaratorTag(d), nm, c.winapiSignature(d, ft))
 	for _, v := range ft.Parameters() {
-		if c.typeIsOrHasFunctionPointer(v.Type()) {
-			w.w("\n%slibc.%[1]s%s__ccgo_SyscallFP(); panic(717)}", tag(preserve), tag(external))
+		if c.typeIsOrHasFunctionPointer(nil, v.Type()) {
+			w.w("\n%slibc.%[1]s%s__ccgo_SyscallFP(); panic(663)}", tag(preserve), tag(external))
 			return
 		}
 	}
