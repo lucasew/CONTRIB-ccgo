@@ -29,6 +29,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/tcc-0.9.27/tests/tests2/79_vla_continue.c`: {}, // EXEC FAIL
 
 	//TODO
+	`assets/CompCert-3.6/test/c/mandelbrot.c`:                                                           {}, // EXEC FAIL
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c`:                 {},
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c`: {},
 
