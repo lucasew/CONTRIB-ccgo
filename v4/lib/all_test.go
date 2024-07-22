@@ -66,6 +66,7 @@ var (
 	goarch      = runtime.GOARCH
 	goos        = runtime.GOOS
 	hostCC      string
+	nogcc       = goos == "windows" && goarch == "arm64" // We have no 32b mingw-gcc binary targeting windows/amd64 bit yet.
 	re          *regexp.Regexp
 	target      = fmt.Sprintf("%s/%s", goos, goarch)
 	totalMemory = memory.TotalMemory()
@@ -300,6 +301,10 @@ func shell(echo bool, cmd string, args ...string) ([]byte, error) {
 }
 
 func TestExec(t *testing.T) {
+	if nogcc {
+		t.Skip()
+	}
+
 	g := newGolden(t, fmt.Sprintf("testdata/test_exec_%s_%s.golden", runtime.GOOS, runtime.GOARCH))
 
 	defer g.close()
@@ -764,6 +769,10 @@ func (g *golden) close() {
 }
 
 func TestCSmith(t *testing.T) {
+	if nogcc {
+		t.Skip()
+	}
+	
 	abi, err := cc.NewABI(runtime.GOOS, runtime.GOARCH)
 	if err != nil {
 		t.Fatal(err)
