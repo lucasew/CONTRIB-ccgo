@@ -1153,6 +1153,10 @@ var (
 			return errorf("%s", err)
 		}
 
+		if e := exec.Command("gofmt", "-s", "-w", "-r", "(x) -> x", ofn).Run(); e != nil {
+			l.err(errorf("%s: gofmt: %v", ofn, e))
+		}
+
 		if *oTraceG {
 			fmt.Fprintf(os.Stderr, "%s\n", b)
 		}
@@ -1188,7 +1192,145 @@ func (l *linker) postProcess(fn string, b []byte) (r []byte) {
 		w++
 	}
 	lines = lines[:w]
-	return []byte(strings.Join(lines, "\n"))
+	r = []byte(strings.Join(lines, "\n"))
+	gc.ExtendedErrors = true
+	cfg := &gc.ParseSourceFileConfig{}
+	src, err := gc.ParseSourceFile(cfg, fn, r)
+	if err != nil {
+		return r
+	}
+
+	pkg, err := gc.NewPackage("example.com/foo", []*gc.SourceFile{src})
+	if err != nil {
+		return r
+	}
+
+	pkg.Check(&checker{l.task.goarch})
+	l.walk(src, func(v any) {
+		switch x := v.(type) {
+		case reflect.Value:
+			if x == zeroReflectValue || x.IsZero() {
+				return
+			}
+
+			switch y := x.Interface().(type) {
+			case *gc.Conversion:
+				if y.Type() != y.Expr.Type() {
+					break
+				}
+
+				y.ConvertType = nil
+			}
+		}
+	})
+
+	return src.Source(true)
+}
+
+func (l *linker) walk(v any, fn func(any)) {
+	switch x := v.(type) {
+	case gc.Node:
+		if x == nil {
+			return
+		}
+
+		if _, ok := x.(gc.Token); ok {
+			return
+		}
+
+		switch t := reflect.TypeOf(x); t.Kind() {
+		case reflect.Ptr:
+			switch t2 := t.Elem(); t2.Kind() {
+			case reflect.Struct:
+				xe := reflect.ValueOf(x).Elem()
+				if xe == zeroReflectValue || xe.IsZero() {
+					break
+				}
+
+				nf := t2.NumField()
+				for i := 0; i < nf; i++ {
+					f := t2.Field(i)
+					if !f.IsExported() {
+						continue
+					}
+
+					fv := xe.Field(i)
+					if !fv.CanSet() {
+						continue
+					}
+
+					l.walk(fv, fn)
+				}
+			}
+		}
+	case reflect.Value:
+		switch y := x.Interface().(type) {
+		case nil:
+			// nop
+		case gc.Node:
+			l.walk(y, fn)
+			fn(x)
+		default:
+			switch x.Kind() {
+			case reflect.Slice:
+				ne := x.Len()
+				for i := 0; i < ne; i++ {
+					ev := x.Index(i)
+					if !ev.CanSet() {
+						continue
+					}
+
+					l.walk(ev, fn)
+				}
+			}
+		}
+	}
+}
+
+var _ gc.PackageChecker = &checker{}
+
+type checker struct {
+	goarch string
+}
+
+// PackageLoader returns a package by its import path or an error, if any. The
+// type checker never calls PackageLoader for  certain packages.
+func (*checker) PackageLoader(pkg *gc.Package, src *gc.SourceFile, importPath string) (*gc.Package, error) {
+	return nil, nil
+}
+
+// SymbolResolver returns the node bound to 'ident' within package 'pkg', using
+// currentScope and fileScope or an error, if any. The type checker never calls
+// SymbolResolver for certain identifiers of some packages.
+func (*checker) SymbolResolver(currentScope, fileScope *gc.Scope, pkg *gc.Package, ident gc.Token) (gc.Node, error) {
+	for ; currentScope != nil; currentScope = currentScope.Parent {
+		if currentScope == fileScope {
+			fileScope = nil
+		}
+
+		if n := currentScope.Nodes[ident.Src()]; n.Node != nil && (n.VisibleFrom == 0 || n.VisibleFrom <= ident.Offset()) {
+			return n.Node, nil
+		}
+	}
+
+	if fileScope != nil {
+		if r, ok := fileScope.Nodes[ident.Src()]; ok {
+			return r.Node, nil
+		}
+	}
+
+	return nil, nil
+}
+
+// CheckFunctions reports whether Check should type check function/method
+// bodies.
+func (*checker) CheckFunctions() bool {
+	return true
+}
+
+// GOARCH reports the target architecture, it returns the same values as runtime.GOARCH.
+func (c *checker) GOARCH() string {
+	return c.goarch
 }
 
 func isJsonMeta(linkName string) bool {
