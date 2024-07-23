@@ -188,6 +188,9 @@ func (t *Task) Main() (err error) {
 			os.RemoveAll(v)
 		}
 		t.cleanupDirs = nil
+		if dmesgs && err != nil {
+			dmesg("FAIL err=%v (%v: %v: %v:)", err, origin(1), origin(2), origin(3))
+		}
 	}()
 
 	// 	if dmesgs {
