@@ -194,7 +194,7 @@ func (c *ctx) mustConsume(n cc.ExpressionNode) (r bool) {
 func (c *ctx) labeledStatement(w writer, n *cc.LabeledStatement) {
 	switch n.Case {
 	case cc.LabeledStatementLabel: // IDENTIFIER ':' Statement
-		w.w("goto %s%s; %[1]s%s:;", tag(preserve), n.Token.Src()) //TODO use nameSpace
+		w.w("goto %s%s%s; %[1]s%s%s:;", tag(preserve), n.Token.Src(), c.labelSuffix())
 		c.statement(w, n.Statement)
 	case cc.LabeledStatementCaseLabel: // "case" ConstantExpression ':' Statement
 		switch {
@@ -949,7 +949,7 @@ func (c *ctx) label() string { return fmt.Sprintf("%s_%d", tag(ccgo), c.id()) }
 func (c *ctx) jumpStatement(w writer, n *cc.JumpStatement) {
 	switch n.Case {
 	case cc.JumpStatementGoto: // "goto" IDENTIFIER ';'
-		w.w("goto %s%s;", tag(preserve), n.Token2.Src())
+		w.w("goto %s%s%s;", tag(preserve), n.Token2.Src(), c.labelSuffix())
 	case cc.JumpStatementGotoExpr: // "goto" '*' ExpressionList ';'
 		c.err(errorf("TODO %v", n.Case))
 	case cc.JumpStatementContinue: // "continue" ';'

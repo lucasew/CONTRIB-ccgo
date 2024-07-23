@@ -183,16 +183,6 @@ func (t *Task) Exec() (err error) {
 
 // Main executes task.
 func (t *Task) Main() (err error) {
-	defer func() {
-		for _, v := range t.cleanupDirs {
-			os.RemoveAll(v)
-		}
-		t.cleanupDirs = nil
-		if dmesgs && err != nil {
-			dmesg("FAIL err=%v (%v: %v: %v:)", err, origin(1), origin(2), origin(3))
-		}
-	}()
-
 	// 	if dmesgs {
 	// 		dmesg(
 	// 			"==== task.Main t.goos=%s t.goarch=%s IsExecEnv()=%v CC=%s\nt.args=%s",
@@ -217,6 +207,17 @@ func (t *Task) main() (err error) {
 			t.goos, t.goarch, IsExecEnv(), os.Getenv("CC"), t.args,
 		)
 	}
+
+	defer func() {
+		for _, v := range t.cleanupDirs {
+			os.RemoveAll(v)
+		}
+		t.cleanupDirs = nil
+		if dmesgs && err != nil {
+			dmesg("FAIL err=%v (%v: %v: %v:)", err, origin(1), origin(2), origin(3))
+		}
+	}()
+
 	switch len(t.args) {
 	case 0:
 		return errorf("invalid arguments")

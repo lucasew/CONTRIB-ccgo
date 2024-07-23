@@ -3520,13 +3520,15 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, mode mode
 		}
 
 		sv := c.f.inlineInfo
+		c.inlineLabelSuffix++
 		nfo := &inlineInfo{
-			args:   xargs,
-			fd:     inlineFD,
-			mode:   mode,
-			params: params,
-			parent: c.f.inlineInfo,
-			vaOff:  vaOff,
+			args:              xargs,
+			fd:                inlineFD,
+			inlineLabelSuffix: c.inlineLabelSuffix,
+			mode:              mode,
+			params:            params,
+			parent:            c.f.inlineInfo,
+			vaOff:             vaOff,
 		}
 		c.f.inlineInfo = nfo
 
