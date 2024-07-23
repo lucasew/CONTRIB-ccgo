@@ -183,6 +183,13 @@ func (t *Task) Exec() (err error) {
 
 // Main executes task.
 func (t *Task) Main() (err error) {
+	defer func() {
+		for _, v := range t.cleanupDirs {
+			os.RemoveAll(v)
+		}
+		t.cleanupDirs = nil
+	}()
+
 	// 	if dmesgs {
 	// 		dmesg(
 	// 			"==== task.Main t.goos=%s t.goarch=%s IsExecEnv()=%v CC=%s\nt.args=%s",
@@ -213,12 +220,6 @@ func (t *Task) main() (err error) {
 	case 1:
 		return errorf("no input files")
 	}
-
-	defer func() {
-		for _, v := range t.cleanupDirs {
-			os.RemoveAll(v)
-		}
-	}()
 
 	// Defaults
 	t.prefixField = "F"
@@ -669,6 +670,7 @@ func (t *Task) arExtract(fn string) (r []string, err error) {
 		return nil, errorf("%v", err)
 	}
 
+	t.cleanupDirs = append(t.cleanupDirs, tmp)
 	out, err := exec.Command(ar, "t", fn).CombinedOutput()
 	// 	if dmesgs {
 	// 		dmesg("fn=%s out=%s err=%v", fn, out, err)
@@ -684,9 +686,6 @@ func (t *Task) arExtract(fn string) (r []string, err error) {
 			r = append(r, w)
 		}
 		m[w] = struct{}{}
-	}
-	if !t.keepObjectFiles {
-		t.cleanupDirs = append(t.cleanupDirs, tmp)
 	}
 	switch runtime.GOOS {
 	case "freebsd", "darwin", "openbsd", "windows":
