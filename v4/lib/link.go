@@ -1158,6 +1158,7 @@ var (
 		}
 
 		if *oTraceG {
+			b, _ = os.ReadFile(ofn)
 			fmt.Fprintf(os.Stderr, "%s\n", b)
 		}
 	}
