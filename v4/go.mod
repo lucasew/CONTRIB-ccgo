@@ -12,7 +12,7 @@ require (
 	modernc.org/ccgo/v3 v3.17.0
 	modernc.org/ccorpus2 v1.5.1
 	modernc.org/fileutil v1.3.0
-	modernc.org/gc/v2 v2.4.3
+	modernc.org/gc/v2 v2.5.0
 	modernc.org/libc v1.55.4
 	modernc.org/mathutil v1.6.0
 	modernc.org/opt v0.1.3

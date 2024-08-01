@@ -1216,7 +1216,7 @@ func (l *linker) postProcess(fn string, b []byte) (r []byte) {
 
 			switch y := x.Interface().(type) {
 			case *gc.Conversion:
-				if y.Type() != y.Expr.Type() {
+				if y.IsUncheckedType() || y.Type() != y.Expr.Type() {
 					break
 				}
 
