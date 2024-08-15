@@ -277,7 +277,17 @@ func (c *ctx) compoundStatement(w writer, n *cc.CompoundStatement, fnBlock bool,
 		}
 		if c.f.callsAlloca {
 			switch c.task.target {
-			case "linux/amd64", "linux/arm64", "linux/loong64": // New alloca mechanism
+			case
+				"linux/386",
+				"linux/amd64",
+				"linux/arm",
+				"linux/arm64",
+				"linux/loong64",
+				"linux/ppc64le",
+				"linux/riscv64",
+				"linux/s390x":
+				// New alloca mechanism
+
 				w.w("%stls.AllocaEntry();", tag(ccgo))
 				w.w("\ndefer %stls.AllocaExit();", tag(ccgo))
 			default:
