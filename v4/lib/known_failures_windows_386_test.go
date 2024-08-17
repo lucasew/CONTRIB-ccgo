@@ -59,6 +59,9 @@ var testExecKnownFails = map[string]struct{}{
 
 	//TODO
 	`assets/CompCert-3.6/test/c/mandelbrot.c`:                                                           {}, // EXEC FAIL
+	`assets/benchmarksgame-team.pages.debian.net/fasta-3.c`:                                             {}, // EXEC FAIL
+	`assets/benchmarksgame-team.pages.debian.net/fasta-8.c`:                                             {}, // EXEC FAIL
+	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-9.c`:                                        {}, // EXEC FAIL
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c`:                 {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c: : FAIL: exit status 3 (.:0:: .:0:: asm_386.s:1363:goexit: asm_386.s:1363:goexit: all_test.go:444:1: all_test.go:600:testExec1:)
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c`: {}, // EXEC FAIL: assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c: : FAIL: exit status 3 (.:0:: .:0:: asm_386.s:1363:goexit: asm_386.s:1363:goexit: all_test.go:444:1: all_test.go:600:testExec1:)
 
