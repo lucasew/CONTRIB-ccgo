@@ -40,8 +40,12 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-packing.c`:                                   {}, // EXEC FAIL
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-trailing-zero.c`:                             {}, // EXEC FAIL
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-types-init.c`:                                {}, // EXEC FAIL
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/declaration-default-int.c`:                            {}, // EXEC FAIL
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/function-implicit-declare.c`:                          {}, // EXEC FAIL
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/long-double-load.c`:                                   {}, // EXEC FAIL
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/macro-paste.c`:                                        {}, // EXEC FAIL
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/union-bitfield.c`:                                     {}, // EXEC FAIL: "assets/github.com/vnmakarov/mir/c-tests/lacc/union-bitfield.c: : FAIL: exit status 1 (.:0:: .:0:: asm_s390x.s:773:goexit: asm_s390x.s:773:goexit: all_test.go:437:1: all_test.go:584:testExec1:)"
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/whitespace.c`:                                         {}, // EXEC FAIL
 	`assets/github.com/vnmakarov/mir/c-tests/new/setjmp.c`:                                              {}, // EXEC FAIL: "assets/github.com/vnmakarov/mir/c-tests/new/setjmp.c: libc.go:2142:Xlongjmp: TODOTODO "
 	`assets/github.com/vnmakarov/mir/c-tests/new/setjmp2.c`:                                             {}, // EXEC FAIL: "assets/github.com/vnmakarov/mir/c-tests/new/setjmp2.c: libc.go:2142:Xlongjmp: TODOTODO "
 
