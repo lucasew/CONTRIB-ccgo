@@ -108,6 +108,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr33870-1.c`:                         {}, // BUILD FAIL: "exit status 1"
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr35456.c`:                           {}, // BUILD FAIL: "exit status 1"
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36321.c`:                           {}, // BUILD FAIL: "exit status 1"
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr37780.c`:                           {}, // BUILD FAIL
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr38819.c`:                           {}, // BUILD FAIL: "exit status 1"
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr39228.c`:                           {}, // BUILD FAIL: "exit status 1"
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr39240.c`:                           {}, // BUILD FAIL: "exit status 1"
