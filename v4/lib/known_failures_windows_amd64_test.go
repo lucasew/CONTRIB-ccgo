@@ -30,6 +30,10 @@ var testExecKnownFails = map[string]struct{}{
 
 	//TODO
 	`assets/CompCert-3.6/test/c/mandelbrot.c`:                                                           {}, // EXEC FAIL
+	`assets/benchmarksgame-team.pages.debian.net/fasta-3.c`:                                             {}, // EXEC FAIL
+	`assets/benchmarksgame-team.pages.debian.net/fasta-8.c`:                                             {}, // EXEC FAIL
+	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-2.c`:                                        {}, // EXEC FAIL
+	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-9.c`:                                        {}, // EXEC FAIL
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c`:                 {},
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c`: {},
 
