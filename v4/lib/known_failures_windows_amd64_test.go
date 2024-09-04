@@ -86,6 +86,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/941202-1.c`:                          {}, // BUILD FAIL: "exit status 1"
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/960405-1.c`:                          {}, // BUILD FAIL: "exit status 1"
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/991014-1.c`:                          {}, // BUILD FAIL: "exit status 1"
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/991112-1.c`:    {}, // BUILD FAIL
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/align-nest.c`:                        {}, // BUILD FAIL: "exit status 1"
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/alloca-1.c`:                          {}, // BUILD FAIL: "exit status 1"
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/built-in-setjmp.c`:                   {}, // BUILD FAIL: "exit status 1"
@@ -524,6 +525,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr22061-4.c`:                          {}, // COMPILE FAIL: "\"pr22061-4.c:5:8: nested functions not supported (compile.go:460:compile: decl.go:295:externalDeclaration: decl.go:361:functionDefinition: decl.go:457:functionDefinition0: stmt.go:330:compoundStatemen..."
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr23135.c`:                            {}, // COMPILE FAIL: "\"pr23135.c:19:14: unsupported vector type: vecint (expr.go:559:expr0: expr.go:4190:primaryExpression: expr.go:4626:primaryExpressionIntConst: type.go:60:verifyTyp: type.go:65:typ0: type.go:440:isValid..."
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr23324.c`:                            {}, // COMPILE FAIL: "\"TODO (decl.go:1210:initDeclaratorInit: type.go:642:defineType: type.go:656:defineType0: type.go:578:defineUnionType: type.go:488:unionLiteral: type.go:315:typ0:)\""
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr23467.c`:                            {}, // COMPILE FAIL
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr24135.c`:                            {}, // COMPILE FAIL: "\"pr24135.c:7:3: label declarations not supported (compile.go:460:compile: decl.go:295:externalDeclaration: decl.go:361:functionDefinition: decl.go:401:functionDefinition0: stmt.go:330:compoundStatemen..."
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr34154.c`:                            {}, // COMPILE FAIL: "\"TODO SelectionStatementSwitch (decl.go:401:functionDefinition0: stmt.go:330:compoundStatement: stmt.go:366:blockItem: stmt.go:42:statement: stmt.go:454:selectionStatement: stmt.go:671:selectionStatem..."
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr38151.c`:                            {}, // COMPILE FAIL: "\"TODO *cc.PredefinedType _Complex int _Complex int (decl.go:297:externalDeclaration: decl.go:943:declaration: type.go:559:defineStructType: type.go:494:structLiteral: type.go:263:typ0: type.go:159:typ..."
