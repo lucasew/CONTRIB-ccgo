@@ -3351,9 +3351,13 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, mode mode
 	var ft *cc.FunctionType
 	var d *cc.Declarator
 	var inlineFD *cc.FunctionDefinition
+	var syncOpAndFetch bool
 	switch d = c.declaratorOf(n.PostfixExpression); {
 	case d != nil:
 		switch d.Name() {
+		case "__sync_add_and_fetch", "__sync_sub_and_fetch":
+			syncOpAndFetch = true
+			trc("", syncOpAndFetch)
 		case "alloca", "__builtin_alloca":
 			if d.Linkage() == cc.External {
 				c.f.callsAlloca = true
@@ -3474,6 +3478,16 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, mode mode
 			if d := c.declaratorOf(v); d != nil && d.IsFuncDef() {
 				mode = exprUintptr
 			}
+		}
+		switch {
+		case i == 1 && syncOpAndFetch: // __sync_add_and_fetch(type *ptr, type value)
+			pt, ok := args[0].Type().(*cc.PointerType)
+			if !ok {
+				c.err(errorf("%v: first argument of %s must be a pointer: %s", c.pos(n.PostfixExpression), d.Name(), params[0]))
+				break
+			}
+
+			t = pt.Elem()
 		}
 		var xarg *buf
 		switch {
