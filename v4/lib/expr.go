@@ -108,7 +108,7 @@ func (c *ctx) expr(w writer, n cc.ExpressionNode, to cc.Type, toMode mode) (ret 
 
 	if from == nil || fromMode == 0 {
 		// trc("IN %v: from %v, %v to %v %v, src '%s', buf '%s'", c.pos(n), from, fromMode, to, toMode, cc.NodeSource(n), r.bytes())
-		c.err(errorf("TODO %T %v %v -> %v %v", n, from, fromMode, to, toMode))
+		c.err2(n, errorf("TODO %T %v %v -> %v %v", n, from, fromMode, to, toMode))
 		return r
 	}
 
@@ -774,18 +774,22 @@ func (c *ctx) logicalOrExpression(w writer, n *cc.LogicalOrExpression, t cc.Type
 }
 
 func (c *ctx) unparen(n cc.ExpressionNode) cc.ExpressionNode {
-	switch x := n.(type) {
-	case *cc.ExpressionList:
-		if x.ExpressionList == nil {
-			return c.unparen(x.AssignmentExpression)
+	for {
+		switch x := n.(type) {
+		case *cc.ExpressionList:
+			if x.ExpressionList == nil {
+				n = x.AssignmentExpression
+				continue
+			}
+		case *cc.PrimaryExpression:
+			if x.Case == cc.PrimaryExpressionExpr {
+				n = x.ExpressionList
+				continue
+			}
 		}
-	case *cc.PrimaryExpression:
-		if x.Case == cc.PrimaryExpressionExpr {
-			return c.unparen(x.ExpressionList)
-		}
-	}
 
-	return n
+		return n
+	}
 }
 
 func (c *ctx) isIntLit(n cc.ExpressionNode) (bool, interface{}) {
@@ -2712,7 +2716,7 @@ func (c *ctx) bitField(w writer, n cc.Node, p *buf, f *cc.Field, mode mode, atom
 		rt, rmode = rt.Pointer(), mode
 		b.w("(uintptr)(%sunsafe.%sPointer(%s +%d))", tag(importQualifier), tag(preserve), p, f.Offset())
 	default:
-		c.err(errorf("TODO %v", mode))
+		c.err2(n, errorf("TODO %v", mode))
 	}
 	return &b, rt, rmode
 }
@@ -3704,7 +3708,7 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 			}
 		}
 
-		switch x := n.UnaryExpression.(type) {
+		switch x := c.unparen(n.UnaryExpression).(type) {
 		case *cc.PostfixExpression:
 			switch x.Case {
 			case cc.PostfixExpressionSelect:
