@@ -3361,7 +3361,6 @@ func (c *ctx) postfixExpressionCall(w writer, n *cc.PostfixExpression, mode mode
 		switch d.Name() {
 		case "__sync_add_and_fetch", "__sync_sub_and_fetch":
 			syncOpAndFetch = true
-			trc("", syncOpAndFetch)
 		case "alloca", "__builtin_alloca":
 			if d.Linkage() == cc.External {
 				c.f.callsAlloca = true
