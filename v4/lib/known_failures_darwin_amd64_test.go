@@ -115,6 +115,14 @@ var testExecKnownFails = map[string]struct{}{
 
 	// ==== COMPILE FAIL - does not compile.
 
+	`assets/CompCert-3.6/test/c/almabench.c`:                                                {}, // COMPILE FAIL
+	`assets/CompCert-3.6/test/c/binarytrees.c`:                                              {}, // COMPILE FAIL
+	`assets/CompCert-3.6/test/c/bisect.c`:                                                   {}, // COMPILE FAIL
+	`assets/CompCert-3.6/test/c/fft.c`:                                                      {}, // COMPILE FAIL
+	`assets/CompCert-3.6/test/c/fftsp.c`:                                                    {}, // COMPILE FAIL
+	`assets/CompCert-3.6/test/c/nbody.c`:                                                    {}, // COMPILE FAIL
+	`assets/CompCert-3.6/test/c/perlin.c`:                                                   {}, // COMPILE FAIL
+	`assets/CompCert-3.6/test/c/spectral.c`:                                                 {}, // COMPILE FAIL
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-3.c`:                            {}, // COMPILE FAIL: "\"mandelbrot-3.c:27:21: unsupported vector type: v2df (expr.go:524:expr0: expr.go:3817:primaryExpression: expr.go:4273:primaryExpressionFloatConst: type.go:60:verifyTyp: type.go:65:typ0: type.go:455:is..."
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-4.c`:                            {}, // COMPILE FAIL: "\"mandelbrot-4.c:19:21: unsupported vector type: v2df (expr.go:524:expr0: expr.go:3817:primaryExpression: expr.go:4273:primaryExpressionFloatConst: type.go:60:verifyTyp: type.go:65:typ0: type.go:455:is..."
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-8.c`:                            {}, // COMPILE FAIL: "\"mandelbrot-8.c:16:30: unsupported vector type: Vec (expr.go:1198:checkVolatileExpr: expr.go:101:expr: expr.go:530:expr0: expr.go:1682:unaryExpression: type.go:422:isValidType: type.go:455:isValidType..."
