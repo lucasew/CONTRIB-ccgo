@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
-.PHONY:	build_all_targets clean edit editor tmp x csmith fftest shorttest sqlitetest debug install work
+.PHONY:	build_all_targets clean edit editor tmp x csmith fftest shorttest sqlitetest debug install work bug
 
 build_all_targets:
 	GOOS=darwin GOARCH=amd64 go build -v ./...
@@ -108,3 +108,7 @@ work:
 	go work use ..
 	go work use ../../../cc/v4
 	go work use ../../../ccgo/v3
+
+# 20241023 ppc64le
+bug:
+	go test -v -timeout 24h -run CSmith -re 8032246412188002 -blackbox ~/tmp/main.c 2>&1 | tee log

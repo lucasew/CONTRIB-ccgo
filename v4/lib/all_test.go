@@ -852,6 +852,11 @@ func TestCSmith(t *testing.T) {
 		"-s 4101947480",
 	}
 
+	// Other blacklist
+	blacklist := []struct{ target, seed string }{
+		{"linux/ppc64le", "8032246412188002"}, // gcc 10.2.1 bug.
+	}
+
 	fixedBugs := []string{
 		"--bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 1110506964",
 		"--bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 1338573550",
@@ -895,6 +900,7 @@ func TestCSmith(t *testing.T) {
 		"--max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --bitfields -s 1701143130",
 		"--max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --bitfields -s 20004725738999789",
 		"--max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --bitfields -s 3654957324",
+		"--max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --bitfields -s 8032246412188002",
 		"--no-bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 1302111308",
 		"--no-bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 3285852464",
 		"--no-bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 3609090094",
@@ -904,8 +910,6 @@ func TestCSmith(t *testing.T) {
 
 		//TODO linux/riscv64
 		"--max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --bitfields -s 1714958724",
-		//TODO linux/ppc64le
-		"--max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --bitfields -s 8032246412188002",
 	}
 	var ch <-chan time.Time
 	t0 := time.Now()
@@ -918,6 +922,7 @@ out:
 		switch {
 		case i < len(fixedBugs):
 			s := fixedBugs[i]
+			trc("", s)
 			if re != nil && !re.MatchString(s) {
 				continue
 			}
@@ -927,6 +932,11 @@ out:
 					if strings.Contains(s, v) {
 						continue out
 					}
+				}
+			}
+			for _, v := range blacklist {
+				if v.target == target && strings.Contains(s, v.seed) {
+					continue out
 				}
 			}
 
