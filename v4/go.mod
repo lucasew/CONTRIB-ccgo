@@ -1,6 +1,6 @@
 module modernc.org/ccgo/v4
 
-go 1.20
+go 1.21
 
 require (
 	github.com/dustin/go-humanize v1.0.1
@@ -8,7 +8,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0
 	golang.org/x/mod v0.19.0
 	golang.org/x/tools v0.23.0
-	modernc.org/cc/v4 v4.23.0
+	modernc.org/cc/v4 v4.23.1
 	modernc.org/ccgo/v3 v3.17.0
 	modernc.org/ccorpus2 v1.5.1
 	modernc.org/fileutil v1.3.0
