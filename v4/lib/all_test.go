@@ -66,6 +66,7 @@ var (
 	goarch      = runtime.GOARCH
 	goos        = runtime.GOOS
 	hostCC      string
+	libcVersion string                                   // from ../go.mod, eg. @v1.61.2
 	nogcc       = goos == "windows" && goarch == "arm64" // We have no 32b mingw-gcc binary targeting windows/amd64 bit yet.
 	re          *regexp.Regexp
 	target      = fmt.Sprintf("%s/%s", goos, goarch)
@@ -129,7 +130,26 @@ func TestMain(m *testing.M) {
 	}
 
 	hostCC = cfg.CC
+	libcVersion = getLatest()
 	os.Exit(m.Run())
+}
+
+func getLatest() string {
+	b, err := os.ReadFile(filepath.Join("..", "go.mod"))
+	if err != nil {
+		panic(err)
+	}
+
+	a := strings.Split(string(b), "\n")
+	for _, v := range a {
+		v = strings.TrimSpace(v)
+		if strings.HasPrefix(v, "modernc.org/libc") {
+			a := strings.Fields(v)
+			return "@" + a[1]
+		}
+	}
+
+	panic(todo("internal error"))
 }
 
 func (p *parallel) close(t *testing.T) {
@@ -336,7 +356,7 @@ func TestExec(t *testing.T) {
 			return fmt.Errorf("%s\vFAIL: %v", out, err)
 		}
 
-		if out, err := shell(true, "go", "get", *oLibc+"@latest"); err != nil {
+		if out, err := shell(true, "go", "get", *oLibc+libcVersion); err != nil {
 			return fmt.Errorf("%s\vFAIL: %v", out, err)
 		}
 
@@ -840,7 +860,7 @@ func TestCSmith(t *testing.T) {
 			}
 		}
 	default:
-		if out, err := shell(true, "go", "get", *oLibc+"@latest"); err != nil { //TODO- @latest
+		if out, err := shell(true, "go", "get", *oLibc+libcVersion); err != nil {
 			t.Fatalf("%s\vFAIL: %v", out, err)
 		}
 	}
@@ -1161,7 +1181,7 @@ func testSQLiteSimple(t *testing.T) {
 			}
 		}
 	default:
-		if out, err := shell(true, "go", "get", *oLibc+"@latest"); err != nil {
+		if out, err := shell(true, "go", "get", *oLibc+libcVersion); err != nil {
 			t.Fatalf("%s\vFAIL: %v", out, err)
 		}
 	}
@@ -1371,7 +1391,7 @@ func testSQLiteSpeedTest1(t *testing.T) {
 			}
 		}
 	default:
-		if out, err := shell(true, "go", "get", *oLibc+"@latest"); err != nil {
+		if out, err := shell(true, "go", "get", *oLibc+libcVersion); err != nil {
 			t.Fatalf("%s\vFAIL: %v", out, err)
 		}
 	}
