@@ -2098,7 +2098,7 @@ out:
 			return c.stdatomicExchange(w, n, t, mode)
 		case "__atomic_compare_exchange":
 			// bool __atomic_compare_exchange (type *ptr, type *expected, type *desired, bool weak, int success_memorder, int failure_memorder)
-			return c.stdatomicCompareExchange(w, n, t, mode)
+			return c.stdatomicCompareExchange(w, n, c.ast.Int, mode)
 		}
 
 		switch mode {
@@ -2671,7 +2671,7 @@ func (c *ctx) stdatomicCompareExchange(w writer, n *cc.PostfixExpression, t cc.T
 	default:
 		c.err(errorf("%v: invalid first argument to atomic operation: pointer to %s", n.ArgumentExpressionList.Position(), et))
 	}
-	return &b, et, mode
+	return &b, c.ast.Int, mode
 }
 
 func (c *ctx) uintFromSize(sz int64) cc.Type {
