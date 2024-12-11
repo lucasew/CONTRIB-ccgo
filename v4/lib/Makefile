@@ -78,7 +78,7 @@ fftest:
 	git diff testdata/
 
 shorttest:
-	go test -v -timeout 36h -short -tags=ccgo.assert -trc -shelltimeout 1m 2>&1 | tee log-shorttest
+	go test -v -timeout 36h -short -failfast -tags=ccgo.assert -trc -shelltimeout 1m 2>&1 | tee log-shorttest
 	grep TOTAL log-shorttest
 	git status testdata
 	git diff testdata/
@@ -106,8 +106,7 @@ work:
 	rm -f go.work*
 	go work init
 	go work use ..
-	go work use ../../../cc/v4
-	go work use ../../../ccgo/v3
+	go work use ../../../ccorpus2/
 
 # 20241023 ppc64le
 bug:

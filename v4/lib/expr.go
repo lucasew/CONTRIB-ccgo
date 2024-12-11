@@ -347,6 +347,8 @@ func (c *ctx) convertType(n cc.ExpressionNode, s *buf, from, to cc.Type, fromMod
 			//TODO
 		default:
 			switch {
+			case cc.IsIntegerType(from) && cc.IsIntegerType(to) && (cc.IsSignedInteger(from) != cc.IsSignedInteger(to)):
+				b.w("(%s%s%sFrom%s(%s))", c.task.tlsQualifier, tag(preserve), c.helper(n, to), c.helper(n, from), s)
 			case !cc.IsComplexType(from) && !cc.IsComplexType(to):
 				b.w("(%s(%s))", c.verifyTyp(n, to), s)
 			default:
@@ -4094,7 +4096,7 @@ out:
 								break
 							}
 
-							b.w("(%s(%s))", c.verifyTyp(n, t), linkName)
+							b.w("(%s)", linkName)
 						default:
 							if isVolatileOrAtomicExpr {
 								rt = x.Type()
