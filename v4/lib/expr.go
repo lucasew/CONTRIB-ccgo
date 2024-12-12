@@ -2403,10 +2403,10 @@ func (c *ctx) objectSize(w writer, n *cc.PostfixExpression, t cc.Type, mode mode
 	}
 
 	switch {
-	case args[0].Type().Kind() == cc.Ptr:
+	case args[0].Type().Kind() == cc.Ptr, cc.IsIntegerType(args[0].Type()):
 		// ok
 	default:
-		c.err(errorf("%v: invalid first argument to __builtin_object_size: %s", n.ArgumentExpressionList.Position(), args[0].Type()))
+		c.err(errorf("%v: invalid type of first argument to __builtin_object_size: %s type %s", n.ArgumentExpressionList.Position(), cc.NodeSource(args[0]), args[0].Type()))
 		return &b, t, mode
 	}
 
@@ -2414,7 +2414,7 @@ func (c *ctx) objectSize(w writer, n *cc.PostfixExpression, t cc.Type, mode mode
 	case cc.IsIntegerType(args[1].Type()):
 		// ok
 	default:
-		c.err(errorf("%v: invalid second argument to __builtin_object_size: %s", n.ArgumentExpressionList.Position(), args[1].Type()))
+		c.err(errorf("%v: invalid type of second argument to __builtin_object_size: %s type %s", n.ArgumentExpressionList.Position(), cc.NodeSource(args[1]), args[1].Type()))
 		return &b, t, mode
 	}
 
@@ -2422,14 +2422,14 @@ func (c *ctx) objectSize(w writer, n *cc.PostfixExpression, t cc.Type, mode mode
 	switch x := args[1].Value().(type) {
 	case cc.Int64Value:
 		if x < 0 || x > 3 {
-			c.err(errorf("%v: invalid second argument to __builtin_object_size: %v", n.ArgumentExpressionList.Position(), args[1].Value()))
+			c.err(errorf("%v: invalid second argument to __builtin_object_size: %v", n.ArgumentExpressionList.Position(), cc.NodeSource(args[1])))
 			return &b, t, mode
 		}
 
 		k = int(x)
 	case cc.UInt64Value:
 		if x > 3 {
-			c.err(errorf("%v: invalid second argument to __builtin_object_size: %v", n.ArgumentExpressionList.Position(), args[1].Value()))
+			c.err(errorf("%v: invalid second argument to __builtin_object_size: %v", n.ArgumentExpressionList.Position(), cc.NodeSource(args[1])))
 			return &b, t, mode
 		}
 
