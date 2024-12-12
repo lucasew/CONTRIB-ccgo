@@ -2418,7 +2418,7 @@ func (c *ctx) objectSize(w writer, n *cc.PostfixExpression, t cc.Type, mode mode
 		return &b, t, mode
 	}
 
-	b.w("%s__builtin_object_size(%stls, 0, %s)", tag(external), c.task.tlsQualifier, c.expr(w, args[1], c.ast.Int, exprDefault))
+	b.w("%s__builtin_object_size(%stls, 0, %s)", tag(external), tag(ccgo), c.expr(w, args[1], c.ast.Int, exprDefault))
 	return &b, c.ast.SizeT, exprDefault
 }
 
