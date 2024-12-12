@@ -2418,7 +2418,30 @@ func (c *ctx) objectSize(w writer, n *cc.PostfixExpression, t cc.Type, mode mode
 		return &b, t, mode
 	}
 
-	b.w("%s__builtin_object_size(%stls, 0, %s)", tag(external), tag(ccgo), c.expr(w, args[1], c.ast.Int, exprDefault))
+	k := 0
+	switch x := args[1].Value().(type) {
+	case cc.Int64Value:
+		if x < 0 || x > 3 {
+			c.err(errorf("%v: invalid second argument to __builtin_object_size: %v", n.ArgumentExpressionList.Position(), args[1].Value()))
+			return &b, t, mode
+		}
+
+		k = int(x)
+	case cc.UInt64Value:
+		if x > 3 {
+			c.err(errorf("%v: invalid second argument to __builtin_object_size: %v", n.ArgumentExpressionList.Position(), args[1].Value()))
+			return &b, t, mode
+		}
+
+		k = int(x)
+	}
+
+	switch k {
+	case 0, 1:
+		b.w("(^%s__predefined_size_t(0))", tag(preserve))
+	default:
+		b.w("(0)")
+	}
 	return &b, c.ast.SizeT, exprDefault
 }
 
