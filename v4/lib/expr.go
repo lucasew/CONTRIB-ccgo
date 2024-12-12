@@ -2010,7 +2010,6 @@ out:
 
 		c.err(errorf("TODO %v", n.Case))
 	case cc.PostfixExpressionCall: // PostfixExpression '(' ArgumentExpressionList ')'
-		//TODO __builtin_object_size 28_strings.c on darwin/amd64
 		switch c.declaratorOf(n.PostfixExpression).Name() {
 		case
 			"__builtin_constant_p",
@@ -2073,6 +2072,9 @@ out:
 				c.err(errorf("internal error"))
 			}
 			return &b, n.Type(), mode
+		case "__builtin_object_size": // 28_strings.c on darwin/amd64
+			// size_t __builtin_object_size (void *ptr, int type);
+			return c.objectSize(w, n, t, mode)
 		case "longjmp":
 			jb := c.expr(w, n.ArgumentExpressionList.AssignmentExpression, c.pvoid, exprDefault)
 			val := c.expr(w, n.ArgumentExpressionList.ArgumentExpressionList.AssignmentExpression, c.ast.Int, exprDefault)
@@ -2357,6 +2359,67 @@ func (c *ctx) sameSignednessIntegers(n ...cc.Type) bool {
 		}
 	}
 	return true
+}
+
+func (c *ctx) objectSize(w writer, n *cc.PostfixExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
+	// Built-in Function: size_t __builtin_object_size (const void * ptr, int type)
+	//
+	// is a built-in construct that returns a constant number of bytes from ptr to
+	// the end of the object ptr pointer points to (if known at compile time). To
+	// determine the sizes of dynamically allocated objects the function relies on
+	// the allocation functions called to obtain the storage to be declared with
+	// the alloc_size attribute (see Common Function Attributes).
+	// __builtin_object_size never evaluates its arguments for side effects. If
+	// there are any side effects in them, it returns (size_t) -1 for type 0 or 1
+	// and (size_t) 0 for type 2 or 3. If there are multiple objects ptr can point
+	// to and all of them are known at compile time, the returned number is the
+	// maximum of remaining byte counts in those objects if type & 2 is 0 and
+	// minimum if nonzero. If it is not possible to determine which objects ptr
+	// points to at compile time, __builtin_object_size should return (size_t) -1
+	// for type 0 or 1 and (size_t) 0 for type 2 or 3.
+	//
+	// type is an integer constant from 0 to 3. If the least significant bit is
+	// clear, objects are whole variables, if it is set, a closest surrounding
+	// subobject is considered the object a pointer points to. The second bit
+	// determines if maximum or minimum of remaining bytes is computed.
+	//
+	//	struct V { char buf1[10]; int b; char buf2[10]; } var;
+	//	char *p = &var.buf1[1], *q = &var.b;
+	//
+	//	/* Here the object p points to is var.  */
+	//	assert (__builtin_object_size (p, 0) == sizeof (var) - 1);
+	//	/* The subobject p points to is var.buf1.  */
+	//	assert (__builtin_object_size (p, 1) == sizeof (var.buf1) - 1);
+	//	/* The object q points to is var.  */
+	//	assert (__builtin_object_size (q, 0)
+	//	        == (char *) (&var + 1) - (char *) &var.b);
+	//	/* The subobject q points to is var.b.  */
+	//	assert (__builtin_object_size (q, 1) == sizeof (var.b));
+	var b buf
+	args := argumentExpressionList(n.ArgumentExpressionList)
+	if len(args) != 2 {
+		c.err(errorf("%v: invalid number of arguments to __builtin_object_size", n.ArgumentExpressionList.Position()))
+		return &b, t, mode
+	}
+
+	switch {
+	case args[0].Type().Kind() == cc.Ptr:
+		// ok
+	default:
+		c.err(errorf("%v: invalid first argument to __builtin_object_size: %s", n.ArgumentExpressionList.Position(), args[0].Type()))
+		return &b, t, mode
+	}
+
+	switch {
+	case cc.IsIntegerType(args[1].Type()):
+		// ok
+	default:
+		c.err(errorf("%v: invalid second argument to __builtin_object_size: %s", n.ArgumentExpressionList.Position(), args[1].Type()))
+		return &b, t, mode
+	}
+
+	b.w("%s__builtin_object_size(%stls, 0, %s)", tag(external), c.task.tlsQualifier, c.expr(w, args[1], c.ast.Int, exprDefault))
+	return &b, c.ast.SizeT, exprDefault
 }
 
 func (c *ctx) addOverflow(w writer, n *cc.PostfixExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
