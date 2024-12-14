@@ -891,6 +891,7 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 	nm := l.task.packageName
 	if nm == "" {
 		nm = "main"
+		l.task.packageName = nm
 	}
 	l.prologue(nm)
 	if !l.task.header {
@@ -901,7 +902,6 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 		default:
 			l.w("\n\t%s \"reflect\"", nm)
 		}
-		rtDummy := ""
 		switch nm := l.unsafeName; nm {
 		case "unsafe":
 			l.w("\n\t\"unsafe\"")
@@ -932,12 +932,10 @@ func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object
 		l.w("\n)")
 		l.w(`
 
-var (
-	_ %s.Type
-	_ %s.Pointer
-%s)
+var _ %s.Type
+var _ %s.Pointer
 
-`, l.reflectName, l.unsafeName, rtDummy)
+`, l.reflectName, l.unsafeName)
 	}
 
 	for _, linkFile := range linkFiles {
@@ -1233,6 +1231,9 @@ func (l *linker) postProcess(fn string, b []byte) (r []byte) {
 		}
 	})
 
+	if !l.task.noMainMinimize && l.task.packageName == "main" {
+		l.minimizeMain(src, pkg)
+	}
 	return src.Source(true)
 }
 
@@ -1244,6 +1245,7 @@ func (l *linker) walk(v any, fn func(any)) {
 		}
 
 		if _, ok := x.(gc.Token); ok {
+			fn(x)
 			return
 		}
 
@@ -1294,6 +1296,163 @@ func (l *linker) walk(v any, fn func(any)) {
 			}
 		}
 	}
+}
+
+func nodeName(n gc.Node) string {
+	switch x := n.(type) {
+	case *gc.FunctionDecl:
+		return x.FunctionName.Src()
+	case *gc.AliasDecl:
+		return x.Ident.Src()
+	case *gc.Variable:
+		return x.Ident.Src()
+	case *gc.Constant:
+		return x.Ident.Src()
+	case *gc.VarDecl:
+		for _, v := range x.VarSpecs {
+			for _, w := range v.IdentifierList {
+				return w.Ident.Src()
+			}
+		}
+	case *gc.ConstDecl:
+		for _, v := range x.ConstSpecs {
+			for _, w := range v.IdentifierList {
+				return w.Ident.Src()
+			}
+		}
+	case *gc.TypeDecl:
+		for _, v := range x.TypeSpecs {
+			switch y := v.(type) {
+			case *gc.AliasDecl:
+				return y.Ident.Src()
+			case *gc.TypeDef:
+				return y.Ident.Src()
+			}
+		}
+	case gc.Token:
+		return x.Src()
+	}
+	return ""
+}
+
+func (l *linker) minimizeMain(src *gc.SourceFile, pkg *gc.Package) {
+	tlds := map[gc.Node]struct{}{}
+	name2tld := map[string]gc.Node{}
+	for _, v := range src.TopLevelDecls {
+		tlds[v] = struct{}{}
+		name2tld[nodeName(v)] = v
+	}
+	for _, v := range pkg.Scope.Nodes {
+		tlds[v.Node] = struct{}{}
+		name2tld[nodeName(v.Node)] = v.Node
+	}
+	var roots []gc.Node
+	for _, v := range pkg.SourceFiles[0].TopLevelDecls {
+		switch x := v.(type) {
+		case *gc.FunctionDecl:
+			switch x.FunctionName.Src() {
+			case "init", "main":
+				roots = append(roots, x)
+			}
+		default:
+			if nodeName(x) == "_" {
+				roots = append(roots, x)
+			}
+		}
+	}
+	need := map[string]struct{}{}
+	for ; len(roots) != 0; roots = roots[1:] {
+		root := roots[0]
+		nm := nodeName(root)
+		if _, ok := need[nm]; ok {
+			if _, ok := root.(*gc.FunctionDecl); !ok || nm != "init" && nm != "_" {
+				continue
+			}
+		}
+
+		need[nm] = struct{}{}
+
+		l.walk(root, func(v any) {
+			switch x := v.(type) {
+			case reflect.Value:
+				if x == zeroReflectValue || x.IsZero() {
+					return
+				}
+
+				switch y := x.Interface().(type) {
+				case *gc.Ident:
+					switch z := y.ResolvedTo().(type) {
+					case nil, gc.PredefinedType:
+						// ok
+					case *gc.FunctionDecl:
+						if _, ok := tlds[z]; ok {
+							roots = append(roots, z)
+						}
+					case *gc.Variable:
+						if sc := z.LexicalScope(); sc != nil && sc == pkg.Scope {
+							roots = append(roots, z)
+						}
+					case *gc.Constant:
+						if _, ok := tlds[z]; ok {
+							roots = append(roots, z)
+						}
+					case *gc.AliasDecl:
+						if sc := z.LexicalScope(); sc != nil && sc == pkg.Scope {
+							roots = append(roots, z)
+						}
+					case *gc.TypeDef:
+						if sc := z.LexicalScope(); sc != nil && sc == pkg.Scope {
+							roots = append(roots, z)
+						}
+					}
+				case *gc.TypeNameNode:
+					switch z := y.Name.ResolvedTo().(type) {
+					case nil, gc.PredefinedType:
+						// ok
+					case *gc.AliasDecl:
+						if sc := z.LexicalScope(); sc != nil && sc == pkg.Scope {
+							roots = append(roots, z)
+						}
+					}
+				case *gc.QualifiedIdent:
+					if y.PackageName.IsValid() {
+						break
+					}
+
+					switch z := y.ResolvedTo().(type) {
+					case nil:
+						if n, ok := name2tld[y.Ident.Src()]; ok {
+							roots = append(roots, n)
+						}
+					case gc.PredefinedType:
+						// ok
+					case *gc.AliasDecl:
+						if sc := z.LexicalScope(); sc != nil && sc == pkg.Scope {
+							roots = append(roots, z)
+						}
+					}
+				case gc.Token:
+					nm := y.Src()
+					if nm == "init" {
+						break
+					}
+
+					if n, ok := name2tld[nm]; ok {
+						roots = append(roots, n)
+					}
+				}
+			}
+		})
+	}
+	w := 0
+	for _, v := range src.TopLevelDecls {
+		nm := nodeName(v)
+		if _, ok := need[nm]; ok {
+			src.TopLevelDecls[w] = v
+			w++
+		}
+	}
+	src.TopLevelDecls = src.TopLevelDecls[:w]
 }
 
 var _ gc.PackageChecker = &checker{}

@@ -605,8 +605,17 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 
 		trc("%s\nFAIL: %v", shOut, err)
 		trc("`%s`: {}, // BUILD FAIL: %v", fullPath, firstError(err, true))
+		if *oTraceF {
+			b, _ := os.ReadFile(ofn)
+			fmt.Printf("\n----\n%s\n----\n", b)
+		}
 		p.err(err)
 		return firstError(err, *oErr1)
+	}
+
+	if *oTraceF {
+		b, _ := os.ReadFile(ofn)
+		fmt.Printf("\n----\n%s\n----\n", b)
 	}
 
 	goOut, err := shell(false, "./"+bin, args...)
@@ -930,6 +939,8 @@ func TestCSmith(t *testing.T) {
 
 		//TODO linux/riscv64
 		"--max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --bitfields -s 1714958724",
+		//TODO linux/ppc64le
+		"--max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --bitfields -s 8032246412188002",
 	}
 	var ch <-chan time.Time
 	t0 := time.Now()
