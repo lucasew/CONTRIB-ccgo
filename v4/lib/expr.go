@@ -2438,7 +2438,7 @@ func (c *ctx) objectSize(w writer, n *cc.PostfixExpression, t cc.Type, mode mode
 
 	switch k {
 	case 0, 1:
-		b.w("(^%s__predefined_size_t(0))", tag(preserve))
+		b.w("(^%s__predefined_size_t(0))", tag(typename))
 	default:
 		b.w("(0)")
 	}
