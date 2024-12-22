@@ -529,7 +529,7 @@ func (c *ctx) compile(ifn, ofn string) (err error) {
 		switch d := c.externsDeclared[k]; t := d.Type().(type) {
 		case *cc.FunctionType:
 			if s := c.signature(t, false, false, false); s != "" {
-				c.w("\n\nfunc %s%s%s", tag(meta), k, c.signature(t, false, false, false))
+				c.w("\n\nfunc %s%s%s", tag(meta), k, s)
 			}
 		default:
 			c.w("\n\nvar %s%s %s", tag(meta), k, c.typ2(d, t, false))
