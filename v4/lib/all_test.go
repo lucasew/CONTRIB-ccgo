@@ -67,7 +67,7 @@ var (
 	goos        = runtime.GOOS
 	hostCC      string
 	libcVersion string                                   // from ../go.mod, eg. @v1.61.2
-	nogcc       = goos == "windows" && goarch == "arm64" // We have no 32b mingw-gcc binary targeting windows/amd64 bit yet.
+	noCsmith    = goos == "windows" && goarch == "arm64"
 	re          *regexp.Regexp
 	target      = fmt.Sprintf("%s/%s", goos, goarch)
 	totalMemory = memory.TotalMemory()
@@ -321,10 +321,6 @@ func shell(echo bool, cmd string, args ...string) ([]byte, error) {
 }
 
 func TestExec(t *testing.T) {
-	if nogcc {
-		t.Skip()
-	}
-
 	g := newGolden(t, fmt.Sprintf("testdata/test_exec_%s_%s.golden", runtime.GOOS, runtime.GOARCH))
 
 	defer g.close()
@@ -537,6 +533,7 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 				"-c",
 				"-verify-types",
 				"--prefix-field=F",
+				"-ignore-unsupported-alignment",
 				"-ignore-vector-functions",
 				"-keep-object-files",
 				// "--libc", *oLibc,
@@ -553,6 +550,7 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 				"-o", ofn,
 				"-verify-types",
 				"--prefix-field=F",
+				"-ignore-unsupported-alignment",
 				"-ignore-vector-functions",
 				"-keep-object-files",
 				"-positions",
@@ -798,7 +796,7 @@ func (g *golden) close() {
 }
 
 func TestCSmith(t *testing.T) {
-	if nogcc {
+	if noCsmith {
 		t.Skip()
 	}
 
