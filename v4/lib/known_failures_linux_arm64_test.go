@@ -18,6 +18,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/whitespace.c`:                                         {}, // EXEC FAIL: "assets/github.com/vnmakarov/mir/c-tests/lacc/whitespace.c: Hello"
 	`assets/github.com/vnmakarov/mir/c-tests/new/setjmp.c`:                                              {}, // EXEC FAIL: "assets/github.com/vnmakarov/mir/c-tests/new/setjmp.c: libc.go:2142:Xlongjmp: TODOTODO "
 	`assets/github.com/vnmakarov/mir/c-tests/new/setjmp2.c`:                                             {}, // EXEC FAIL: "assets/github.com/vnmakarov/mir/c-tests/new/setjmp2.c: libc.go:2142:Xlongjmp: TODOTODO "
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36093.c`:                                    {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36093.c: panic: 544
 
 	// BUILD FAIL - compiles but does not build.
 

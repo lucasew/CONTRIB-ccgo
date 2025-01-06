@@ -69,6 +69,8 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/string-conversion.c`:                                  {}, // EXEC FAIL
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/vararg-complex-2.c`:                                   {}, // EXEC FAIL
 
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36093.c`: {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36093.c: panic: 544
+
 	// ==== BUILD FAIL - compiles but does not build.
 
 	`assets/benchmarksgame-team.pages.debian.net/reverse-complement-4.c`: {}, // BUILD FAIL: "exit status 1"

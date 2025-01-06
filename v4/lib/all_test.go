@@ -66,7 +66,7 @@ var (
 	goarch      = runtime.GOARCH
 	goos        = runtime.GOOS
 	hostCC      string
-	libcVersion string                                   // from ../go.mod, eg. @v1.61.2
+	libcVersion string // from ../go.mod, eg. @v1.61.2
 	noCsmith    = goos == "windows" && goarch == "arm64"
 	re          *regexp.Regexp
 	target      = fmt.Sprintf("%s/%s", goos, goarch)

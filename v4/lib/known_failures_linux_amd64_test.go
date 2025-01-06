@@ -42,6 +42,9 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/macro-paste.c`: {},
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/whitespace.c`:  {},
 
+	// Won't fix, unsupported alignment
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36093.c`: {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36093.c: panic: 544
+
 	// ==== BUILD FAIL - compiles but does not build.
 
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/alias-3.c`:                 {}, // BUILD FAIL: "exit status 1"
@@ -280,6 +283,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr58164.c`:                                    {}, // COMPILE FAIL: "\"TODO <nil> (asm_amd64.s:1650:goexit: compile.go:433:compile: decl.go:294:externalDeclaration: decl.go:322:functionDefinition: decl.go:344:functionDefinition0: decl.go:101:newFnCtx:)\""
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr60502.c`:                                    {}, // COMPILE FAIL: "\"pr60502.c:9:16: unsupported vector type: v16i8 (expr.go:115:expr: expr.go:169:convert: expr.go:329:convertType: type.go:60:verifyTyp: type.go:65:typ0: type.go:455:isValidType1:)\""
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr70199.c`:                                    {}, // COMPILE FAIL: "\"TODO <nil> (asm_amd64.s:1650:goexit: compile.go:433:compile: decl.go:294:externalDeclaration: decl.go:322:functionDefinition: decl.go:344:functionDefinition0: decl.go:101:newFnCtx:)\""
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr70355.c`:                                    {}, // COMPILE FAIL: "\"TODO vector (compile.go:478:compile: decl.go:298:externalDeclaration: decl.go:985:declaration: decl.go:1150:initDeclarator: type.go:18:typedef: type.go:89:typ0:)\""
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr70633.c`:                                    {}, // COMPILE FAIL: "\"pr70633.c:10:5: unsupported vector type: V (decl.go:384:functionDefinition0: stmt.go:261:compoundStatement: decl.go:227:declareLocals: type.go:42:typ: type.go:65:typ0: type.go:455:isValidType1:)\""
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr70916.c`:                                    {}, // COMPILE FAIL: "\"-: TODO (expr.go:3444:assignmentExpression: expr.go:101:expr: expr.go:506:expr0: expr.go:914:conditionalExpression: expr.go:70:topExpr: expr.go:85:expr:)\""
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/pr71109.c`:                                    {}, // COMPILE FAIL: "\"pr71109.c:15:7: too few arguments to function 'foo', type 'function(int, struct S, struct T)' in 'foo (bar, a)' (stmt.go:38:statement: expr.go:70:topExpr: expr.go:101:expr: expr.go:522:expr0: expr.go..."
