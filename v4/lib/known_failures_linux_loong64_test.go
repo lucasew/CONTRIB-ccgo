@@ -582,6 +582,4 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/tcc-0.9.27/tests/tests2/87_dead_code.c`:                                             {}, // COMPILE FAIL: "\"87_dead_code.c: gofmt: exit status 2 (.:0:: asm_loong64.s:640:goexit: asm_loong64.s:640:goexit: asm_loong64.s:640:goexit: compile.go:495:compile: compile.go:495:compile:)\""
 	`assets/tcc-0.9.27/tests/tests2/95_bitfields.c`:                                             {}, // COMPILE FAIL: "\"95_bitfields.c:27:5: unsupported alignment 16 of char (expr.go:101:expr: expr.go:537:expr0: expr.go:1665:unaryExpression: type.go:400:isValidType: type.go:412:isValidType: type.go:431:isValidType1:)\""
 	`assets/tcc-0.9.27/tests/tests2/95_bitfields_ms.c`:                                          {}, // COMPILE FAIL: "\"95_bitfields.c:27:5: unsupported alignment 16 of char (expr.go:101:expr: expr.go:537:expr0: expr.go:1665:unaryExpression: type.go:400:isValidType: type.go:412:isValidType: type.go:431:isValidType1:)\""
-
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36093.c`: {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36093.c: panic: 544
 }

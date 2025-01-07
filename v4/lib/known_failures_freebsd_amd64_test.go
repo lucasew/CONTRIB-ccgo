@@ -439,6 +439,4 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/tcc-0.9.27/tests/tests2/95_bitfields.c`:                                             {}, // COMPILE FAIL: "\"95_bitfields.c:27:5: unsupported alignment 16 of char (expr.go:101:expr: expr.go:543:expr0: expr.go:1672:unaryExpression: type.go:395:isValidType: type.go:407:isValidType: type.go:426:isValidType1:)\""
 	`assets/tcc-0.9.27/tests/tests2/95_bitfields_ms.c`:                                          {}, // COMPILE FAIL: "\"95_bitfields.c:27:5: unsupported alignment 16 of char (expr.go:101:expr: expr.go:543:expr0: expr.go:1672:unaryExpression: type.go:395:isValidType: type.go:407:isValidType: type.go:426:isValidType1:)\""
 	`assets/tcc-0.9.27/tests/tests2/98_al_ax_extend.c`:                                          {}, // COMPILE FAIL: "98_al_ax_extend.o.go:312:23: undefined: \"_us\" external (all_test.go:437:1: all_test.go:524:testExec1: ccgo.go:186:Main: ccgo.go:595:main: link.go:302:link: link.go:826:link:)"
-
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36093.c`: {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36093.c: panic: 544
 }

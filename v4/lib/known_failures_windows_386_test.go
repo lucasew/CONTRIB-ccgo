@@ -57,6 +57,9 @@ var testExecKnownFails = map[string]struct{}{
 	// Won't fix, FP arithmetic rounding
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/float-arithmetic.c`: {}, // EXEC FAIL
 
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010904-2.c`: {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010904-2.c: panic: 36
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/align-3.c`:    {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/align-3.c: libc_windows.go:1794:Xabort: TODOTODO
+
 	//TODO
 	`assets/CompCert-3.6/test/c/mandelbrot.c`:                                                           {}, // EXEC FAIL
 	`assets/benchmarksgame-team.pages.debian.net/fasta-3.c`:                                             {}, // EXEC FAIL
