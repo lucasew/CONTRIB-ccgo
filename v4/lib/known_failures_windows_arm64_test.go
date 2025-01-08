@@ -28,6 +28,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/tcc-0.9.27/tests/tests2/73_arm64.c`:                                                         {}, // EXEC FAIL: assets/tcc-0.9.27/tests/tests2/73_arm64.c: Arguments:
 	`assets/tcc-0.9.27/tests/tests2/95_bitfields.c`:                                                     {}, // EXEC FAIL: assets/tcc-0.9.27/tests/tests2/95_bitfields.c: ---- TEST 1 ----
 	`assets/tcc-0.9.27/tests/tests2/95_bitfields_ms.c`:                                                  {}, // EXEC FAIL: assets/tcc-0.9.27/tests/tests2/95_bitfields_ms.c: ---- TEST 1 - MS-BITFIELDS ----
+	`assets/benchmarksgame-team.pages.debian.net/reverse-complement-2.c`:                                {}, // EXEC FAIL: assets/benchmarksgame-team.pages.debian.net/reverse-complement-2.c: unexpected fault address 0x234ef8fffff
 
 	// ==== BUILD FAIL - compiles but does not build.
 
