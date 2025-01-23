@@ -11,12 +11,15 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/benchmarksgame-team.pages.debian.net/fasta-3.c`:                                             {}, // EXEC FAIL: assets/benchmarksgame-team.pages.debian.net/fasta-3.c: >ONE Homo sapiens alu
 	`assets/benchmarksgame-team.pages.debian.net/fasta-8.c`:                                             {}, // EXEC FAIL: assets/benchmarksgame-team.pages.debian.net/fasta-8.c: >ONE Homo sapiens alu
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-9.c`:                                        {}, // EXEC FAIL
+	`assets/benchmarksgame-team.pages.debian.net/reverse-complement-2.c`:                                {}, // EXEC FAIL: assets/benchmarksgame-team.pages.debian.net/reverse-complement-2.c: unexpected fault address 0x234ef8fffff
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/align-3.c`:                                    {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/align-3.c: libc_windows.go:1794:Xabort: TODOTODO
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c`:                 {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c: libc_windows.go:1794:Xabort: TODOTODO
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36093.c`:                                    {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36093.c: panic: 544
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36321.c`:                                    {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36321.c: libc_windows.go:1794:Xabort: TODOTODO
 	`assets/github.com/AbsInt/CompCert/test/c/mandelbrot.c`:                                             {}, // EXEC FAIL
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/align-3.c`:                    {}, // EXEC FAIL: assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/align-3.c: libc_windows.go:1794:Xabort: TODOTODO
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c`: {}, // EXEC FAIL: assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c: libc_windows.go:1794:Xabort: TODOTODO
+	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr36321.c`:                    {}, // EXEC FAIL: assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr36321.c: libc_windows.go:1794:Xabort: TODOTODO
 	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/return-addr.c`:                {}, // EXEC FAIL
 	`assets/github.com/vnmakarov/mir/c-benchmarks/mandelbrot.c`:                                         {}, // EXEC FAIL
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-pack-next.c`:                                 {}, // EXEC FAIL
@@ -28,8 +31,6 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/tcc-0.9.27/tests/tests2/73_arm64.c`:                                                         {}, // EXEC FAIL: assets/tcc-0.9.27/tests/tests2/73_arm64.c: Arguments:
 	`assets/tcc-0.9.27/tests/tests2/95_bitfields.c`:                                                     {}, // EXEC FAIL: assets/tcc-0.9.27/tests/tests2/95_bitfields.c: ---- TEST 1 ----
 	`assets/tcc-0.9.27/tests/tests2/95_bitfields_ms.c`:                                                  {}, // EXEC FAIL: assets/tcc-0.9.27/tests/tests2/95_bitfields_ms.c: ---- TEST 1 - MS-BITFIELDS ----
-	`assets/benchmarksgame-team.pages.debian.net/reverse-complement-2.c`:                                {}, // EXEC FAIL: assets/benchmarksgame-team.pages.debian.net/reverse-complement-2.c: unexpected fault address 0x234ef8fffff
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36321.c`:                                    {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36321.c: libc_windows.go:1794:Xabort: TODOTODO
 
 	// ==== BUILD FAIL - compiles but does not build.
 
