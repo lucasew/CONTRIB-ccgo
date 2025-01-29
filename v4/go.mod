@@ -6,14 +6,14 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
 	github.com/pmezard/go-difflib v1.0.0
-	golang.org/x/mod v0.19.0
-	golang.org/x/tools v0.23.0
+	golang.org/x/mod v0.19.0 // *
+	golang.org/x/tools v0.23.0 // *
 	modernc.org/cc/v4 v4.24.4
 	modernc.org/ccgo/v3 v3.17.0
 	modernc.org/ccorpus2 v1.5.2
 	modernc.org/fileutil v1.3.0
-	modernc.org/gc/v2 v2.6.2
-	modernc.org/libc v1.61.9
+	modernc.org/gc/v2 v2.6.3
+	modernc.org/libc v1.61.10
 	modernc.org/mathutil v1.7.1
 	modernc.org/opt v0.1.4
 	modernc.org/strutil v1.2.1
