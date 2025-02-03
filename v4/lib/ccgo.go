@@ -356,7 +356,6 @@ func (t *Task) main() (err error) {
 	set.Opt("pthread", func(arg string) error { t.pthread = true; t.cfgArgs = append(t.cfgArgs, arg); return nil })
 	set.Opt("unsigned-enums", func(arg string) error { t.unsignedEnums = true; return nil })
 	set.Opt("verify-types", func(arg string) error { t.verifyTypes = true; return nil })
-	set.Opt("verify-types", func(arg string) error { t.verifyTypes = true; return nil })
 	set.Opt("-winapi-no-errno", func(arg string) error { t.winapiNoErrno = true; return nil })
 
 	// Ignored
