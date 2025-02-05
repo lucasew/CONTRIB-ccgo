@@ -881,7 +881,8 @@ func TestCSmith(t *testing.T) {
 
 	// Other blacklist
 	blacklist := []struct{ target, seed string }{
-		{"linux/ppc64le", "8032246412188002"}, // gcc 10.2.1 bug.
+		{"linux/ppc64le", "8032246412188002"}, // false positive: gcc 10.2.1 bug.
+		{"linux/ppc64le", "3088696074888013"}, // TODO https://gitlab.com/cznic/builder/-/tree/91efcffac0cf3a1618f47d117864b76435ed87a2/logs/modernc.org/ccgo/v4/lib
 	}
 
 	fixedBugs := []string{
@@ -925,7 +926,9 @@ func TestCSmith(t *testing.T) {
 		"--bitfields --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --max-nested-struct-level 10 -s 3629008936",
 		"--bitfields --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --max-nested-struct-level 10 -s 612971101",
 		"--max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --bitfields -s 1701143130",
+		"--max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --bitfields -s 1714958724",
 		"--max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --bitfields -s 20004725738999789",
+		"--max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --bitfields -s 3088696074888013",
 		"--max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --bitfields -s 3654957324",
 		"--max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --bitfields -s 8032246412188002",
 		"--no-bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 1302111308",
@@ -934,11 +937,6 @@ func TestCSmith(t *testing.T) {
 		"--no-bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 3720922579",
 		"--no-bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 4263172072",
 		"--no-bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 572192313",
-
-		//TODO linux/riscv64
-		"--max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --bitfields -s 1714958724",
-		//TODO linux/ppc64le
-		"--max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --bitfields -s 8032246412188002",
 	}
 	var ch <-chan time.Time
 	t0 := time.Now()
@@ -951,7 +949,6 @@ out:
 		switch {
 		case i < len(fixedBugs):
 			s := fixedBugs[i]
-			trc("", s)
 			if re != nil && !re.MatchString(s) {
 				continue
 			}
