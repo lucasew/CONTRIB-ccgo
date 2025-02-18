@@ -58,7 +58,7 @@ editor:
 	go install -v -tags=ccgo.assert,ccgo.dmesg modernc.org/ccgo/v4
 	staticcheck
 
-shorttest:
+test shorttest:
 	go test -v -timeout 36h -short -failfast -tags=ccgo.assert -trc -shelltimeout 1m
 	git status testdata
 	git diff testdata/
