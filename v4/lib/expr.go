@@ -2109,9 +2109,9 @@ out:
 			case *cc.StructType:
 				return c.postfixExpressionCall(w, n, mode)
 			case *cc.UnionType:
-				v := fmt.Sprintf("%sv%d", tag(ccgoAutomatic), c.id())
+				v := c.f.newAutovar(n, n.Type())
 				e, _, _ := c.postfixExpressionCall(w, n, mode)
-				w.w("%s := %s;", v, e)
+				w.w("%s = %s;", v, e)
 				b.w("%s", v)
 				return &b, n.Type(), mode
 			}
