@@ -184,14 +184,14 @@ func (o *object) collectConsts(file *gc.SourceFile) (consts map[string]string, e
 }
 
 func (t *Task) link() (err error) {
-	// 	if dmesgs {
-	// 		dmesg("%v: t.linkFiles %v", origin(1), t.linkFiles)
-	// 		defer func() {
-	// 			if err != nil {
-	// 				dmesg("", errorf("", err))
-	// 			}
-	//		}()
-	//	}
+	// if dmesgs {
+	// 	dmesg("%v: t.linkFiles %v", origin(1), t.linkFiles)
+	// 	defer func() {
+	// 		if err != nil {
+	// 			dmesg("", errorf("", err))
+	// 		}
+	// 	}()
+	// }
 
 	if len(t.inputFiles)+len(t.linkFiles) == 0 {
 		return errorf("no input files")
@@ -228,6 +228,9 @@ func (t *Task) link() (err error) {
 		var object *object
 		switch {
 		case strings.HasPrefix(v, "-l="):
+			// if dmesgs {
+			// 	dmesg("v=%q t.L=%q", v, t.L)
+			// }
 			for _, prefix := range t.L {
 				switch {
 				case strings.HasPrefix(prefix, "/"): // -L/foo/bar
@@ -241,10 +244,17 @@ func (t *Task) link() (err error) {
 					}
 
 					// -Lexample.com/foo
+				case !strings.Contains(prefix, "."): // -Lfoo
+					continue
+				default:
+					// -Lexample.com
 				}
 
 				lib := "lib" + v[len("-l="):]
 				ip := prefix + "/" + lib
+				// if dmesgs {
+				// 	dmesg("lib=%q ip=%q defaultLibs=%q", lib, ip, defaultLibs)
+				// }
 				if prefix == defaultLibs && lib == "libc" {
 					ip = t.libc
 				}
@@ -306,9 +316,9 @@ func (t *Task) link() (err error) {
 }
 
 func (t *Task) getPkgSymbols(importPath string) (r *object, err error) {
-	if dmesgs {
-		dmesg("==== import %q t.goos=%v t.goarch=%v", importPath, t.goos, t.goarch)
-	}
+	// if dmesgs {
+	// 	dmesg("==== import %q t.goos=%v t.goarch=%v", importPath, t.goos, t.goarch)
+	// }
 	// if dmesgs {
 	// 	defer func() {
 	// 		switch {
@@ -702,15 +712,15 @@ func (l *linker) registerLibAliases(obj *object) error {
 }
 
 func (l *linker) link(ofn string, linkFiles []string, objects map[string]*object) (err error) {
-	//	if dmesgs {
-	//		dmesg("packageName=%v inputFiles=%v inputArchives=%v linkFiles=%v", l.task.packageName, l.task.inputFiles, l.task.inputArchives, linkFiles)
-	// 		dmesg("link(%q, %q)", ofn, linkFiles)
-	// 		defer func() {
-	// 			if err != nil {
-	// 				dmesg("", errorf("", err))
-	// 			}
-	//		}()
-	//	}
+	// if dmesgs {
+	// 	dmesg("packageName=%v inputFiles=%v inputArchives=%v linkFiles=%v", l.task.packageName, l.task.inputFiles, l.task.inputArchives, linkFiles)
+	// 	dmesg("link(%q, %q)", ofn, linkFiles)
+	// 	defer func() {
+	// 		if err != nil {
+	// 			dmesg("", errorf("", err))
+	// 		}
+	// 	}()
+	// }
 
 	// ccgo -o libfoo.go libfoo.a
 	handleLibAliases := (l.task.packageName != "" && l.task.packageName != "main") && len(l.task.inputFiles) == 0 && len(l.task.inputArchives) == 1

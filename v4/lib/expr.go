@@ -2191,6 +2191,18 @@ out:
 					w.w("(*(*%s)(%s))++;", c.typ(n, n.PostfixExpression.Type()), unsafePointer(v2))
 					b.w("%s", v)
 				}
+			case exprUintptr:
+				switch {
+				case d != nil:
+					sz := pe.(*cc.PointerType).Elem().Undecay().Size()
+					v := c.f.newAutovar(n, n.PostfixExpression.Type())
+					ds := c.expr(w, n.PostfixExpression, nil, exprDefault)
+					w.w("%s = %s;", v, ds)
+					w.w("%s += %d;", ds, sz)
+					b.w("%s", v)
+				default:
+					c.err(errorf("TODO %v", mode)) // -
+				}
 			default:
 				c.err(errorf("TODO %v", mode)) // -
 			}

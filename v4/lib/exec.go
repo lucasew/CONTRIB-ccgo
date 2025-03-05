@@ -282,9 +282,10 @@ func (t *Task) ln(execLN, hostLN string) error {
 	set := opt.NewSet()
 	var args []string
 	files := 0
+	set.Opt("f", func(arg string) error { args = append(args, arg); return nil })
+	set.Opt("fs", func(arg string) error { args = append(args, arg); return nil })
 	set.Opt("s", func(arg string) error { args = append(args, arg); return nil })
 	set.Opt("sf", func(arg string) error { args = append(args, arg); return nil })
-	set.Opt("fs", func(arg string) error { args = append(args, arg); return nil })
 	if err := set.Parse(t.args[1:], func(arg string) error {
 		if strings.HasPrefix(arg, "-") {
 			// 			if dmesgs {
@@ -693,6 +694,7 @@ func (t *Task) ar(execAR, hostAR string) (err error) {
 
 					out += sc
 				case
+					"D", // deterministic mode
 					"s", // add index
 					"t": // display content
 

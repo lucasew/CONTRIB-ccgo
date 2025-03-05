@@ -123,6 +123,7 @@ type Task struct {
 	header                       bool // -header
 	ignoreAsmErrors              bool // -ignore-asm-errors
 	ignoreLinkErrors             bool // -ignore-link-errors
+	ignoreNegativeShiftAmounts   bool // -ignore-negative-shift-amounts
 	ignoreUnsupportedAligment    bool // -ignore-unsupported-alignment
 	ignoreUnsupportedAtomicSizes bool // -ignore-unsupported-atomic-sizes
 	ignoreVectorFunctions        bool // -ignore-vector-functions
@@ -338,6 +339,7 @@ func (t *Task) main() (err error) {
 	set.Opt("header", func(arg string) error { t.header = true; return nil })
 	set.Opt("ignore-asm-errors", func(arg string) error { t.ignoreAsmErrors = true; return nil })
 	set.Opt("ignore-link-errors", func(arg string) error { t.ignoreLinkErrors = true; return nil })
+	set.Opt("ignore-negative-shift-amounts", func(arg string) error { t.ignoreNegativeShiftAmounts = true; return nil })
 	set.Opt("ignore-unsupported-alignment", func(arg string) error { t.ignoreUnsupportedAligment = true; return nil })
 	set.Opt("ignore-unsupported-atomic-sizes", func(arg string) error { t.ignoreUnsupportedAtomicSizes = true; return nil })
 	set.Opt("ignore-vector-functions", func(arg string) error { t.ignoreVectorFunctions = true; return nil })
@@ -561,6 +563,7 @@ func (t *Task) main() (err error) {
 	// if dmesgs {
 	// 	dmesg("cfg.Predefined=%s", cfg.Predefined)
 	// }
+	cfg.IgnoreNegativeShiftAmounts = t.ignoreNegativeShiftAmounts
 	cfg.UnsignedEnums = t.unsignedEnums
 	cfg.EvalAllMacros = t.evalAllMacros
 	if ldflag == "" {
