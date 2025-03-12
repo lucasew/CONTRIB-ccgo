@@ -412,6 +412,7 @@ assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20070827-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20070905-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20070906-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20070915-1.c
+assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20070919-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20071027-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20071102-1.c
 assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/compile/20071105-1.c

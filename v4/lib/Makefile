@@ -67,3 +67,4 @@ work:
 	rm -f go.work*
 	go work init
 	go work use ..
+	go work use $(GOPATH)/src/modernc.org/cc/v4
