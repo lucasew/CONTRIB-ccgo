@@ -68,3 +68,4 @@ work:
 	go work init
 	go work use ..
 	go work use $(GOPATH)/src/modernc.org/cc/v4
+	go work use $(GOPATH)/src/modernc.org/gc/v2
