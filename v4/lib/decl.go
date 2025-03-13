@@ -84,7 +84,8 @@ type fnCtx struct {
 	tlsAllocs        int64
 	vlaSizes         map[*cc.Declarator]string
 
-	nextID int
+	inDefer int
+	nextID  int
 
 	callsAlloca bool
 }

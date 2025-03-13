@@ -4866,6 +4866,7 @@ assets/github.com/vnmakarov/mir/c-tests/new/mike.c
 assets/github.com/vnmakarov/mir/c-tests/new/nested-macro-calls.c
 assets/github.com/vnmakarov/mir/c-tests/new/non-pedantic-macro-redef.c
 assets/github.com/vnmakarov/mir/c-tests/new/ptr-to-array.c
+assets/github.com/vnmakarov/mir/c-tests/new/setjmp.c
 assets/github.com/vnmakarov/mir/c-tests/new/test1.c
 assets/github.com/vnmakarov/mir/c-tests/new/typedef-member-scope.c
 assets/github.com/vnmakarov/mir/c-tests/new/typedef.c
