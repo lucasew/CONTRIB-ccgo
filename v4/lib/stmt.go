@@ -402,7 +402,7 @@ func (c *ctx) selectionStatement(w writer, n *cc.SelectionStatement) {
 		}
 	}
 
-	if c.setJmpEq0(w, n) || c.setJmpNeq0(w, n) {
+	if c.setJmpEq0(w, n) || c.setJmpNeq0(w, n) || c.notSetJmp(w, n) {
 		return
 	}
 
@@ -551,6 +551,75 @@ func (c *ctx) setJmpNeq0(w writer, n *cc.SelectionStatement) (r bool) {
 	return true
 }
 
+// C: if (!setjmp(jb)) stmt1; else stmt2; // same as: if (setjmp(jb) == 0) stmt1; else stmt2;
+//
+// Go:
+//
+//	func(jb) {
+//		tls.PushJumpBuffer(jb)
+//
+//		defer func() {
+//			switch x := recover().(type) {
+//			case libc.LongjmpRetval:
+//				stmt2
+//			default:
+//				tls.PopJumpBuffer(jb)
+//			}
+//		}()
+//
+//		stmt1
+//	}(jb)
+func (c *ctx) notSetJmp(w writer, n *cc.SelectionStatement) (r bool) {
+	switch n.Case {
+	case
+		cc.SelectionStatementIf,     // "if" '(' ExpressionList ')' Statement
+		cc.SelectionStatementIfElse: // "if" '(' ExpressionList ')' Statement "else" Statement
+
+		// ok
+	default:
+		return false
+	}
+
+	e := c.isNot(n.ExpressionList)
+	if e == nil {
+		return false
+	}
+
+	arg := c.isSetJmp(e)
+	if arg == nil {
+		return false
+	}
+
+	v := c.f.newAutovar(n, c.pvoid)
+	jb := c.expr(w, arg, nil, exprDefault)
+	w.w("\n%s = %s;", v, jb)
+	w.w("\n%stls.%[1]sPushJumpBuffer(%s)", tag(preserve), v)
+
+	func() {
+		c.f.inDefer++
+
+		defer func() { c.f.inDefer-- }()
+
+		w.w("\ndefer func() {")
+		w.w("\nswitch %srecover().(%[1]stype) {", tag(preserve))
+		w.w("\ncase %s%sLongjmpRetval:", c.task.tlsQualifier, tag(preserve))
+		if n.Statement2 != nil {
+			w.w("\n{")
+			c.statement(w, n.Statement2)
+			w.w("\n};")
+		}
+		w.w("%sdefault:", tag(preserve))
+		w.w("\n%stls.%[1]sPopJumpBuffer(%s)", tag(preserve), v)
+		w.w("\n}")
+		w.w("\n}();")
+	}()
+
+	w.w("\n{")
+	c.statement(w, n.Statement)
+	w.w("\n};")
+	return true
+}
+
 // C: if (setjmp(jb) == 0) stmt1; else stmt2;
 //
 // Go:
@@ -618,6 +687,23 @@ func (c *ctx) setJmpEq0(w writer, n *cc.SelectionStatement) (r bool) {
 	c.statement(w, n.Statement)
 	w.w("\n};")
 	return true
+}
+
+func (c *ctx) isNot(n cc.ExpressionNode) (arg cc.ExpressionNode) {
+	for {
+		switch x := n.(type) {
+		case *cc.UnaryExpression:
+			switch x.Case {
+			case cc.UnaryExpressionNot:
+				return x.CastExpression
+			default:
+				return nil
+			}
+		default:
+			return nil
+			// panic(todo("%v: %T %s", n.Position(), x, cc.NodeSource(n)))
+		}
+	}
 }
 
 func (c *ctx) isSetJmp(n cc.ExpressionNode) (arg cc.ExpressionNode) {
