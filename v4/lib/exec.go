@@ -449,6 +449,7 @@ func (t *Task) cc(execCC, hostCC string, cflags []string) error {
 	set.Arg("build-lines", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("compatibility_version", true, func(arg, val string) error { return nil })
 	set.Arg("current_version", false, func(arg, val string) error { return nil })
+	set.Arg("ggdb3", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("gz", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("idirafter", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
 	set.Arg("include", true, func(arg, val string) error { args.add(fmt.Sprintf("%s=%s", arg, val)); return nil })
