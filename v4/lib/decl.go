@@ -1294,7 +1294,17 @@ func (c *ctx) initDeclaratorInit(w writer, sep string, info *declInfo, d *cc.Dec
 				case cc.IsScalarType(t) && initializer.AssignmentExpression != nil && c.isZero(initializer.AssignmentExpression.Value()):
 					w.w("%s%svar %s %s;", sep, c.posComment(d), linkName, c.typ(d, t))
 				default:
-					w.w("%s%svar %s = %s;", sep, c.posComment(d), linkName, c.initializerOuter(w, initializer, t))
+					switch {
+					case c.task.doom:
+						// A temporary workaround for the cyclic initializer problem. Does not pass
+						// tests, but works for doomgeneric.
+						w.w("%s%svar %s %s;", sep, c.posComment(d), linkName, c.typ(d, t))
+						w.w("\n\nfunc init() {")
+						w.w("%s = %s;", linkName, c.initializerOuter(w, initializer, t))
+						w.w("\n}\n")
+					default:
+						w.w("%s%svar %s = %s;", sep, c.posComment(d), linkName, c.initializerOuter(w, initializer, t))
+					}
 				}
 			default:
 				if c.unbracedInitilizer(initializer).Case != cc.InitializerExpr {

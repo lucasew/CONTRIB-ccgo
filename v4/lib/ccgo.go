@@ -148,6 +148,7 @@ type Task struct {
 	unsignedEnums                bool // -unsigned-enums
 	verifyTypes                  bool // -verify-types
 	winapiNoErrno                bool // --winapi-no-errno
+	doom                         bool // --doom
 }
 
 // NewTask returns a newly created Task. args[0] is the command name.
@@ -320,6 +321,8 @@ func (t *Task) main() (err error) {
 		return nil
 	})
 
+	set.Opt("-doom", func(arg string) error { t.doom = true; return nil })
+	set.Opt("-winapi-no-errno", func(arg string) error { t.winapiNoErrno = true; return nil })
 	set.Opt("E", func(arg string) error { t.E = true; return nil })
 	set.Opt("absolute-paths", func(arg string) error { t.absolutePaths = true; return nil })
 	set.Opt("ansi", func(arg string) error { t.ansi = true; t.strictISOMode = true; return nil })
@@ -358,7 +361,6 @@ func (t *Task) main() (err error) {
 	set.Opt("pthread", func(arg string) error { t.pthread = true; t.cfgArgs = append(t.cfgArgs, arg); return nil })
 	set.Opt("unsigned-enums", func(arg string) error { t.unsignedEnums = true; return nil })
 	set.Opt("verify-types", func(arg string) error { t.verifyTypes = true; return nil })
-	set.Opt("-winapi-no-errno", func(arg string) error { t.winapiNoErrno = true; return nil })
 
 	// Ignored
 	set.Arg("MF", true, func(arg, val string) error { return nil })
