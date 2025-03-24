@@ -1352,6 +1352,12 @@ func (l *linker) minimizeMain(src *gc.SourceFile, pkg *gc.Package) {
 		tlds[v] = struct{}{}
 		name2tld[nodeName(v)] = v
 	}
+	_, hasMain := name2tld["main"]
+	_, hasWMain := name2tld["wmain"]
+	if !hasMain && !hasWMain {
+		return
+	}
+
 	for _, v := range pkg.Scope.Nodes {
 		tlds[v.Node] = struct{}{}
 		name2tld[nodeName(v.Node)] = v.Node
@@ -1361,7 +1367,7 @@ func (l *linker) minimizeMain(src *gc.SourceFile, pkg *gc.Package) {
 		switch x := v.(type) {
 		case *gc.FunctionDecl:
 			switch x.FunctionName.Src() {
-			case "init", "main":
+			case "init", "main", "wmain":
 				roots = append(roots, x)
 			}
 		default:
