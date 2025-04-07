@@ -937,6 +937,17 @@ func TestCSmith(t *testing.T) {
 		"--no-bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 3720922579",
 		"--no-bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 4263172072",
 		"--no-bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 572192313",
+
+		//TODO report at go-dev ML
+		//
+		// # command-line-arguments
+		// ./main.go:908:34: internal compiler error: 'func_1': FlagConstant op should never make it to codegen v2095 = FlagConstant <flags>[N=false,Z=false,C=false,V=false]
+		//
+		// Please file a bug report including a short program that triggers the error.
+		// https://go.dev/issue/new
+		//
+		// https://gitlab.com/cznic/builder/-/blob/a796cec9f649d055ac3e20294c0d577b28315806/logs/modernc.org/ccgo/v4/lib/pi64
+		"--max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --bitfields -s 3442008958747721967",
 	}
 	var ch <-chan time.Time
 	t0 := time.Now()
