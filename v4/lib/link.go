@@ -1236,6 +1236,13 @@ func (l *linker) postProcess(fn string, b []byte) (r []byte) {
 					break
 				}
 
+				// fma
+				if k := y.Type().Kind(); k == gc.Float32 || k == gc.Float64 {
+					if z, ok := y.Expr.(*gc.BinaryExpr); ok && z.Op.Ch == '*' {
+						break
+					}
+				}
+
 				y.ConvertType = nil
 			}
 		}
