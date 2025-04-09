@@ -883,6 +883,21 @@ func TestCSmith(t *testing.T) {
 	blacklist := []struct{ target, seed string }{
 		{"linux/ppc64le", "8032246412188002"}, // false positive: gcc 10.2.1 bug.
 		{"linux/ppc64le", "3088696074888013"}, // TODO https://gitlab.com/cznic/builder/-/tree/91efcffac0cf3a1618f47d117864b76435ed87a2/logs/modernc.org/ccgo/v4/lib
+
+		// # command-line-arguments
+		// ./main.go:908:34: internal compiler error: 'func_1': FlagConstant op should never make it to codegen v2095 = FlagConstant <flags>[N=false,Z=false,C=false,V=false]
+		//
+		// Please file a bug report including a short program that triggers the error.
+		// https://go.dev/issue/new
+		//
+		// https://gitlab.com/cznic/builder/-/blob/a796cec9f649d055ac3e20294c0d577b28315806/logs/modernc.org/ccgo/v4/lib/pi64
+		//
+		// ML: https://groups.google.com/g/golang-dev/c/n0x570DGGUI
+		//
+		// "--max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --bitfields -s 3442008958747721967",
+		{"darwin/arm64", "3442008958747721967"},
+		{"freebsd/arm64", "3442008958747721967"},
+		{"linux/arm64", "3442008958747721967"},
 	}
 
 	fixedBugs := []string{
@@ -937,17 +952,6 @@ func TestCSmith(t *testing.T) {
 		"--no-bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 3720922579",
 		"--no-bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 4263172072",
 		"--no-bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 572192313",
-
-		//TODO report at go-dev ML
-		//
-		// # command-line-arguments
-		// ./main.go:908:34: internal compiler error: 'func_1': FlagConstant op should never make it to codegen v2095 = FlagConstant <flags>[N=false,Z=false,C=false,V=false]
-		//
-		// Please file a bug report including a short program that triggers the error.
-		// https://go.dev/issue/new
-		//
-		// https://gitlab.com/cznic/builder/-/blob/a796cec9f649d055ac3e20294c0d577b28315806/logs/modernc.org/ccgo/v4/lib/pi64
-		"--max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --bitfields -s 3442008958747721967",
 	}
 	var ch <-chan time.Time
 	t0 := time.Now()
