@@ -127,11 +127,11 @@ func (c *ctx) convert(n cc.ExpressionNode, w writer, s *buf, from, to cc.Type, f
 	}
 
 	if assert && fromMode == exprUintptr && from.Kind() != cc.Ptr && from.Kind() != cc.Function {
-		trc("%v: %v %v -> %v %v", c.pos(n), from, fromMode, to, toMode)
+		// trc("%v: %v %v -> %v %v", c.pos(n), from, fromMode, to, toMode)
 		c.err(errorf("TODO assertion failed"))
 	}
 	if assert && toMode == exprUintptr && to.Kind() != cc.Ptr {
-		trc("%v: %v %v -> %v %v", c.pos(n), from, fromMode, to, toMode)
+		// trc("%v: %v %v -> %v %v", c.pos(n), from, fromMode, to, toMode)
 		c.err(errorf("TODO assertion failed"))
 	}
 	if from != nil && from.Kind() == cc.Enum {
