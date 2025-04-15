@@ -21,7 +21,8 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36093.c`: {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36093.c: panic: 544
 
 	// Reported: https://groups.google.com/g/golang-dev/c/JUelxXEmZw4
-	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr31448-2.c`: {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr31448-2.c: : FAIL: signal: aborted
+	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr31448-2.c`:                 {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr31448-2.c: : FAIL: signal: aborted
+	`assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr31448-2.c`: {}, // EXEC FAIL: assets/github.com/gcc-mirror/gcc/gcc/testsuite/gcc.c-torture/execute/pr31448-2.c: : FAIL: signal: aborted
 
 	// ==== BUILD FAIL - compiles but does not build.
 
