@@ -1156,8 +1156,13 @@ func (c *ctx) multiplicativeExpression(w writer, n *cc.MultiplicativeExpression,
 		c.err(errorf("TODO %v", n.Case))
 	case cc.MultiplicativeExpressionMul: // MultiplicativeExpression '*' CastExpression
 		x, y := c.binopArgs(w, n.MultiplicativeExpression, n.CastExpression, n.Type())
+		disbleFMA := true
+		switch c.task.target {
+		case "freebsd/arm64":
+			disbleFMA = false
+		}
 		switch {
-		case cc.IsFloatingPointType(t):
+		case disbleFMA && cc.IsFloatingPointType(t):
 			b.w("(%s(%s * %s))", c.typ(n, t), x, y)
 		default:
 			b.w("(%s * %s)", x, y)
