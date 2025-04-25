@@ -2091,24 +2091,24 @@ out:
 			b.w("%stls.%[1]sLongjmp(%s, %s)", tag(preserve), jb, val)
 			return &b, c.ast.Void, mode
 		case
-			"__atomic_fetch_add", "__c11__atomic_fetch_add",
-			"__atomic_fetch_and", "__c11__atomic_fetch_and",
-			"__atomic_fetch_nand", "__c11__atomic_fetch_nand",
-			"__atomic_fetch_or", "__c11__atomic_fetch_or",
-			"__atomic_fetch_sub", "__c11__atomic_fetch_sub",
-			"__atomic_fetch_xor", "__c11__atomic_fetch_xor":
+			"__atomic_fetch_add",
+			"__atomic_fetch_sub",
+			"__atomic_fetch_and",
+			"__atomic_fetch_xor",
+			"__atomic_fetch_or",
+			"__atomic_fetch_nand":
 			// type __atomic_fetch_add (type *ptr, type val, int memorder)
 			return c.stdatomicFetchAdd(w, n, t, mode)
 		case
-			"__atomic_load", "__c11__atomic_load",
-			"__atomic_store", "__c11__atomic_store":
+			"__atomic_load",
+			"__atomic_store":
 			// void __atomic_load (type *ptr, type *ret, int memorder)
 			// void __atomic_store (type *ptr, type *val, int memorder)
 			return c.stdatomicLoad(w, n, t, mode)
-		case "__atomic_exchange", "__c11_atomic_exchange":
+		case "__atomic_exchange":
 			// void __atomic_exchange (type *ptr, type *val, type *ret, int memorder)
 			return c.stdatomicExchange(w, n, t, mode)
-		case "__atomic_compare_exchange", "__c11_atomic_compare_exchange_strong":
+		case "__atomic_compare_exchange":
 			// bool __atomic_compare_exchange (type *ptr, type *expected, type *desired, bool weak, int success_memorder, int failure_memorder)
 			return c.stdatomicCompareExchange(w, n, c.ast.Int, mode)
 		}
