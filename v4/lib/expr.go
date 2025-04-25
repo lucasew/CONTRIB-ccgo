@@ -2101,7 +2101,7 @@ out:
 			return c.stdatomicFetchAdd(w, n, t, mode)
 		case
 			"__atomic_load", "__c11__atomic_load",
-			"__atomic_store", "__c11__atomic_store",
+			"__atomic_store", "__c11__atomic_store":
 			// void __atomic_load (type *ptr, type *ret, int memorder)
 			// void __atomic_store (type *ptr, type *val, int memorder)
 			return c.stdatomicLoad(w, n, t, mode)
