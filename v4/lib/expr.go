@@ -377,7 +377,7 @@ func (c *ctx) convertType(n cc.ExpressionNode, s *buf, from, to cc.Type, fromMod
 
 	c.err(errorf("%v: TODO %q from=%s %v %v %v -> to=%s %v %v %v (%v:)", pos(n), s, from, from.Kind(), from.Size(), fromMode, to, to.Kind(), to.Size(), toMode, c.pos(n)))
 	// panic(todo("")) //TODO-DBG
-	//trc("", errorf("ERROR %q %s %s -> %s %s (%v:)", s, from, fromMode, to, toMode, c.pos(n))) //TODO-DBG
+	// trc("", errorf("ERROR %q %s %s -> %s %s (%v:)", s, from, fromMode, to, toMode, c.pos(n))) //TODO-DBG
 	return s //TODO
 }
 

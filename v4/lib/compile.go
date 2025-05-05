@@ -170,7 +170,6 @@ func (b *buf) len() int                    { return len(b.b) }
 func (b *buf) reset()                      { *b = buf{} }
 
 func (b *buf) w(s string, args ...interface{}) {
-	//trc("%v: %q %s", origin(2), s, args)
 	fmt.Fprintf(b, s, args...)
 }
 
@@ -526,13 +525,18 @@ func (c *ctx) compile(ifn, ofn string) (err error) {
 	}
 	sort.Strings(a)
 	for _, k := range a {
+		d := c.externsDeclared[k]
+		var ps string
+		if c.task.positions {
+			ps = fmt.Sprintf("\n// %v:", d.Position())
+		}
 		switch d := c.externsDeclared[k]; t := d.Type().(type) {
 		case *cc.FunctionType:
 			if s := c.signature(t, false, false, false); s != "" {
-				c.w("\n\nfunc %s%s%s", tag(meta), k, s)
+				c.w("\n%s\nfunc %s%s%s", ps, tag(meta), k, s)
 			}
 		default:
-			c.w("\n\nvar %s%s %s", tag(meta), k, c.typ2(d, t, false))
+			c.w("\n%s\nvar %s%s %s", ps, tag(meta), k, c.typ2(d, t, false))
 		}
 	}
 	b, err := json.MarshalIndent(&c.jsonMeta, "", "\t")

@@ -127,7 +127,6 @@ func (t *Task) execed(routes string, cflags []string) (err error) {
 			t.goos, t.goarch, IsExecEnv(), os.Getenv("CC"), routes, t.args, wd,
 		)
 	}
-
 	defer func() {
 		if e := recover(); e != nil && err == nil {
 			err = errorf("PANIC: %v\n%s", e, debug.Stack())
