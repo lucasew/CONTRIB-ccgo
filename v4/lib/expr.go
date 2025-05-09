@@ -2155,6 +2155,9 @@ out:
 		case "__atomic_compare_exchange":
 			// bool __atomic_compare_exchange (type *ptr, type *expected, type *desired, bool weak, int success_memorder, int failure_memorder)
 			return c.stdatomicCompareExchange(w, n, c.ast.Int, mode)
+		case "__sync_val_compare_and_swap":
+			// type __sync_val_compare_and_swap (type *ptr, type oldval type newval, ...)
+			return c.syncValCompareAndSwap(w, n, t, mode)
 		case "__c11_atomic_compare_exchange_strong":
 			return c.c11AtomicCompareExchange(w, n, c.ast.Int, mode)
 		}
@@ -2922,6 +2925,45 @@ func (c *ctx) stdatomicCompareExchange(w writer, n *cc.PostfixExpression, t cc.T
 		c.err(errorf("%v: invalid first argument to atomic operation: pointer to %s", n.ArgumentExpressionList.Position(), et))
 	}
 	return &b, c.ast.Int, mode
+}
+
+// type __sync_val_compare_and_swap (type *ptr, type oldval type newval, ...)
+func (c *ctx) syncValCompareAndSwap(w writer, n *cc.PostfixExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
+	var b buf
+	args := argumentExpressionList(n.ArgumentExpressionList)
+	if len(args) <3 {
+		c.err(errorf("%v: invalid number of arguments to atomic operation, expected at least 3, got %v", n.ArgumentExpressionList.Position(), len(args)))
+		return &b, t, mode
+	}
+
+	pt := args[0].Type()
+	if pt.Kind() != cc.Ptr {
+		c.err(errorf("%v: invalid first argument to atomic operation: %s", n.ArgumentExpressionList.Position(), args[0].Type()))
+		return &b, t, mode
+	}
+
+	var tls string
+	switch {
+	case c.f == nil:
+		tls = fmt.Sprintf("%snil", tag(preserve))
+	default:
+		tls = fmt.Sprintf("%stls", tag(ccgo))
+	}
+
+	et := pt.(*cc.PointerType).Elem()
+	switch {
+	case cc.IsScalarType(et):
+		b.w(
+			"%s%s(%s, %s, %s, %s)",
+			c.expr(w, n.PostfixExpression, nil, exprCall), c.helper(n, et), tls,
+			c.expr(w, args[0], nil, exprDefault),
+			c.expr(w, args[1], nil, exprDefault),
+			c.expr(w, args[2], et, exprDefault),
+		)
+	default:
+		c.err(errorf("%v: invalid first argument to atomic operation: pointer to %s", n.ArgumentExpressionList.Position(), et))
+	}
+	return &b, et, mode
 }
 
 func (c *ctx) c11AtomicCompareExchange(w writer, n *cc.PostfixExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
