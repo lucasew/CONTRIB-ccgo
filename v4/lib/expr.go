@@ -2931,7 +2931,7 @@ func (c *ctx) stdatomicCompareExchange(w writer, n *cc.PostfixExpression, t cc.T
 func (c *ctx) syncValCompareAndSwap(w writer, n *cc.PostfixExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
 	var b buf
 	args := argumentExpressionList(n.ArgumentExpressionList)
-	if len(args) <3 {
+	if len(args) < 3 {
 		c.err(errorf("%v: invalid number of arguments to atomic operation, expected at least 3, got %v", n.ArgumentExpressionList.Position(), len(args)))
 		return &b, t, mode
 	}
@@ -4981,7 +4981,12 @@ func (c *ctx) primaryExpressionIntConst(w writer, n *cc.PrimaryExpression, t cc.
 
 		fallthrough
 	default:
-		b.w("(%s%s%sFrom%s(%s))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), c.helper(n, n.Type()), lit)
+		switch {
+		case t.Kind() == cc.Bool:
+			b.w("(%s%sBool%s((%s) != 0))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), lit)
+		default:
+			b.w("(%s%s%sFrom%s(%s))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), c.helper(n, n.Type()), lit)
+		}
 	}
 	return &b, rt, rmode
 }
