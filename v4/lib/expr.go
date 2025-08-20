@@ -346,6 +346,12 @@ func (c *ctx) convertType(n cc.ExpressionNode, s *buf, from, to cc.Type, fromMod
 		case to.Kind() == cc.UInt128:
 			//TODO
 		default:
+			if to.Kind() == cc.Bool {
+				var b buf
+				b.w("(%s%sBool%s((%s) != 0))", c.task.tlsQualifier, tag(preserve), c.helper(n, from), s)
+				s = &b
+			}
+
 			switch {
 			case cc.IsIntegerType(from) && cc.IsIntegerType(to) && (cc.IsSignedInteger(from) != cc.IsSignedInteger(to)) && c.task.goos != "windows":
 				b.w("(%s%s%sFrom%s(%s))", c.task.tlsQualifier, tag(preserve), c.helper(n, to), c.helper(n, from), s)
