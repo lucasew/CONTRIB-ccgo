@@ -595,7 +595,7 @@ type linker struct {
 	textSegmentNameP      string
 	textSegmentOff        int64
 	tld                   nameSpace
-	tldTypes              map[string]struct{ linkName, goName string } // TLD type ID -> info
+	tldTypes              map[string][]struct{ linkName, goName string } // TLD type ID -> info
 	undefsReported        nameSet
 	unsafeName            string
 
@@ -667,7 +667,7 @@ func newLinker(task *Task, libc *object) (*linker, error) {
 		stringLiterals: map[string]int64{},
 		synthDecls:     map[string][]byte{},
 		task:           task,
-		tldTypes:       map[string]struct{ linkName, goName string }{},
+		tldTypes:       map[string][]struct{ linkName, goName string }{},
 	}, nil
 }
 
@@ -975,12 +975,18 @@ var _ %s.Pointer
 		}
 		sort.Strings(linkNames)
 		l.fileLinkNames2GoNames = dict{}
+	outer:
 		for _, linkName := range linkNames {
 			typeID := fileLinkNames2IDs[linkName]
+
+			// collapse aggregate types if they are equal and share the same go name,
+			// e.g. `typedef struct Foo Foo` with `struct Foo`
 			if strings.HasPrefix(typeID, "struct") || strings.HasPrefix(typeID, "[") { // aggregate types
-				if nfo, ok := l.tldTypes[typeID]; ok && nfo.linkName == linkName {
-					l.fileLinkNames2GoNames[linkName] = nfo.goName
-					continue
+				for _, nfo := range l.tldTypes[typeID] {
+					if l.goName(nfo.linkName) == l.goName(linkName) {
+						l.fileLinkNames2GoNames[linkName] = nfo.goName
+						continue outer
+					}
 				}
 			}
 
@@ -991,7 +997,7 @@ var _ %s.Pointer
 			default:
 				l.fileLinkNames2IDs.put(linkName, typeID)
 				goName := l.tld.registerName(l, linkName)
-				l.tldTypes[typeID] = struct{ linkName, goName string }{linkName, goName}
+				l.tldTypes[typeID] = append(l.tldTypes[typeID], struct{ linkName, goName string }{linkName, goName})
 				l.fileLinkNames2GoNames[linkName] = goName
 			}
 		}
