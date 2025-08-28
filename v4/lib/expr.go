@@ -31,8 +31,19 @@ const (
 )
 
 const (
+	// The name of the function that converts a Go func into an ccgo ABI C function
+	// code pointer (Go internal ABI). Considering
+	//
+	//	func f() {}
+	//
+	//	__ccgo_fp(f) // returns the C function pointer
 	ccgoFP = "__ccgo_fp"
-	ccgoTS = "__ccgo_ts"
+	// The Go parameter name prefix reserved for __ccgo_fp-produced values.
+	// Supports 'Go ABI0' vs 'Go ABI internal' handling. The parameter type is
+	// still uintptr for backward compatibility. Only the parameter name is now
+	// enforced. Poor man's type annotation.
+	ccgoFuncParam = "__ccgo_fp_"
+	ccgoTS        = "__ccgo_ts"
 )
 
 var (

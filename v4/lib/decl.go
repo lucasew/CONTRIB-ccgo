@@ -197,6 +197,19 @@ func (f *fnCtx) registerLocal(d *cc.Declarator) {
 	f.locals[d] = ""
 }
 
+func (f *fnCtx) isFuncPtr(n cc.Node, t cc.Type) (r bool) {
+	for {
+		switch x := t.(type) {
+		case *cc.PointerType:
+			t = x.Elem()
+		case *cc.FunctionType:
+			return true
+		default:
+			return false
+		}
+	}
+}
+
 func (f *fnCtx) renameLocals() {
 	var a []*cc.Declarator
 	for k := range f.locals {
@@ -216,7 +229,11 @@ func (f *fnCtx) renameLocals() {
 	})
 	var r nameRegister
 	for _, d := range a {
-		f.locals[d] = r.put(f.c.declaratorTag(d) + d.Name())
+		nm := d.Name()
+		if d.IsParam() && f.isFuncPtr(d, d.Type()) {
+			nm = ccgoFuncParam + nm
+		}
+		f.locals[d] = r.put(f.c.declaratorTag(d) + nm)
 	}
 }
 

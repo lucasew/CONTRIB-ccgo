@@ -81,7 +81,10 @@ func (c *ctx) typ0(b *strings.Builder, n cc.Node, t cc.Type, useTypenames, useTa
 	}
 
 	switch x := t.(type) {
-	case *cc.PointerType, *cc.FunctionType:
+	case *cc.FunctionType:
+		b.WriteString(tag(preserve))
+		b.WriteString("__ccgo")
+	case *cc.PointerType:
 		b.WriteString(tag(preserve))
 		b.WriteString("uintptr")
 	case *cc.PredefinedType:
