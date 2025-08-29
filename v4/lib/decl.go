@@ -197,15 +197,15 @@ func (f *fnCtx) registerLocal(d *cc.Declarator) {
 	f.locals[d] = ""
 }
 
-func (f *fnCtx) isFuncPtr(n cc.Node, t cc.Type) (r bool) {
+func (f *fnCtx) isFuncPtr(n cc.Node, t cc.Type) (r bool, ft *cc.FunctionType) {
 	for {
 		switch x := t.(type) {
 		case *cc.PointerType:
 			t = x.Elem()
 		case *cc.FunctionType:
-			return true
+			return true, x
 		default:
-			return false
+			return false, nil
 		}
 	}
 }
@@ -230,8 +230,10 @@ func (f *fnCtx) renameLocals() {
 	var r nameRegister
 	for _, d := range a {
 		nm := d.Name()
-		if d.IsParam() && f.isFuncPtr(d, d.Type()) {
-			nm = ccgoFuncParam + nm
+		if d.IsParam() {
+			if ok, _ := f.isFuncPtr(d, d.Type()); ok {
+				nm = ccgoFuncParam + nm
+			}
 		}
 		f.locals[d] = r.put(f.c.declaratorTag(d) + nm)
 	}
@@ -411,6 +413,20 @@ func (c *ctx) functionDefinition0(w writer, sep string, pos cc.Node, d *cc.Decla
 			c.f.t = cft
 		}
 	}()
+
+	if d.Linkage() == cc.External {
+		// emit func ptr signatures, if any
+		nm := d.Name()
+		if alias != "" {
+			nm = alias
+		}
+		for i, v := range ft.Parameters() {
+			if _, ft := c.f.isFuncPtr(v, v.Type()); ft != nil {
+				w.w("\n\ntype %s%s_%s%s_%v = func%s\n\n", tag(typename), ccgoFuncParam, c.declaratorTag(d), nm, i, c.signature(ft, false, false, false))
+			}
+		}
+	}
+
 	c.pass = 1
 	for _, v := range ft.Parameters() {
 		if v.Declarator != nil {

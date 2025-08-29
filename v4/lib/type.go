@@ -739,6 +739,8 @@ func typeID0(b *strings.Builder, in map[string]gc.Node, out map[string]string, t
 		default:
 			panic(todo("%T %s", x, x.Source(true)))
 		}
+	case *gc.FunctionTypeNode:
+		b.WriteString("uintptr")
 	default:
 		panic(todo("%T %s", x, x.Source(false)))
 	}
