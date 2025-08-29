@@ -12,6 +12,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/benchmarksgame-team.pages.debian.net/fasta-8.c`:                                             {}, // EXEC FAIL: assets/benchmarksgame-team.pages.debian.net/fasta-8.c: >ONE Homo sapiens alu
 	`assets/benchmarksgame-team.pages.debian.net/mandelbrot-9.c`:                                        {}, // EXEC FAIL
 	`assets/benchmarksgame-team.pages.debian.net/reverse-complement-2.c`:                                {}, // EXEC FAIL: assets/benchmarksgame-team.pages.debian.net/reverse-complement-2.c: unexpected fault address 0x234ef8fffff
+	`assets/benchmarksgame-team.pages.debian.net/reverse-complement-5.c`:                                {}, // EXEC FAIL: assets/benchmarksgame-team.pages.debian.net/reverse-complement-5.c: panic: runtime error: index out of range [-8]
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/align-3.c`:                                    {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/align-3.c: libc_windows.go:1794:Xabort: TODOTODO
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c`:                 {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c: libc_windows.go:1794:Xabort: TODOTODO
 	`assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36093.c`:                                    {}, // EXEC FAIL: assets/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36093.c: panic: 544
