@@ -4986,7 +4986,8 @@ func (c *ctx) primaryExpressionIntConst(w writer, n *cc.PrimaryExpression, t cc.
 			break
 		}
 
-		if i, ok := v.(cc.Int64Value); ok && !cc.IsSignedInteger(t) && i >= 0 && cv == cc.UInt64Value(want) {
+		isUnsignedInteger := !cc.IsSignedInteger(t) && t.Kind() != cc.Bool
+		if i, ok := v.(cc.Int64Value); ok && isUnsignedInteger && i >= 0 && cv == cc.UInt64Value(want) {
 			b.w("(%s(%s))", c.verifyTyp(n, t), lit)
 			break
 		}
