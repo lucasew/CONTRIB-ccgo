@@ -4286,9 +4286,12 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 				v = fmt.Sprintf("%s", c.expr(w, n.UnaryExpression, nil, exprDefault))
 				switch {
 				case ct.Kind() == ut.Kind():
-					w.w("\n%s %s= %s%s;", v, op, c.topExpr(w, n.AssignmentExpression, ct, exprDefault), k)
+					ex := c.exprWrap(t, "%s %s %s%s", v, op, c.topExpr(w, n.AssignmentExpression, ct, exprDefault), k)
+					w.w("%s = %s;", v, ex)
 				default:
-					w.w("\n%s = %s((%s(%s)) %s ((%s)%s));", v, c.typ(n, ut), c.typ(n, ct), v, op, c.expr(w, n.AssignmentExpression, ct, exprDefault), k)
+					var b buf
+					b.w("(%s(%s)) %s ((%s)%s)", c.typ(n, ct), v, op, c.expr(w, n.AssignmentExpression, ct, exprDefault), k)
+					w.w("\n%s = %s;", v, c.convert(n, w, &b, ct, ut, exprDefault, exprDefault))
 				}
 			default:
 				switch {
