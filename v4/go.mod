@@ -10,7 +10,7 @@ require (
 	golang.org/x/tools v0.36.0
 	modernc.org/cc/v4 v4.26.4
 	modernc.org/ccgo/v3 v3.17.0
-	modernc.org/ccorpus2 v1.5.4
+	modernc.org/ccorpus2 v1.5.5
 	modernc.org/fileutil v1.3.28
 	modernc.org/gc/v2 v2.6.5
 	modernc.org/libc v1.66.7
