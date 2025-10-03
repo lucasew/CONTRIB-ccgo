@@ -27,6 +27,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-trailing-zero.c`:                             {}, // EXEC FAIL
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-types-init.c`:                                {}, // EXEC FAIL
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/declaration-default-int.c`:                            {}, // EXEC FAIL: assets/github.com/vnmakarov/mir/c-tests/lacc/declaration-default-int.c: : FAIL: exit status 51
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/expression.c`:                                         {}, // EXEC FAIL: newer clang versions reject some valid C
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/function-implicit-declare.c`:                          {}, // EXEC FAIL: assets/github.com/vnmakarov/mir/c-tests/lacc/function-implicit-declare.c: : FAIL: exit status 42
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/vararg-complex-2.c`:                                   {}, // EXEC FAIL: assets/github.com/vnmakarov/mir/c-tests/lacc/vararg-complex-2.c: 0,0,0,0
 	`assets/tcc-0.9.27/tests/tests2/73_arm64.c`:                                                         {}, // EXEC FAIL: assets/tcc-0.9.27/tests/tests2/73_arm64.c: Arguments:
