@@ -1520,7 +1520,9 @@ out:
 					break
 				}
 
-				b.w("%s++", c.expr(w, n.UnaryExpression, nil, exprDefault))
+				ds := c.expr(w, n.UnaryExpression, nil, exprDefault)
+				b.w("%s = %s;", ds, c.exprWrap(t, "%s+1", ds))
+
 			case exprDefault:
 				if c.isVolatileOrAtomicExpr(n.UnaryExpression) {
 					bp := c.expr(w, n.UnaryExpression, n.UnaryExpression.Type().Pointer(), exprUintptr)
@@ -1533,15 +1535,16 @@ out:
 				case d != nil:
 					v := c.f.newAutovar(n, n.UnaryExpression.Type())
 					ds := c.expr(w, n.UnaryExpression, nil, exprDefault)
-					w.w("%s++;", ds)
+					w.w("%s = %s;", ds, c.exprWrap(t, "%s+1", ds))
 					w.w("\n%s = %s;", v, ds)
 					b.w("%s", v)
 				default:
 					v := c.f.newAutovar(n, n.UnaryExpression.Type())
 					v2 := c.f.newAutovar(n, n.UnaryExpression.Type().Pointer())
+					ds := fmt.Sprintf("(*(*%s)(%s))", c.typ(n, n.UnaryExpression.Type()), unsafePointer(v2))
 					w.w("%s = %s;", v2, c.expr(w, n.UnaryExpression, n.UnaryExpression.Type().Pointer(), exprUintptr))
-					w.w("(*(*%s)(%s))++;", c.typ(n, n.UnaryExpression.Type()), unsafePointer(v2))
-					w.w("%s = (*(*%s)(%s));", v, c.typ(n, n.UnaryExpression.Type()), unsafePointer(v2))
+					w.w("%s = %s;", ds, c.exprWrap(t, "%s+1", ds))
+					w.w("%s = %s;", v, ds)
 					b.w("%s", v)
 				}
 			default:
@@ -1591,7 +1594,8 @@ out:
 					break
 				}
 
-				b.w("%s--", c.expr(w, n.UnaryExpression, nil, exprDefault))
+				ds := c.expr(w, n.UnaryExpression, nil, exprDefault)
+				b.w("%s = %s;", ds, c.exprWrap(t, "%s-1", ds))
 			case exprDefault:
 				if c.isVolatileOrAtomicExpr(n.UnaryExpression) {
 					bp := c.expr(w, n.PostfixExpression, n.UnaryExpression.Type().Pointer(), exprUintptr)
@@ -1604,15 +1608,16 @@ out:
 				case d != nil:
 					v := c.f.newAutovar(n, n.UnaryExpression.Type())
 					ds := c.expr(w, n.UnaryExpression, nil, exprDefault)
-					w.w("%s--;", ds)
+					w.w("%s = %s;", ds, c.exprWrap(t, "%s-1", ds))
 					w.w("\n%s = %s;", v, ds)
 					b.w("%s", v)
 				default:
 					v := c.f.newAutovar(n, n.UnaryExpression.Type())
 					v2 := c.f.newAutovar(n, n.UnaryExpression.Type().Pointer())
+					ds := fmt.Sprintf("(*(*%s)(%s))", c.typ(n, n.UnaryExpression.Type()), unsafePointer(v2))
 					w.w("%s = %s;", v2, c.expr(w, n.UnaryExpression, n.UnaryExpression.Type().Pointer(), exprUintptr))
-					w.w("(*(*%s)(%s))--;", c.typ(n, n.UnaryExpression.Type()), unsafePointer(v2))
-					w.w("%s = (*(*%s)(%s));", v, c.typ(n, n.UnaryExpression.Type()), unsafePointer(v2))
+					w.w("%s = %s;", ds, c.exprWrap(t, "%s-1", ds))
+					w.w("%s = %s;", v, ds)
 					b.w("%s", v)
 				}
 			default:
@@ -2210,6 +2215,7 @@ out:
 			switch mode {
 			case exprVoid:
 				b.w("%s += %d", c.expr(w, n.PostfixExpression, nil, exprDefault), sz)
+
 			case exprDefault, exprUintptr:
 				v := c.f.newAutovar(n, n.PostfixExpression.Type())
 				switch d := c.declaratorOf(n.PostfixExpression); {
@@ -2244,7 +2250,8 @@ out:
 					break
 				}
 
-				b.w("%s++", c.expr(w, n.PostfixExpression, nil, exprDefault))
+				ds := c.expr(w, n.PostfixExpression, nil, exprDefault)
+				b.w("%s=%s;", ds, c.exprWrap(t, "%s+1", ds))
 			case exprDefault:
 				if c.isVolatileOrAtomicExpr(n.PostfixExpression) {
 					bp := c.expr(w, n.PostfixExpression, d.Type().Pointer(), exprUintptr)
@@ -2258,13 +2265,14 @@ out:
 				case d != nil:
 					ds := c.expr(w, n.PostfixExpression, nil, exprDefault)
 					w.w("%s = %s;", v, ds)
-					w.w("%s++;", ds)
+					w.w("%s = %s;", ds, c.exprWrap(t, "%s+1", ds))
 					b.w("%s", v)
 				default:
 					v2 := c.f.newAutovar(n, n.PostfixExpression.Type().Pointer())
+					ds := fmt.Sprintf("(*(*%s)(%s))", c.typ(n, n.PostfixExpression.Type()), unsafePointer(v2))
 					w.w("%s = %s;", v2, c.expr(w, n.PostfixExpression, n.PostfixExpression.Type().Pointer(), exprUintptr))
-					w.w("%s = (*(*%s)(%s));", v, c.typ(n, n.PostfixExpression.Type()), unsafePointer(v2))
-					w.w("(*(*%s)(%s))++;", c.typ(n, n.PostfixExpression.Type()), unsafePointer(v2))
+					w.w("%s = %s;", v, ds)
+					w.w("%s = %s;", ds, c.exprWrap(t, "%s+1", ds))
 					b.w("%s", v)
 				}
 			case exprUintptr:
@@ -2323,7 +2331,8 @@ out:
 					break
 				}
 
-				b.w("%s--", c.expr(w, n.PostfixExpression, nil, exprDefault))
+				ds := c.expr(w, n.PostfixExpression, nil, exprDefault)
+				b.w("%s = %s;", ds, c.exprWrap(t, "%s-1", ds))
 			case exprDefault:
 				if c.isVolatileOrAtomicExpr(n.PostfixExpression) {
 					bp := c.expr(w, n.PostfixExpression, n.PostfixExpression.Type().Pointer(), exprUintptr)
@@ -2337,13 +2346,14 @@ out:
 				case d != nil:
 					ds := c.expr(w, n.PostfixExpression, nil, exprDefault)
 					w.w("%s = %s;", v, ds)
-					w.w("%s--;", ds)
+					w.w("%s = %s;", ds, c.exprWrap(t, "%s-1", ds))
 					b.w("%s", v)
 				default:
 					v2 := c.f.newAutovar(n, n.PostfixExpression.Type().Pointer())
+					ds := fmt.Sprintf("(*(*%s)(%s))", c.typ(n, n.PostfixExpression.Type()), unsafePointer(v2))
 					w.w("%s = %s;", v2, c.expr(w, n.PostfixExpression, n.PostfixExpression.Type().Pointer(), exprUintptr))
-					w.w("%s = (*(*%s)(%s));", v, c.typ(n, n.PostfixExpression.Type()), unsafePointer(v2))
-					w.w("(*(*%s)(%s))--;", c.typ(n, n.PostfixExpression.Type()), unsafePointer(v2))
+					w.w("%s = %s;", v, ds)
+					w.w("%s = %s;", ds, c.exprWrap(t, "%s-1", ds))
 					b.w("%s", v)
 				}
 			default:
@@ -4276,9 +4286,12 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 				v = fmt.Sprintf("%s", c.expr(w, n.UnaryExpression, nil, exprDefault))
 				switch {
 				case ct.Kind() == ut.Kind():
-					w.w("\n%s %s= %s%s;", v, op, c.topExpr(w, n.AssignmentExpression, ct, exprDefault), k)
+					ex := c.exprWrap(t, "%s %s %s%s", v, op, c.topExpr(w, n.AssignmentExpression, ct, exprDefault), k)
+					w.w("%s = %s;", v, ex)
 				default:
-					w.w("\n%s = %s((%s(%s)) %s ((%s)%s));", v, c.typ(n, ut), c.typ(n, ct), v, op, c.expr(w, n.AssignmentExpression, ct, exprDefault), k)
+					var b buf
+					b.w("(%s(%s)) %s ((%s)%s)", c.typ(n, ct), v, op, c.expr(w, n.AssignmentExpression, ct, exprDefault), k)
+					w.w("\n%s = %s;", v, c.convert(n, w, &b, ct, ut, exprDefault, exprDefault))
 				}
 			default:
 				switch {
@@ -4986,7 +4999,8 @@ func (c *ctx) primaryExpressionIntConst(w writer, n *cc.PrimaryExpression, t cc.
 			break
 		}
 
-		if i, ok := v.(cc.Int64Value); ok && !cc.IsSignedInteger(t) && i >= 0 && cv == cc.UInt64Value(want) {
+		isUnsignedInteger := !cc.IsSignedInteger(t) && t.Kind() != cc.Bool
+		if i, ok := v.(cc.Int64Value); ok && isUnsignedInteger && i >= 0 && cv == cc.UInt64Value(want) {
 			b.w("(%s(%s))", c.verifyTyp(n, t), lit)
 			break
 		}
@@ -5000,7 +5014,7 @@ func (c *ctx) primaryExpressionIntConst(w writer, n *cc.PrimaryExpression, t cc.
 	default:
 		switch {
 		case t.Kind() == cc.Bool:
-			b.w("(%s%sBool%s((%s) != 0))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), lit)
+			b.w("%s", c.exprWrap(t, "%s", lit))
 		default:
 			b.w("(%s%s%sFrom%s(%s))", c.task.tlsQualifier, tag(preserve), c.helper(n, t), c.helper(n, n.Type()), lit)
 		}
@@ -5079,4 +5093,20 @@ func (c *ctx) isVolatileOrAtomicExpr(n cc.ExpressionNode) bool {
 	}
 
 	return true
+}
+
+func (c *ctx) exprWrap(t cc.Type, f string, args ...any) string {
+	switch {
+	case t.Kind() == cc.Bool:
+		var buf strings.Builder
+		buf.WriteString(c.task.tlsQualifier)
+		buf.WriteString(tag(preserve))
+		buf.WriteString("BoolUint8(")
+		_, _ = fmt.Fprintf(&buf, f, args...)
+		buf.WriteString("!=0)")
+		return buf.String()
+
+	default:
+		return fmt.Sprintf(f, args...)
+	}
 }
