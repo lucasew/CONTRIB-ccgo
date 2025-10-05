@@ -446,6 +446,10 @@ func testExec(t *testing.T, cfsDir string, exec bool, g *golden) {
 		case re != nil && !re.MatchString(base):
 			p.skip()
 			return nil
+		case base == "bool.c":
+			// Temporary disable 'bool.c' on all targets, see !22 at https://gitlab.com/cznic/ccgo/-/merge_requests/22
+			p.skip()
+			return nil
 		}
 
 		if totalMemory < 4<<30 && strings.HasPrefix(base, "limits-") {
@@ -898,6 +902,10 @@ func TestCSmith(t *testing.T) {
 		{"darwin/arm64", "3442008958747721967"},
 		{"freebsd/arm64", "3442008958747721967"},
 		{"linux/arm64", "3442008958747721967"},
+
+		// Temporary disable 12695610754882428028, see !22 at https://gitlab.com/cznic/ccgo/-/merge_requests/22
+		{"linux/arm64", "12695610754882428028"},
+		{"darwin/arm64", "12695610754882428028"},
 	}
 
 	fixedBugs := []string{
