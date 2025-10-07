@@ -70,24 +70,24 @@ type inlineInfo struct {
 }
 
 type fnCtx struct {
+	autovarNesting   int
 	autovars         map[string][]string
+	autovarsX        map[string]int
 	c                *ctx
+	callsAlloca      bool
 	compoundLiterals map[cc.ExpressionNode]int64
 	d                *cc.Declarator
 	declInfos        declInfos
 	flatScopes       map[*cc.Scope]struct{}
 	fnResults        map[cc.ExpressionNode]int64
+	inDefer          int
 	inlineInfo       *inlineInfo
 	locals           map[*cc.Declarator]string // storage: static or automatic, linkage: none -> C renamed
 	maxVaListSize    int64
+	nextID           int
 	t                *cc.FunctionType
 	tlsAllocs        int64
 	vlaSizes         map[*cc.Declarator]string
-
-	inDefer int
-	nextID  int
-
-	callsAlloca bool
 }
 
 func (c *ctx) newFnCtx(d *cc.Declarator, t *cc.FunctionType, n *cc.CompoundStatement) (r *fnCtx) {
@@ -160,6 +160,8 @@ next:
 		}
 	})
 	return &fnCtx{
+		autovars:   map[string][]string{},
+		autovarsX:  map[string]int{},
 		c:          c,
 		d:          d,
 		flatScopes: flatScopes,
@@ -168,22 +170,33 @@ next:
 }
 
 func (f *fnCtx) newAutovarName() (nm string) {
-	// trc("%v: %v: %v:", origin(4), origin(3), origin(2))
 	return fmt.Sprintf("%sv%d", tag(ccgoAutomatic), f.c.id())
 }
 
-func (f *fnCtx) newAutovar(n cc.Node, t cc.Type) (nm string) {
+func (f *fnCtx) newAutovarType(n cc.Node, t cc.Type) (nm string) {
+	return f.newAutovarTyp(n, f.c.typ(n, t))
+}
+
+func (f *fnCtx) newAutovarTyp(n cc.Node, typ string) (nm string) {
+	pass := f.c.pass
 	nm = f.newAutovarName()
-	f.registerAutoVar(nm, f.c.typ(n, t))
-	// trc("%v: %s %v: %q (%v: %v: %v:)", pos(n), t, t.Kind(), nm, origin(4), origin(3), origin(2))
+	if pass == 2 {
+		vars := f.autovars[typ]
+		if ix, ok := f.autovarsX[typ]; ok && ix < len(vars) {
+			f.autovarsX[typ]++
+			return vars[ix]
+		}
+	}
+
+	f.autovars[typ] = append(f.autovars[typ], nm)
 	return nm
 }
 
-func (f *fnCtx) registerAutoVar(nm, typ string) {
-	if f.autovars == nil {
-		f.autovars = map[string][]string{}
+func (f *fnCtx) rewindAutovars() {
+	clear(f.autovarsX)
+	for k := range f.autovars {
+		f.autovarsX[k] = 0
 	}
-	f.autovars[typ] = append(f.autovars[typ], nm)
 }
 
 func (f *fnCtx) registerLocal(d *cc.Declarator) {
@@ -453,6 +466,8 @@ func (c *ctx) functionDefinition0(w writer, sep string, pos cc.Node, d *cc.Decla
 	}
 	c.pass = 2
 	c.f.nextID = 0
+	c.f.autovarNesting = 0
+	c.f.rewindAutovars()
 	isMain := d.Linkage() == cc.External && d.Name() == "main"
 	// trc("==== %v: sep `%s`", d.Position(), sep) //TODO-DBG
 	s := c.cdoc(sep, d)
@@ -1134,7 +1149,7 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 			dt = x.Elem()
 		}
 		if x, ok := c.isVLA(dt); ok {
-			v := c.f.newAutovar(n, c.ast.SizeT)
+			v := c.f.newAutovarType(n, c.ast.SizeT)
 			if c.f.vlaSizes == nil {
 				c.f.vlaSizes = map[*cc.Declarator]string{}
 			}
