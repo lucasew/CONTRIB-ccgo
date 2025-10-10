@@ -902,6 +902,11 @@ func TestCSmith(t *testing.T) {
 		// Temporary disable 12695610754882428028, see !22 at https://gitlab.com/cznic/ccgo/-/merge_requests/22
 		{"linux/arm64", "12695610754882428028"},
 		{"darwin/arm64", "12695610754882428028"},
+
+		// Reported at https://github.com/golang/go/issues/75844
+		{"darwin/arm64", "2764862066367832004"},
+		{"freebsd/arm64", "2764862066367832004"},
+		{"linux/arm64", "2764862066367832004"},
 	}
 
 	fixedBugs := []string{
