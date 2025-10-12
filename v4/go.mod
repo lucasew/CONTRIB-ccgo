@@ -13,6 +13,7 @@ require (
 	modernc.org/ccorpus2 v1.5.8
 	modernc.org/fileutil v1.3.40
 	modernc.org/gc/v2 v2.6.5
+	modernc.org/gc/v3 v3.1.1
 	modernc.org/libc v1.66.10
 	modernc.org/mathutil v1.7.1
 	modernc.org/opt v0.1.4
@@ -21,6 +22,7 @@ require (
 
 require (
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
