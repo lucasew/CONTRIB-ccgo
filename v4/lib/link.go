@@ -1191,7 +1191,7 @@ var _ %s.Pointer
 // Input must be formatted.
 func (l *linker) postProcess(fn string, b []byte) (r []byte) {
 	defer func() {
-		switch out, err := sauce.RemoveDeadVariables(fn, r); {
+		switch out, err := sauce.DeadVariableElimination(fn, r); {
 		case err != nil:
 			l.err(fmt.Errorf("%v: %v", fn, err))
 		default:
