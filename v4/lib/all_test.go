@@ -904,8 +904,11 @@ func TestCSmith(t *testing.T) {
 		{"darwin/arm64", "12695610754882428028"},
 
 		// Reported at https://github.com/golang/go/issues/75844
+		{"darwin/arm64",  "12311623586464629362"},
 		{"darwin/arm64", "2764862066367832004"},
+		{"freebsd/arm64", "12311623586464629362"},
 		{"freebsd/arm64", "2764862066367832004"},
+		{"linux/arm64",   "12311623586464629362"},
 		{"linux/arm64", "2764862066367832004"},
 	}
 
@@ -949,6 +952,7 @@ func TestCSmith(t *testing.T) {
 		"--bitfields --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --max-nested-struct-level 10 -s 1906742816",
 		"--bitfields --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --max-nested-struct-level 10 -s 3629008936",
 		"--bitfields --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --max-nested-struct-level 10 -s 612971101",
+		"--max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --bitfields -s 12311623586464629362", //TODO linux/arm64
 		"--max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --bitfields -s 12695610754882428028", //TODO linux/arm64
 		"--max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --bitfields -s 1701143130",
 		"--max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --bitfields -s 1714958724",
