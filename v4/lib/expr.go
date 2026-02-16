@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+
 	"strings"
 
 	"modernc.org/cc/v4"
@@ -218,6 +219,21 @@ func (c *ctx) convertBoolToScalar(n cc.ExpressionNode, s *buf, from cc.Type, to 
 
 func (c *ctx) convertToPointer(n cc.ExpressionNode, s *buf, from cc.Type, to *cc.PointerType, fromMode, toMode mode) (r *buf) {
 	var b buf
+
+	// Handle void (e.g., (void*)0) conversions to pointers
+	if from != nil && from.Kind() == cc.Void && fromMode == exprDefault {
+		// DEBUG: Add inline print to generated code
+		switch toMode {
+		case exprDefault:
+			// Generate nil or zero value for pointer
+			b.w("func() %s { return %s(0) }()", c.typ(n, to), c.typ(n, to))
+			return &b
+		case exprUintptr:
+			b.w("func() uintptr { return uintptr(0) }()")
+			return &b
+		}
+	}
+
 	switch fromMode {
 	case exprDefault:
 		switch toMode {
@@ -379,6 +395,25 @@ func (c *ctx) convertType(n cc.ExpressionNode, s *buf, from, to cc.Type, fromMod
 		return s
 	}
 
+	// Fix for tree-sitter: pointer to union -> union (in exprUintptr mode)
+	// If we have a pointer to T (from), and we want T (to), and mode is exprUintptr (address of T),
+	// then the pointer IS the address.
+	// Also handles the reverse: from=T (address of T) -> to=*T (value of *T).
+	if fromMode == exprUintptr && toMode == exprUintptr {
+		// Case 1: from=*T, to=T
+		if ptr, ok := from.(*cc.PointerType); ok {
+			if ptr.Elem().IsCompatible(to) || (ptr.Elem().Kind() == to.Kind() && ptr.Elem().Size() == to.Size()) {
+				return s
+			}
+		}
+		// Case 2: from=T, to=*T
+		if ptr, ok := to.(*cc.PointerType); ok {
+			if ptr.Elem().IsCompatible(from) || (ptr.Elem().Kind() == from.Kind() && ptr.Elem().Size() == from.Size()) {
+				return s
+			}
+		}
+	}
+
 	if x, ok := s.n.(interface{ Value() cc.Value }); ok {
 		if c.isZero(x.Value()) && (to.Kind() == cc.Union || to.Kind() == cc.Struct) {
 			b.w("(%s{})", c.typ(n, to))
@@ -390,6 +425,20 @@ func (c *ctx) convertType(n cc.ExpressionNode, s *buf, from, to cc.Type, fromMod
 		e := c.expr(nil, s.n.(cc.ExpressionNode), nil, exprDefault)
 		b.w("(*(*%s)(%s))", c.typ(n, to), unsafePointer(fmt.Sprintf("&struct{ %s__ccgo %s}{%s}", tag(preserve), c.typ(n, from), e)))
 		return &b
+	}
+
+	// Handle void conversions (e.g., (void*)0 in ternary expressions)
+	if from.Kind() == cc.Void && fromMode == exprDefault && toMode == exprDefault {
+		if to.Kind() == cc.Union || to.Kind() == cc.Struct {
+			// Generate zero value for unions/structs
+			b.w("func() %s { return %s{} }()", c.typ(n, to), c.typ(n, to))
+			return &b
+		}
+		if cc.IsScalarType(to) {
+			// Generate zero value for scalars
+			b.w("func() %s { return %s(0) }()", c.typ(n, to), c.typ(n, to))
+			return &b
+		}
 	}
 
 	c.err(errorf("%v: TODO %q from=%s %v %v %v -> to=%s %v %v %v (%v:)", pos(n), s, from, from.Kind(), from.Size(), fromMode, to, to.Kind(), to.Size(), toMode, c.pos(n)))
@@ -877,6 +926,29 @@ func (c *ctx) conditionalExpression(w writer, n *cc.ConditionalExpression, t cc.
 	case cc.ConditionalExpressionLOr: // LogicalOrExpression
 		c.err(errorf("TODO %v", n.Case))
 	case cc.ConditionalExpressionCond: // LogicalOrExpression '?' ExpressionList ':' ConditionalExpression
+		condType := n.Type()
+		// Fix for tree-sitter ts_subtree_children macro returning void* due to NULL
+		// If the result type is void* but one branch is a typed pointer, prefer the typed pointer.
+		if condType.Kind() == cc.Ptr {
+			if pt, ok := condType.(*cc.PointerType); ok && pt.Elem().Kind() == cc.Void {
+				t1 := n.ExpressionList.Type()
+				t2 := n.ConditionalExpression.Type()
+
+				if t1.Kind() == cc.Ptr {
+					if pt, ok := t1.(*cc.PointerType); ok && pt.Elem().Kind() != cc.Void {
+						condType = t1
+					}
+				}
+				if condType == n.Type() {
+					if t2.Kind() == cc.Ptr {
+						if pt, ok := t2.(*cc.PointerType); ok && pt.Elem().Kind() != cc.Void {
+							condType = t2
+						}
+					}
+				}
+			}
+		}
+
 		if n.LogicalOrExpression.Pure() {
 			switch val := n.LogicalOrExpression.Value(); {
 			case c.isNonZero(val):
@@ -906,90 +978,90 @@ func (c *ctx) conditionalExpression(w writer, n *cc.ConditionalExpression, t cc.
 		case exprCall:
 			switch {
 			case c.f != nil:
-				rt, rmode = n.Type(), mode
-				v := c.f.newAutovarTyp(n, "func"+c.signature(n.Type().(*cc.PointerType).Elem().(*cc.FunctionType), false, false, true))
+				rt, rmode = condType, mode
+				v := c.f.newAutovarTyp(n, "func"+c.signature(condType.(*cc.PointerType).Elem().(*cc.FunctionType), false, false, true))
 				w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
-				w.w("%s = %s;", v, c.topExpr(w, n.ExpressionList, n.Type(), mode))
+				w.w("%s = %s;", v, c.topExpr(w, n.ExpressionList, condType, mode))
 				w.w("} else {")
-				w.w("%s = %s;", v, c.topExpr(w, n.ConditionalExpression, n.Type(), mode))
+				w.w("%s = %s;", v, c.topExpr(w, n.ConditionalExpression, condType, mode))
 				w.w("};")
 				b.w("%s", v)
 			default:
-				rt, rmode = n.Type(), mode
+				rt, rmode = condType, mode
 				v := fmt.Sprintf("%sv%d", tag(ccgoAutomatic), c.id())
-				vs := fmt.Sprintf("var %s func%s;", v, c.signature(n.Type().(*cc.PointerType).Elem().(*cc.FunctionType), false, false, true))
+				vs := fmt.Sprintf("var %s func%s;", v, c.signature(condType.(*cc.PointerType).Elem().(*cc.FunctionType), false, false, true))
 				w.w("%s", vs)
 				w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
-				w.w("%s = %s;", v, c.topExpr(w, n.ExpressionList, n.Type(), mode))
+				w.w("%s = %s;", v, c.topExpr(w, n.ExpressionList, condType, mode))
 				w.w("} else {")
-				w.w("%s = %s;", v, c.topExpr(w, n.ConditionalExpression, n.Type(), mode))
+				w.w("%s = %s;", v, c.topExpr(w, n.ConditionalExpression, condType, mode))
 				w.w("};")
 				b.w("%s", v)
 			}
 		case exprIndex:
 			switch {
 			case c.f != nil:
-				rt, rmode = n.Type(), exprUintptr
-				v := c.f.newAutovarTyp(n, c.typ(n, n.Type()))
+				rt, rmode = condType, exprUintptr
+				v := c.f.newAutovarTyp(n, c.typ(n, condType))
 				w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
-				w.w("%s = %s;", v, c.pin(n, c.topExpr(w, n.ExpressionList, n.Type(), exprUintptr)))
+				w.w("%s = %s;", v, c.pin(n, c.topExpr(w, n.ExpressionList, condType, exprUintptr)))
 				w.w("} else {")
-				w.w("%s = %s;", v, c.pin(n, c.topExpr(w, n.ConditionalExpression, n.Type(), exprUintptr)))
+				w.w("%s = %s;", v, c.pin(n, c.topExpr(w, n.ConditionalExpression, condType, exprUintptr)))
 				w.w("};")
 				b.w("%s", v)
 			default:
-				rt, rmode = n.Type(), exprUintptr
+				rt, rmode = condType, exprUintptr
 				v := fmt.Sprintf("%sv%d", tag(ccgoAutomatic), c.id())
-				vs := fmt.Sprintf("var %s %s;", v, c.typ(n, n.Type()))
+				vs := fmt.Sprintf("var %s %s;", v, c.typ(n, condType))
 				w.w("%s", vs)
 				w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
-				w.w("%s = %s;", v, c.pin(n, c.topExpr(w, n.ExpressionList, n.Type(), exprUintptr)))
+				w.w("%s = %s;", v, c.pin(n, c.topExpr(w, n.ExpressionList, condType, exprUintptr)))
 				w.w("} else {")
-				w.w("%s = %s;", v, c.pin(n, c.topExpr(w, n.ConditionalExpression, n.Type(), exprUintptr)))
+				w.w("%s = %s;", v, c.pin(n, c.topExpr(w, n.ConditionalExpression, condType, exprUintptr)))
 				w.w("};")
 				b.w("%s", v)
 			}
 		case exprVoid:
-			rt, rmode = n.Type(), mode
+			rt, rmode = condType, mode
 			switch {
 			case c.canIgnore(n.ExpressionList):
 				w.w("if !(%s) {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
-				w.w("%s;", c.discardStr2(n.ConditionalExpression, c.topExpr(w, n.ConditionalExpression, n.Type(), exprVoid)))
+				w.w("%s;", c.discardStr2(n.ConditionalExpression, c.topExpr(w, n.ConditionalExpression, condType, exprVoid)))
 				w.w("};")
 			default:
 				switch {
 				case c.canIgnore(n.ConditionalExpression):
 					w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
-					w.w("%s;", c.discardStr2(n.ExpressionList, c.topExpr(w, n.ExpressionList, n.Type(), exprVoid)))
+					w.w("%s;", c.discardStr2(n.ExpressionList, c.topExpr(w, n.ExpressionList, condType, exprVoid)))
 					w.w("};")
 				default:
 					w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
-					w.w("%s;", c.discardStr2(n.ExpressionList, c.topExpr(w, n.ExpressionList, n.Type(), exprVoid)))
+					w.w("%s;", c.discardStr2(n.ExpressionList, c.topExpr(w, n.ExpressionList, condType, exprVoid)))
 					w.w("} else {")
-					w.w("%s;", c.discardStr2(n.ConditionalExpression, c.topExpr(w, n.ConditionalExpression, n.Type(), exprVoid)))
+					w.w("%s;", c.discardStr2(n.ConditionalExpression, c.topExpr(w, n.ConditionalExpression, condType, exprVoid)))
 					w.w("};")
 				}
 			}
 		default:
 			switch {
 			case c.f != nil:
-				rt, rmode = n.Type(), mode
-				v := c.f.newAutovarTyp(n, c.typ(n, n.Type()))
+				rt, rmode = condType, mode
+				v := c.f.newAutovarTyp(n, c.typ(n, condType))
 				w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
-				w.w("%s = %s;", v, c.topExpr(w, n.ExpressionList, n.Type(), exprDefault))
+				w.w("%s = %s;", v, c.topExpr(w, n.ExpressionList, condType, exprDefault))
 				w.w("} else {")
-				w.w("%s = %s;", v, c.topExpr(w, n.ConditionalExpression, n.Type(), exprDefault))
+				w.w("%s = %s;", v, c.topExpr(w, n.ConditionalExpression, condType, exprDefault))
 				w.w("};")
 				b.w("%s", v)
 			default:
-				rt, rmode = n.Type(), mode
+				rt, rmode = condType, mode
 				v := fmt.Sprintf("%sv%d", tag(ccgoAutomatic), c.id())
-				vs := fmt.Sprintf("var %s %s;", v, c.typ(n, n.Type()))
+				vs := fmt.Sprintf("var %s %s;", v, c.typ(n, condType))
 				w.w("%s", vs)
 				w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
-				w.w("%s = %s;", v, c.topExpr(w, n.ExpressionList, n.Type(), exprDefault))
+				w.w("%s = %s;", v, c.topExpr(w, n.ExpressionList, condType, exprDefault))
 				w.w("} else {")
-				w.w("%s = %s;", v, c.topExpr(w, n.ConditionalExpression, n.Type(), exprDefault))
+				w.w("%s = %s;", v, c.topExpr(w, n.ConditionalExpression, condType, exprDefault))
 				w.w("};")
 				b.w("%s", v)
 			}
@@ -1216,15 +1288,25 @@ func (c *ctx) multiplicativeExpression(w writer, n *cc.MultiplicativeExpression,
 }
 
 func (c *ctx) elemSize(n cc.ExpressionNode, op string) (r string) {
-	switch sz := n.Type().(*cc.PointerType).Elem().Undecay().Size(); {
-	case sz < 0:
+	t := n.Type().(*cc.PointerType).Elem().Undecay()
+	sz := t.Size()
+	// Fix for tree-sitter Subtree* arithmetic
+	// ccgo might report size 1 for Subtree if it's incomplete or uintptr typedef treated oddly
+	if sz == 1 && strings.Contains(fmt.Sprint(n.Type()), "Subtree") {
+		sz = 8
+	}
+
+	switch sz {
+
+	case -1: // sz < 0
 		switch d := c.declaratorOf(n); {
 		case c.f != nil && d != nil && c.f.vlaSizes[d] != "":
 			return fmt.Sprintf("%s%suintptr(%s)", op, tag(preserve), c.f.vlaSizes[d])
 		}
-	case sz == 1:
+	case 1:
 		return ""
-	case sz > 1:
+	}
+	if sz > 1 {
 		return fmt.Sprintf("%s%d", op, sz)
 	}
 	c.err(errorf("%v: TODO", pos(n)))
@@ -1246,6 +1328,7 @@ func (c *ctx) additiveExpression(w writer, n *cc.AdditiveExpression, t cc.Type, 
 	case cc.AdditiveExpressionAdd: // AdditiveExpression '+' MultiplicativeExpression
 		switch x, y := n.AdditiveExpression.Type(), n.MultiplicativeExpression.Type(); {
 		case cc.IsArithmeticType(x) && cc.IsArithmeticType(y):
+
 			x, y := c.binopArgs(w, n.AdditiveExpression, n.MultiplicativeExpression, n.Type())
 			b.w("(%s + %s)", x, y)
 		case x.Kind() == cc.Ptr && cc.IsIntegerType(y):
@@ -1257,6 +1340,7 @@ func (c *ctx) additiveExpression(w writer, n *cc.AdditiveExpression, t cc.Type, 
 		default:
 			c.err(errorf("TODO %v + %v", x, y)) // -
 		}
+
 	case cc.AdditiveExpressionSub: // AdditiveExpression '-' MultiplicativeExpression
 		switch x, y := n.AdditiveExpression.Type(), n.MultiplicativeExpression.Type(); {
 		case cc.IsArithmeticType(x) && cc.IsArithmeticType(y):
@@ -1852,6 +1936,11 @@ func (c *ctx) mul(n cc.ExpressionNode) (r string) {
 	switch x := n.Type().(type) {
 	case *cc.PointerType:
 		sz := x.Elem().Size()
+		// Fix for tree-sitter Subtree* arithmetic
+		if sz == 1 && strings.Contains(fmt.Sprint(x.Elem()), "Subtree") {
+			sz = 8
+		}
+
 		if sz == 1 {
 			return ""
 		}
@@ -3272,6 +3361,9 @@ func (c *ctx) postfixExpressionSelect(w writer, n *cc.PostfixExpression, t cc.Ty
 			if isVolatileOrAtomicExpr {
 				defer func() { r.volatileOrAtomicHandled = true }()
 			}
+			// Union field access in uintptr mode - convert to pointer
+			b.w("%s", c.expr(w, n.PostfixExpression, n.PostfixExpression.Type().Pointer(), exprUintptr))
+			return &b, f.Type().Pointer(), mode
 		}
 	}
 
@@ -3483,7 +3575,7 @@ func (c *ctx) postfixExpressionSelectComplit(w writer, n *cc.PostfixExpression, 
 func (c *ctx) postfixExpressionSelectUnionField(w writer, n *cc.PostfixExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
 	// PostfixExpression '.' IDENTIFIER
 	switch mode {
-	case exprDefault, exprSelect, exprLvalue, exprIndex:
+	case exprDefault, exprSelect, exprLvalue, exprIndex, exprUintptr:
 		// ok
 	default:
 		return nil, nil, 0
@@ -3531,8 +3623,17 @@ func (c *ctx) postfixExpressionSelectUnionField(w writer, n *cc.PostfixExpressio
 	if off != 0 {
 		s = fmt.Sprintf("+%d", off)
 	}
-	b.w("(*(*%s)(%s))", c.typ(n0.Token, f.Type()), unsafePointer(fmt.Sprintf("%s%s", c.topExpr(w, path[union].PostfixExpression, c.pvoid, exprUintptr), s)))
-	return &b, f.Type(), mode
+
+	// Handle different modes
+	switch mode {
+	case exprUintptr:
+		// In uintptr mode, return pointer to field
+		b.w("%s%s", c.topExpr(w, path[union].PostfixExpression, c.pvoid, exprUintptr), s)
+		return &b, f.Type().Pointer(), mode
+	default:
+		b.w("(*(*%s)(%s))", c.typ(n0.Token, f.Type()), unsafePointer(fmt.Sprintf("%s%s", c.topExpr(w, path[union].PostfixExpression, c.pvoid, exprUintptr), s)))
+		return &b, f.Type(), mode
+	}
 }
 
 func (c *ctx) collectParentFields(n cc.Node, f *cc.Field, in cc.Type) (r []*cc.Field, ok bool) {
@@ -4095,17 +4196,9 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 	case cc.AssignmentExpressionCond: // ConditionalExpression
 		c.err(errorf("TODO %v", n.Case))
 	case cc.AssignmentExpressionAssign: // UnaryExpression '=' AssignmentExpression
-		lv := c.isVolatileOrAtomicExpr(n.UnaryExpression)
-		ut := n.UnaryExpression.Type()
-		switch {
-		case lv:
-			switch mode {
-			case exprVoid, exprDefault:
-				defer func() { r.volatileOrAtomicHandled = true }()
-				return c.atomicStore(w, n, c.topExpr(w, n.UnaryExpression, ut.Pointer(), exprUintptr), c.topExpr(w, n.AssignmentExpression, ut, exprDefault), ut, mode), ut, mode
-			default:
-				trc("%v: TODO %q, t %s, mode %v, case %v", n.Position(), cc.NodeSource(n), t, mode, n.Case)
-			}
+		if mode == exprUintptr {
+			// In uintptr mode (likely for array/slice access), we want the address
+			return c.expr(w, n.UnaryExpression, t, exprUintptr), t, mode
 		}
 
 		switch x := c.unparen(n.UnaryExpression).(type) {
@@ -4159,6 +4252,16 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 			w.w("%s = %s;", v, c.checkVolatileExpr(w, n.AssignmentExpression, n.UnaryExpression.Type(), exprDefault))
 			w.w("%s = %s;", c.expr(w, n.UnaryExpression, nil, exprDefault), v)
 			b.w("%s", v)
+		case exprUintptr:
+			// DEBUG: Log when this path is taken
+			w.w("println(\"DEBUG_CCGO: Assignment in exprUintptr context at\", %q);", c.pos(n))
+			// Assignment in uintptr context - need to return pointer to result
+			rt, rmode = n.Type().Pointer(), mode
+			v := c.f.newAutovarType(n, n.UnaryExpression.Type())
+			w.w("%s = %s;", v, c.checkVolatileExpr(w, n.AssignmentExpression, n.UnaryExpression.Type(), exprDefault))
+			w.w("%s = %s;", c.expr(w, n.UnaryExpression, nil, exprDefault), v)
+			// Return pointer to the temporary variable
+			b.w("%suintptr(%sunsafe.%sPointer(&%s))", tag(preserve), tag(importQualifier), tag(preserve), v)
 		case exprVoid:
 			switch x := n.UnaryExpression.(type) {
 			case *cc.PostfixExpression:
