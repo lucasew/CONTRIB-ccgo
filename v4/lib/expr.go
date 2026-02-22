@@ -313,6 +313,8 @@ func (c *ctx) convertMode(n cc.ExpressionNode, w writer, s *buf, from, to cc.Typ
 		switch toMode {
 		case exprDefault:
 			return s
+		case exprVoid:
+			return s
 		case exprBool:
 			b.w("(%s != 0)", s)
 			return &b
@@ -1290,11 +1292,6 @@ func (c *ctx) multiplicativeExpression(w writer, n *cc.MultiplicativeExpression,
 func (c *ctx) elemSize(n cc.ExpressionNode, op string) (r string) {
 	t := n.Type().(*cc.PointerType).Elem().Undecay()
 	sz := t.Size()
-	// Fix for tree-sitter Subtree* arithmetic
-	// ccgo might report size 1 for Subtree if it's incomplete or uintptr typedef treated oddly
-	if sz == 1 && strings.Contains(fmt.Sprint(n.Type()), "Subtree") {
-		sz = 8
-	}
 
 	switch sz {
 
@@ -1936,10 +1933,6 @@ func (c *ctx) mul(n cc.ExpressionNode) (r string) {
 	switch x := n.Type().(type) {
 	case *cc.PointerType:
 		sz := x.Elem().Size()
-		// Fix for tree-sitter Subtree* arithmetic
-		if sz == 1 && strings.Contains(fmt.Sprint(x.Elem()), "Subtree") {
-			sz = 8
-		}
 
 		if sz == 1 {
 			return ""
