@@ -4196,9 +4196,17 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 	case cc.AssignmentExpressionCond: // ConditionalExpression
 		c.err(errorf("TODO %v", n.Case))
 	case cc.AssignmentExpressionAssign: // UnaryExpression '=' AssignmentExpression
-		if mode == exprUintptr {
-			// In uintptr mode (likely for array/slice access), we want the address
-			return c.expr(w, n.UnaryExpression, t, exprUintptr), t, mode
+		lv := c.isVolatileOrAtomicExpr(n.UnaryExpression)
+		ut := n.UnaryExpression.Type()
+		switch {
+		case lv:
+			switch mode {
+			case exprVoid, exprDefault:
+				defer func() { r.volatileOrAtomicHandled = true }()
+				return c.atomicStore(w, n, c.topExpr(w, n.UnaryExpression, ut.Pointer(), exprUintptr), c.topExpr(w, n.AssignmentExpression, ut, exprDefault), ut, mode), ut, mode
+			default:
+				trc("%v: TODO %q, t %s, mode %v, case %v", n.Position(), cc.NodeSource(n), t, mode, n.Case)
+			}
 		}
 
 		switch x := c.unparen(n.UnaryExpression).(type) {
@@ -4252,16 +4260,6 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 			w.w("%s = %s;", v, c.checkVolatileExpr(w, n.AssignmentExpression, n.UnaryExpression.Type(), exprDefault))
 			w.w("%s = %s;", c.expr(w, n.UnaryExpression, nil, exprDefault), v)
 			b.w("%s", v)
-		case exprUintptr:
-			// DEBUG: Log when this path is taken
-			w.w("println(\"DEBUG_CCGO: Assignment in exprUintptr context at\", %q);", c.pos(n))
-			// Assignment in uintptr context - need to return pointer to result
-			rt, rmode = n.Type().Pointer(), mode
-			v := c.f.newAutovarType(n, n.UnaryExpression.Type())
-			w.w("%s = %s;", v, c.checkVolatileExpr(w, n.AssignmentExpression, n.UnaryExpression.Type(), exprDefault))
-			w.w("%s = %s;", c.expr(w, n.UnaryExpression, nil, exprDefault), v)
-			// Return pointer to the temporary variable
-			b.w("%suintptr(%sunsafe.%sPointer(&%s))", tag(preserve), tag(importQualifier), tag(preserve), v)
 		case exprVoid:
 			switch x := n.UnaryExpression.(type) {
 			case *cc.PostfixExpression:
