@@ -257,6 +257,10 @@ func main() {}
 		return fmt.Errorf("go mod init: %s\nFAIL: %v", b, err)
 	}
 
+	if b, err := exec.Command("go", "get", "modernc.org/libc@v1.24.1").CombinedOutput(); err != nil {
+		return fmt.Errorf("go get modernc.org/libc@v1.24.1: %s\nFAIL: %v", b, err)
+	}
+
 	if b, err := exec.Command("go", "mod", "tidy").CombinedOutput(); err != nil {
 		return fmt.Errorf("go mod tidy: %s\nFAIL: %v", b, err)
 	}
@@ -2713,7 +2717,7 @@ func testSQLite(t *testing.T, dir string) {
 			t.Fatalf("%v\n%s", err, out)
 		}
 
-		if out, err := Shell("go", "get", "modernc.org/libc"); err != nil {
+		if out, err := Shell("go", "get", "modernc.org/libc@v1.24.1"); err != nil {
 			t.Fatalf("%v\n%s", err, out)
 		}
 	}
@@ -2966,7 +2970,7 @@ func TestCSmith(t *testing.T) {
 			t.Fatalf("%v\n%s", err, out)
 		}
 
-		if out, err := Shell("go", "get", "modernc.org/libc"); err != nil {
+		if out, err := Shell("go", "get", "modernc.org/libc@v1.24.1"); err != nil {
 			t.Fatalf("%v\n%s", err, out)
 		}
 	}
