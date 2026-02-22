@@ -423,6 +423,16 @@ func (c *ctx) convertType(n cc.ExpressionNode, s *buf, from, to cc.Type, fromMod
 		}
 	}
 
+	// Reinterpret aggregates of equal size in value context.
+	// This covers C initializations such as T2 x = (T1){...} where layouts match.
+	if (from.Kind() == cc.Struct || from.Kind() == cc.Union) &&
+		(to.Kind() == cc.Struct || to.Kind() == cc.Union) &&
+		from.Size() == to.Size() &&
+		fromMode == exprDefault && toMode == exprDefault {
+		b.w("(*(*%s)(%s))", c.typ(n, to), unsafePointer(fmt.Sprintf("&struct{ %s__ccgo %s}{%s}", tag(preserve), c.typ(n, from), s)))
+		return &b
+	}
+
 	if cc.IsScalarType(from) && to.Kind() == cc.Union && from.Size() == to.Size() && fromMode == exprDefault && toMode == exprDefault {
 		e := c.expr(nil, s.n.(cc.ExpressionNode), nil, exprDefault)
 		b.w("(*(*%s)(%s))", c.typ(n, to), unsafePointer(fmt.Sprintf("&struct{ %s__ccgo %s}{%s}", tag(preserve), c.typ(n, from), e)))
@@ -4263,6 +4273,14 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 			w.w("%s = %s;", v, c.checkVolatileExpr(w, n.AssignmentExpression, n.UnaryExpression.Type(), exprDefault))
 			w.w("%s = %s;", c.expr(w, n.UnaryExpression, nil, exprDefault), v)
 			b.w("%s", v)
+		case exprBool:
+			rt, rmode = n.Type(), mode
+			v := c.f.newAutovarType(n, n.UnaryExpression.Type())
+			w.w("%s = %s;", v, c.checkVolatileExpr(w, n.AssignmentExpression, n.UnaryExpression.Type(), exprDefault))
+			w.w("%s = %s;", c.expr(w, n.UnaryExpression, nil, exprDefault), v)
+			var x buf
+			x.w("%s", v)
+			b.w("%s", c.convert(n, w, &x, n.Type(), n.Type(), exprDefault, exprBool))
 		case exprUintptr:
 			// In pointer mode, materialize assignment and return address of the assigned object.
 			rt, rmode = n.Type().Pointer(), mode
