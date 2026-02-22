@@ -548,51 +548,26 @@ func (c *ctx) initializerUnionOne(w writer, n cc.Node, a []*cc.Initializer, t *c
 	in := a[0]
 	pre := in.Offset() - off0
 	if pre != 0 {
-		// FIX: When there's padding before the field, we need to return the FIELD value,
-		// not a pointer to the struct start (which would point to padding).
-		// Use a function literal to properly extract the field value:
-		// func() T { s := struct{...}{...}; return s.f }()
-		b.w("func() %s { s := struct{", c.typ(n, in.Type()))
 		b.w("%s_ [%d]byte;", tag(preserve), pre)
-		b.w("%sf ", tag(preserve))
-		f := in.Field()
-		switch {
-		case f != nil && f.IsBitfield():
-			b.w("%suint%d", tag(preserve), f.AccessBytes()*8)
-		default:
-			b.w("%s ", c.typ(n, in.Type()))
-		}
-		if post := t.Size() - (pre + in.Type().Size()); post != 0 {
-			b.w("; %s_ [%d]byte", tag(preserve), post)
-		}
-		b.w("}{%sf: ", tag(preserve))
-		switch f := in.Field(); {
-		case f != nil && f.IsBitfield():
-			b.w("(((%s)&%#0x)<<%d)", c.expr(w, in.AssignmentExpression, c.unsignedInts[f.AccessBytes()], exprDefault), uint64(1)<<f.ValueBits()-1, f.OffsetBits())
-		default:
-			b.w("%s", c.expr(w, in.AssignmentExpression, in.Type(), exprDefault))
-		}
-		b.w("}; return s.f }()")
-	} else {
-		b.w("%sf ", tag(preserve))
-		f := in.Field()
-		switch {
-		case f != nil && f.IsBitfield():
-			b.w("%suint%d", tag(preserve), f.AccessBytes()*8)
-		default:
-			b.w("%s ", c.typ(n, in.Type()))
-		}
-		if post := t.Size() - (pre + in.Type().Size()); post != 0 {
-			b.w("; %s_ [%d]byte", tag(preserve), post)
-		}
-		b.w("}{%sf: ", tag(preserve))
-		switch f := in.Field(); {
-		case f != nil && f.IsBitfield():
-			b.w("(((%s)&%#0x)<<%d)", c.expr(w, in.AssignmentExpression, c.unsignedInts[f.AccessBytes()], exprDefault), uint64(1)<<f.ValueBits()-1, f.OffsetBits())
-		default:
-			b.w("%s", c.expr(w, in.AssignmentExpression, in.Type(), exprDefault))
-		}
-		b.w("}")
 	}
+	b.w("%sf ", tag(preserve))
+	f := in.Field()
+	switch {
+	case f != nil && f.IsBitfield():
+		b.w("%suint%d", tag(preserve), f.AccessBytes()*8)
+	default:
+		b.w("%s ", c.typ(n, in.Type()))
+	}
+	if post := t.Size() - (pre + in.Type().Size()); post != 0 {
+		b.w("; %s_ [%d]byte", tag(preserve), post)
+	}
+	b.w("}{%sf: ", tag(preserve))
+	switch f := in.Field(); {
+	case f != nil && f.IsBitfield():
+		b.w("(((%s)&%#0x)<<%d)", c.expr(w, in.AssignmentExpression, c.unsignedInts[f.AccessBytes()], exprDefault), uint64(1)<<f.ValueBits()-1, f.OffsetBits())
+	default:
+		b.w("%s", c.expr(w, in.AssignmentExpression, in.Type(), exprDefault))
+	}
+	b.w("}")
 	return &b
 }

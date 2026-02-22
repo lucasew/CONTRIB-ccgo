@@ -3417,6 +3417,11 @@ func (c *ctx) postfixExpressionSelect(w writer, n *cc.PostfixExpression, t cc.Ty
 			b.w("%s", c.atomicLoad(w, n, p, rt))
 			defer func() { r.volatileOrAtomicHandled = true }()
 			return &b, rt, rmode
+		case exprUintptr:
+			pt := n.PostfixExpression.Type().Pointer()
+			b.w("((%s)%s)", c.expr(w, n.PostfixExpression, pt, mode), fldOff(f.Offset()))
+			defer func() { r.volatileOrAtomicHandled = true }()
+			return &b, f.Type().Pointer(), mode
 		}
 	case c.isVolatileOrAtomicExpr(n.PostfixExpression):
 		switch mode {
@@ -3429,6 +3434,11 @@ func (c *ctx) postfixExpressionSelect(w writer, n *cc.PostfixExpression, t cc.Ty
 			b.w("%s", c.atomicLoad(w, n, p, rt))
 			defer func() { r.volatileOrAtomicHandled = true }()
 			return &b, rt, rmode
+		case exprUintptr:
+			pt := n.PostfixExpression.Type().Pointer()
+			b.w("((%s)%s)", c.expr(w, n.PostfixExpression, pt, mode), fldOff(f.Offset()))
+			defer func() { r.volatileOrAtomicHandled = true }()
+			return &b, f.Type().Pointer(), mode
 		default:
 			c.err(errorf("TODO %v", mode))
 			return &b, rt, rmode
@@ -4253,6 +4263,13 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 			w.w("%s = %s;", v, c.checkVolatileExpr(w, n.AssignmentExpression, n.UnaryExpression.Type(), exprDefault))
 			w.w("%s = %s;", c.expr(w, n.UnaryExpression, nil, exprDefault), v)
 			b.w("%s", v)
+		case exprUintptr:
+			// In pointer mode, materialize assignment and return address of the assigned object.
+			rt, rmode = n.Type().Pointer(), mode
+			v := c.f.newAutovarType(n, n.UnaryExpression.Type())
+			w.w("%s = %s;", v, c.checkVolatileExpr(w, n.AssignmentExpression, n.UnaryExpression.Type(), exprDefault))
+			w.w("%s = %s;", c.expr(w, n.UnaryExpression, nil, exprDefault), v)
+			b.w("%s", c.expr(w, n.UnaryExpression, n.UnaryExpression.Type().Pointer(), exprUintptr))
 		case exprVoid:
 			switch x := n.UnaryExpression.(type) {
 			case *cc.PostfixExpression:
