@@ -9,5 +9,5 @@ import (
 )
 
 func X__builtin_assert_fail(tls *TLS, file *int8, line int32, fn, msg *int8) {
-	panic(fmt.Errorf("%s:%s: assertion failure in %s: %s", GoString(file), line, GoString(fn), GoString(msg)))
+	panic(fmt.Errorf("%s:%d: assertion failure in %s: %s", GoString(file), line, GoString(fn), GoString(msg)))
 }

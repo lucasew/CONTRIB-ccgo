@@ -150,11 +150,11 @@ func goFprintf(w io.Writer, format *int8, ap ...interface{}) int32 {
 			*(*uintptr)(unsafe.Pointer(&format))++
 			switch c {
 			case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.':
-				modifiers += string(c)
+				modifiers += string(rune(c))
 				goto more
 			case '*':
 				w = append(w, VAInt32(&ap))
-				modifiers += string(c)
+				modifiers += string(rune(c))
 				goto more
 			case 'c':
 				arg := VAInt32(&ap)
@@ -231,7 +231,7 @@ func goFprintf(w io.Writer, format *int8, ap ...interface{}) int32 {
 					b2.WriteByte(byte(c))
 				}
 			default:
-				panic(fmt.Errorf("TODO %q", "%"+string(c)))
+				panic(fmt.Errorf("TODO %q", "%"+string(rune(c))))
 			}
 		default:
 			b.WriteByte(byte(c))

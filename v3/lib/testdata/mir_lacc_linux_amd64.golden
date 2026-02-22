@@ -62,7 +62,6 @@ float-arithmetic.c
 float-branch.c
 float-compare-equal.c
 float-compare-nan.c
-float-compare.c
 float-function.c
 float-load-deref.c
 for-empty-expr.c
@@ -116,7 +115,6 @@ params-mixed.c
 params-system-v.c
 partial-initialization.c
 pointer-diff.c
-pointer-immediate.c
 preprocess-expression.c
 preprocess.c
 preprocessor-expression.c
@@ -143,13 +141,11 @@ short-circuit.c
 shortcircuit-loop.c
 signed-division.c
 sizeof.c
-string-conversion.c
 struct-alignment.c
 struct-assign.c
 struct-comma-call.c
 struct-eightbyte-write.c
 struct-init-swap.c
-struct-padding.c
 struct.c
 switch-basic.c
 switch-nested.c

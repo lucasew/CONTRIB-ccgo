@@ -283,6 +283,16 @@ func expect1(wd, match string, hook func(string, string) []string, ccgoOpts []Op
 			return err
 		}
 
+		if err := ioutil.WriteFile("go.mod", []byte(fmt.Sprintf("module main\n\ngo 1.24\n\nrequire modernc.org/ccgo v0.0.0\n\nreplace modernc.org/ccgo => %s\n", wd)), 0664); err != nil {
+			return err
+		}
+
+		if b, err := ioutil.ReadFile(filepath.Join(wd, "go.sum")); err == nil {
+			if err := ioutil.WriteFile("go.sum", b, 0664); err != nil {
+				return err
+			}
+		}
+
 		args := hook(vwd, match)
 		cmd := exec.Command("go", append([]string{"run", "main.go"}, args[1:]...)...)
 		cmd.Stdout = &stdout

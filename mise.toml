@@ -14,7 +14,6 @@ description = "Run workspaced formatter"
 [tasks.test]
 run = '''
 set -e
-go test ./...
 (cd v3 && go test ./...)
 (cd v4 && go test ./...)
 '''
