@@ -27,11 +27,11 @@ const _exprMode_name = "exprAddrOfexprBoolexprCondInitexprCondReturnexprDecayexp
 var _exprMode_index = [...]uint8{0, 10, 18, 30, 44, 53, 61, 71, 82, 92, 101, 109, 118}
 
 func (i exprMode) String() string {
-	idx := int(i) - 1
-	if i < 1 || idx >= len(_exprMode_index)-1 {
-		return "exprMode(" + strconv.FormatInt(int64(i), 10) + ")"
+	i -= 1
+	if i < 0 || i >= exprMode(len(_exprMode_index)-1) {
+		return "exprMode(" + strconv.FormatInt(int64(i+1), 10) + ")"
 	}
-	return _exprMode_name[_exprMode_index[idx]:_exprMode_index[idx+1]]
+	return _exprMode_name[_exprMode_index[i]:_exprMode_index[i+1]]
 }
 func _() {
 	// An "invalid array index" compiler error signifies that the constant values have changed.
@@ -51,9 +51,8 @@ const _opKind_name = "opNormalopArrayopArrayParameteropFunctionopUnionopBitfield
 var _opKind_index = [...]uint8{0, 8, 15, 31, 41, 48, 58, 66}
 
 func (i opKind) String() string {
-	idx := int(i) - 0
-	if i < 0 || idx >= len(_opKind_index)-1 {
+	if i < 0 || i >= opKind(len(_opKind_index)-1) {
 		return "opKind(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _opKind_name[_opKind_index[idx]:_opKind_index[idx+1]]
+	return _opKind_name[_opKind_index[i]:_opKind_index[i+1]]
 }

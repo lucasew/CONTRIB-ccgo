@@ -257,7 +257,6 @@ func main() {}
 		return fmt.Errorf("go mod init: %s\nFAIL: %v", b, err)
 	}
 
-
 	if b, err := exec.Command("go", "mod", "tidy").CombinedOutput(); err != nil {
 		return fmt.Errorf("go mod tidy: %s\nFAIL: %v", b, err)
 	}
