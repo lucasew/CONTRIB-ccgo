@@ -49,6 +49,7 @@ var (
 	oCSmithClimit = flag.Duration("csmithc", 1*time.Minute, "")
 	oDebug        = flag.Bool("debug", false, "")
 	oErr1         = flag.Bool("err1", false, "first error line only")
+	oIgnoreKnown  = flag.Bool("ignore-known-fails", false, "do not skip known test failures")
 	oKeep         = flag.Bool("keep", false, "keep temp directories (only with -work)")
 	oLibc         = flag.String("libc", "modernc.org/libc", "")
 	oPanic        = flag.Bool("panic", false, "panic on miscompilation")
@@ -705,6 +706,10 @@ func exitCode(err error) int {
 }
 
 func isTestExecKnownFail(s string) (r bool) {
+	if *oIgnoreKnown {
+		return false
+	}
+
 	_, r = testExecKnownFails[s]
 	return r
 }
