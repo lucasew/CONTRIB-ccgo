@@ -2060,25 +2060,26 @@ func (c *ctx) postfixExpressionIndex(w writer, n, p, index cc.ExpressionNode, pt
 	switch x := p.(type) {
 	case *cc.PostfixExpression:
 		switch x.Case {
-		case cc.PostfixExpressionSelect:
-			if c.isVolatileOrAtomicExpr(x.PostfixExpression) {
-				switch mode {
-				case exprDefault:
-					f := x.Field()
-					if f.IsBitfield() {
-						break
-					}
+			case cc.PostfixExpressionSelect:
+				if c.isVolatileOrAtomicExpr(x.PostfixExpression) {
+					switch mode {
+					case exprDefault:
+						f := x.Field()
+						if f.IsBitfield() {
+							break
+						}
 
-					defer func() { r.volatileOrAtomicHandled = true }()
-					bp := c.expr(w, x.PostfixExpression, x.PostfixExpression.Type().Pointer(), exprUintptr)
-					if off := f.Offset(); off != 0 {
-						bp.w("+%v*%s", off, mul)
+						defer func() { r.volatileOrAtomicHandled = true }()
+						bp := c.expr(w, x.PostfixExpression, x.PostfixExpression.Type().Pointer(), exprUintptr)
+						if off := f.Offset(); off != 0 {
+							bp.w("+%v", off)
+						}
+						bp.w("%s", c.indexOff(w, index, mul))
+						b.w("%s", c.atomicLoad(w, n, bp, elem))
+						return &b, elem, mode
 					}
-					b.w("%s", c.atomicLoad(w, n, bp, elem))
-					return &b, elem, mode
 				}
 			}
-		}
 	}
 	// trc("%v: %s[%s] %v", c.pos(p), cc.NodeSource(p), cc.NodeSource(index), mode)
 	// defer func() { trc("%v: %s[%s] %v -> %q", c.pos(p), cc.NodeSource(p), cc.NodeSource(index), mode, r.bytes()) }()
