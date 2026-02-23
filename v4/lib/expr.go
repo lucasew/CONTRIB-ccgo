@@ -1851,7 +1851,8 @@ out:
 					rt, rmode = n.Type(), mode
 					t := p.Elem()
 					if !cc.IsScalarType(t) {
-						b.w("(*((*%s)(%s)))", c.typ(n, t), unsafePointer(fmt.Sprintf("%sVaOther(&%s, %d)", c.task.tlsQualifier, c.expr(w, pfe.ArgumentExpressionList.AssignmentExpression, nil, exprDefault), t.Size())))
+						sz := c.storageSize(t)
+						b.w("(*((*%s)(%s)))", c.typ(n, t), unsafePointer(fmt.Sprintf("%sVaOther(&%s, %d)", c.task.tlsQualifier, c.expr(w, pfe.ArgumentExpressionList.AssignmentExpression, nil, exprDefault), sz)))
 						break out
 					}
 
@@ -2057,6 +2058,28 @@ func (c *ctx) postfixExpressionIndex(w writer, n, p, index cc.ExpressionNode, pt
 	elem := pt.Elem()
 	mul := c.mul(p)
 	rt, rmode = nt, mode
+	if x, ok := p.(*cc.PostfixExpression); ok && x.Case == cc.PostfixExpressionSelect {
+		if _, ok := c.isVLA(x.Field().Type()); ok {
+			addr := c.expr(w, x.PostfixExpression, x.PostfixExpression.Type().Pointer(), exprUintptr)
+			if off := x.Field().Offset(); off != 0 {
+				addr.w("+%d", off)
+			}
+			base := fmt.Sprintf("*(*uintptr)(%s)", unsafePointer(addr))
+			switch mode {
+			case exprSelect, exprLvalue, exprDefault, exprIndex:
+				b.w("(*(*%s)(%sunsafe.%sPointer((%s)%s)))", c.typ(p, elem), tag(importQualifier), tag(preserve), base, c.indexOff(w, index, mul))
+				return &b, nt, mode
+			case exprCall:
+				rt, rmode = t.(*cc.PointerType), exprUintptr
+				b.w("(*(*%s)(%sunsafe.%sPointer((%s)%s)))", c.typ(p, elem), tag(importQualifier), tag(preserve), base, c.indexOff(w, index, mul))
+				return &b, rt, rmode
+			case exprUintptr:
+				rt, rmode = nt.Pointer(), mode
+				b.w("((%s)%s)", base, c.indexOff(w, index, mul))
+				return &b, rt, rmode
+			}
+		}
+	}
 	switch x := p.(type) {
 	case *cc.PostfixExpression:
 		switch x.Case {
@@ -2542,7 +2565,7 @@ out:
 			case 1:
 				bp = roundup(c.f.tlsAllocs, bpAlign(t))
 				c.f.compoundLiterals[n] = bp
-				c.f.tlsAllocs += t.Size()
+				c.f.tlsAllocs += c.storageSize(t)
 			case 2:
 				bp = c.f.compoundLiterals[n]
 			}
@@ -2558,7 +2581,7 @@ out:
 			case 1:
 				bp = roundup(c.f.tlsAllocs, bpAlign(t))
 				c.f.compoundLiterals[n] = bp
-				c.f.tlsAllocs += t.Size()
+				c.f.tlsAllocs += c.storageSize(t)
 			case 2:
 				bp = c.f.compoundLiterals[n]
 			}
@@ -3397,7 +3420,7 @@ func (c *ctx) postfixExpressionSelect(w writer, n *cc.PostfixExpression, t cc.Ty
 		case 1:
 			bp = roundup(c.f.tlsAllocs, bpAlign(t))
 			c.f.fnResults[n] = bp
-			c.f.tlsAllocs += t.Size()
+			c.f.tlsAllocs += c.storageSize(t)
 		case 2:
 			bp = c.f.fnResults[n]
 		}

@@ -496,7 +496,7 @@ func (c *ctx) functionDefinition0(w writer, sep string, pos cc.Node, d *cc.Decla
 	for _, d := range a {
 		info := c.f.declInfos[d]
 		info.bpOff = roundup(c.f.tlsAllocs, bpAlign(d.Type()))
-		c.f.tlsAllocs = info.bpOff + d.Type().Size()
+		c.f.tlsAllocs = info.bpOff + c.storageSize(d.Type())
 	}
 	c.pass = 2
 	c.f.nextID = 0
@@ -1253,27 +1253,41 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 				default:
 					w.w("%s%svar %s %s;", sep, c.posComment(n), linkName, c.typ(d, d.Type()))
 				}
-			default:
-				switch c.pass {
-				case 0:
-					w.w("%s%svar %s %s;", sep, c.posComment(n), linkName, c.typ(d, d.Type()))
-				case 2:
-					t, ok := c.isVLA(d.Type())
-					if !ok {
-						break
-					}
+				default:
+					switch c.pass {
+					case 0:
+						w.w("%s%svar %s %s;", sep, c.posComment(n), linkName, c.typ(d, d.Type()))
+					case 2:
+						t, ok := c.isVLA(d.Type())
+						if ok {
+							if t.SizeExpression() == nil {
+								c.err(errorf("%v: internal error", d.Position()))
+								break
+							}
 
-					if t.SizeExpression() == nil {
-						c.err(errorf("%v: internal error", d.Position()))
-						break
+							linkName := c.f.locals[d]
+							w.w("%s = %srealloc(%stls, %[1]s, %[4]s);", linkName, tag(external), tag(ccgo), c.f.vlaSizes[d])
+							break
+						}
+						st, ok := d.Type().Undecay().(*cc.StructType)
+						if !ok {
+							break
+						}
+						for i := 0; i < st.NumFields(); i++ {
+							f := st.FieldByIndex(i)
+							if _, ok := c.variableSizeExpr(w, f.Type()); !ok {
+								continue
+							}
+							fld := fmt.Sprintf("%s.%s%s", linkName, tag(field), c.fieldName(st, f))
+							if info != nil && info.pinned() {
+								fld = fmt.Sprintf("*(*%suintptr)(%s)", tag(preserve), unsafePointer(bpOff(info.bpOff+f.Offset())))
+							}
+							w.w("%[1]s = %[2]srealloc(%[3]stls, %[1]s, %[4]s);", fld, tag(external), tag(ccgo), c.f.vlaSizes[d])
+						}
 					}
-
-					linkName := c.f.locals[d]
-					w.w("%s = %srealloc(%stls, %[1]s, %[4]s);", linkName, tag(external), tag(ccgo), c.f.vlaSizes[d])
 				}
 			}
-		}
-	case cc.InitDeclaratorInit: // Declarator Asm '=' Initializer
+		case cc.InitDeclaratorInit: // Declarator Asm '=' Initializer
 		c.initDeclaratorInit(w, sep, info, d, n.Initializer, linkName)
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
@@ -1465,6 +1479,88 @@ func (c *ctx) variableSizeExpr(w writer, t cc.Type) (r *buf, ok bool) {
 		return &b, true
 	default:
 		return nil, false
+	}
+}
+
+func (c *ctx) storageSize(t cc.Type) int64 {
+	if sz := t.Size(); sz >= 0 {
+		return sz
+	}
+
+	if sz, ok := c.dynamicStorageSize(t.Undecay()); ok && sz > 0 {
+		return sz
+	}
+
+	return 1
+}
+
+func (c *ctx) dynamicStorageSize(t cc.Type) (int64, bool) {
+	switch x := t.(type) {
+	case *cc.ArrayType:
+		if x.IsVLA() {
+			return int64(c.ast.ABI.Types[cc.Ptr].Size), true
+		}
+		return 0, false
+	case *cc.StructType:
+		var max int64
+		var dyn bool
+		for i := 0; i < x.NumFields(); i++ {
+			f := x.FieldByIndex(i)
+			if f.IsFlexibleArrayMember() {
+				continue
+			}
+
+			fsz := f.Type().Size()
+			if fsz < 0 {
+				sz, ok := c.dynamicStorageSize(f.Type().Undecay())
+				if !ok {
+					return 0, false
+				}
+				fsz = sz
+				dyn = true
+			}
+			if end := f.Offset() + fsz; end > max {
+				max = end
+			}
+		}
+		if dyn {
+			if max <= 0 {
+				return 1, true
+			}
+			return max, true
+		}
+		return 0, false
+	case *cc.UnionType:
+		var max int64
+		var dyn bool
+		for i := 0; i < x.NumFields(); i++ {
+			f := x.FieldByIndex(i)
+			if f.IsFlexibleArrayMember() {
+				continue
+			}
+
+			fsz := f.Type().Size()
+			if fsz < 0 {
+				sz, ok := c.dynamicStorageSize(f.Type().Undecay())
+				if !ok {
+					return 0, false
+				}
+				fsz = sz
+				dyn = true
+			}
+			if fsz > max {
+				max = fsz
+			}
+		}
+		if dyn {
+			if max <= 0 {
+				return 1, true
+			}
+			return max, true
+		}
+		return 0, false
+	default:
+		return 0, false
 	}
 }
 
