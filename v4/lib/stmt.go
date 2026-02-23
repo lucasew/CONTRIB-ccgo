@@ -411,16 +411,29 @@ func (c *ctx) selectionStatement(w writer, n *cc.SelectionStatement) {
 
 	switch n.Case {
 	case cc.SelectionStatementIf: // "if" '(' ExpressionList ')' Statement
-		w.w("if %s", c.expr(w, n.ExpressionList, nil, exprBool))
-		c.bracedStatement(w, n.Statement)
-	case cc.SelectionStatementIfElse: // "if" '(' ExpressionList ')' Statement "else" Statement
+		cond := c.expr(w, n.ExpressionList, nil, exprBool)
 		switch {
+		case isLiteralBoolExpr(cond, false):
+			// dead branch
+		case isLiteralBoolExpr(cond, true):
+			c.unbracedStatement(w, n.Statement)
+		default:
+			w.w("if %s", cond)
+			c.bracedStatement(w, n.Statement)
+		}
+	case cc.SelectionStatementIfElse: // "if" '(' ExpressionList ')' Statement "else" Statement
+		cond := c.expr(w, n.ExpressionList, nil, exprBool)
+		switch {
+		case isLiteralBoolExpr(cond, false):
+			c.unbracedStatement(w, n.Statement2)
+		case isLiteralBoolExpr(cond, true):
+			c.unbracedStatement(w, n.Statement)
 		case c.isEmptyStatment(n.Statement):
-			w.w("if !(%s) {", c.expr(w, n.ExpressionList, nil, exprBool))
+			w.w("if !(%s) {", cond)
 			c.unbracedStatement(w, n.Statement2)
 			w.w("};")
 		default:
-			w.w("if %s {", c.expr(w, n.ExpressionList, nil, exprBool))
+			w.w("if %s {", cond)
 			c.unbracedStatement(w, n.Statement)
 			w.w("} else {")
 			c.unbracedStatement(w, n.Statement2)
@@ -475,6 +488,22 @@ func (c *ctx) selectionStatement(w writer, n *cc.SelectionStatement) {
 		c.bracedStatement(w, n.Statement)
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
+	}
+}
+
+func isLiteralBoolExpr(b *buf, want bool) bool {
+	if b == nil {
+		return false
+	}
+
+	s := strings.TrimSpace(string(b.bytes()))
+	switch s {
+	case "false", "(false)", "(0)", "0":
+		return !want
+	case "true", "(true)", "(1)", "1":
+		return want
+	default:
+		return false
 	}
 }
 

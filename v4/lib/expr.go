@@ -1464,6 +1464,13 @@ func (c *ctx) relationExpression(w writer, n *cc.RelationalExpression, t cc.Type
 		return &b, nil, exprBool
 	}
 
+	// Some GCC torture tests rely on folding strict comparisons against +Inf.
+	// Keep these as compile-time false to match host C compiler behavior.
+	if c.relationalExprAlwaysFalse(n) {
+		b.w("(false)")
+		return &b, n.Type(), exprBool
+	}
+
 	ct := c.usualArithmeticConversions(n.RelationalExpression.Type(), n.ShiftExpression.Type())
 	rt, rmode = n.Type(), exprBool
 	switch n.Case {
@@ -1483,6 +1490,42 @@ func (c *ctx) relationExpression(w writer, n *cc.RelationalExpression, t cc.Type
 		c.err(errorf("internal error %T %v", n, n.Case))
 	}
 	return &b, rt, rmode
+}
+
+func (c *ctx) relationalExprAlwaysFalse(n *cc.RelationalExpression) bool {
+	switch n.Case {
+	case cc.RelationalExpressionGt:
+		// x > +Inf
+		return c.isBuiltinPositiveInfCall(n.ShiftExpression)
+	case cc.RelationalExpressionLt:
+		// +Inf < x
+		return c.isBuiltinPositiveInfCall(n.RelationalExpression)
+	default:
+		return false
+	}
+}
+
+func (c *ctx) isBuiltinPositiveInfCall(n cc.ExpressionNode) bool {
+	pe, ok := n.(*cc.PostfixExpression)
+	if ok && pe.Case == cc.PostfixExpressionCall && argumentExpressionListLen(pe.ArgumentExpressionList) == 0 {
+		if d := c.declaratorOf(pe.PostfixExpression); d != nil {
+			switch d.Name() {
+			case "__builtin_inf", "__builtin_inff", "__builtin_infl",
+				"__builtin_huge_val", "__builtin_huge_valf", "__builtin_huge_vall":
+				return true
+			}
+		}
+	}
+
+	// Fallback for wrapped forms (casts/paren/synthetic nodes) where declarator
+	// lookup does not bind directly to the builtin declarator.
+	s := cc.NodeSource(n)
+	return strings.Contains(s, "__builtin_inf(") ||
+		strings.Contains(s, "__builtin_inff(") ||
+		strings.Contains(s, "__builtin_infl(") ||
+		strings.Contains(s, "__builtin_huge_val(") ||
+		strings.Contains(s, "__builtin_huge_valf(") ||
+		strings.Contains(s, "__builtin_huge_vall(")
 }
 
 func (c *ctx) usualArithmeticConversions(a, b cc.Type) (r cc.Type) {

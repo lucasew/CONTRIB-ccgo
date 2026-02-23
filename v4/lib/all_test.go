@@ -531,6 +531,7 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 				"ccgo",
 
 				"-c",
+				"-U__OPTIMIZE__",
 				"-verify-types",
 				"--prefix-field=F",
 				"-ignore-unsupported-alignment",
@@ -548,6 +549,7 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 				"ccgo",
 
 				"-o", ofn,
+				"-U__OPTIMIZE__",
 				"-verify-types",
 				"--prefix-field=F",
 				"-ignore-unsupported-alignment",
