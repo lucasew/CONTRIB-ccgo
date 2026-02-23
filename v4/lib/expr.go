@@ -938,12 +938,19 @@ func (c *ctx) conditionalExpression(w writer, n *cc.ConditionalExpression, t cc.
 	case cc.ConditionalExpressionLOr: // LogicalOrExpression
 		c.err(errorf("TODO %v", n.Case))
 	case cc.ConditionalExpressionCond: // LogicalOrExpression '?' ExpressionList ':' ConditionalExpression
+		// GNU extension: "a ?: b" (omitted middle operand) means
+		// "a ? a : b". Reuse the condition expression as the true branch.
+		trueExpr := cc.ExpressionNode(n.ExpressionList)
+		if trueExpr == nil {
+			trueExpr = n.LogicalOrExpression
+		}
+
 		condType := n.Type()
-		// Fix for tree-sitter ts_subtree_children macro returning void* due to NULL
-		// If the result type is void* but one branch is a typed pointer, prefer the typed pointer.
+		// If the result type is void* but one branch is a typed pointer, prefer
+		// the typed pointer to preserve pointer semantics.
 		if condType.Kind() == cc.Ptr {
 			if pt, ok := condType.(*cc.PointerType); ok && pt.Elem().Kind() == cc.Void {
-				t1 := n.ExpressionList.Type()
+				t1 := trueExpr.Type()
 				t2 := n.ConditionalExpression.Type()
 
 				if t1.Kind() == cc.Ptr {
@@ -961,22 +968,22 @@ func (c *ctx) conditionalExpression(w writer, n *cc.ConditionalExpression, t cc.
 			}
 		}
 
-		if n.LogicalOrExpression.Pure() {
-			switch val := n.LogicalOrExpression.Value(); {
-			case c.isNonZero(val):
-				if mode == exprVoid {
-					if c.canIgnore(n.ExpressionList) {
-						return &b, t, mode
-					}
+			if n.LogicalOrExpression.Pure() {
+				switch val := n.LogicalOrExpression.Value(); {
+				case c.isNonZero(val):
+					if mode == exprVoid {
+						if c.canIgnore(trueExpr) {
+							return &b, t, mode
+						}
 
-					mode = exprDefault
-				}
-				b.w("%s", c.expr(w, n.ExpressionList, t, mode))
-				return &b, t, mode
-			case c.isZero(val):
-				if mode == exprVoid {
-					if c.canIgnore(n.ConditionalExpression) {
-						return &b, t, mode
+						mode = exprDefault
+					}
+					b.w("%s", c.expr(w, trueExpr, t, mode))
+					return &b, t, mode
+				case c.isZero(val):
+					if mode == exprVoid {
+						if c.canIgnore(n.ConditionalExpression) {
+							return &b, t, mode
 					}
 
 					mode = exprDefault
@@ -989,93 +996,93 @@ func (c *ctx) conditionalExpression(w writer, n *cc.ConditionalExpression, t cc.
 		switch mode {
 		case exprCall:
 			switch {
-			case c.f != nil:
+				case c.f != nil:
+					rt, rmode = condType, mode
+					v := c.f.newAutovarTyp(n, "func"+c.signature(condType.(*cc.PointerType).Elem().(*cc.FunctionType), false, false, true))
+					w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
+					w.w("%s = %s;", v, c.topExpr(w, trueExpr, condType, mode))
+					w.w("} else {")
+					w.w("%s = %s;", v, c.topExpr(w, n.ConditionalExpression, condType, mode))
+					w.w("};")
+					b.w("%s", v)
+				default:
 				rt, rmode = condType, mode
-				v := c.f.newAutovarTyp(n, "func"+c.signature(condType.(*cc.PointerType).Elem().(*cc.FunctionType), false, false, true))
-				w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
-				w.w("%s = %s;", v, c.topExpr(w, n.ExpressionList, condType, mode))
-				w.w("} else {")
-				w.w("%s = %s;", v, c.topExpr(w, n.ConditionalExpression, condType, mode))
-				w.w("};")
-				b.w("%s", v)
-			default:
-				rt, rmode = condType, mode
-				v := fmt.Sprintf("%sv%d", tag(ccgoAutomatic), c.id())
-				vs := fmt.Sprintf("var %s func%s;", v, c.signature(condType.(*cc.PointerType).Elem().(*cc.FunctionType), false, false, true))
-				w.w("%s", vs)
-				w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
-				w.w("%s = %s;", v, c.topExpr(w, n.ExpressionList, condType, mode))
-				w.w("} else {")
-				w.w("%s = %s;", v, c.topExpr(w, n.ConditionalExpression, condType, mode))
-				w.w("};")
-				b.w("%s", v)
+					v := fmt.Sprintf("%sv%d", tag(ccgoAutomatic), c.id())
+					vs := fmt.Sprintf("var %s func%s;", v, c.signature(condType.(*cc.PointerType).Elem().(*cc.FunctionType), false, false, true))
+					w.w("%s", vs)
+					w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
+					w.w("%s = %s;", v, c.topExpr(w, trueExpr, condType, mode))
+					w.w("} else {")
+					w.w("%s = %s;", v, c.topExpr(w, n.ConditionalExpression, condType, mode))
+					w.w("};")
+					b.w("%s", v)
 			}
 		case exprIndex:
 			switch {
-			case c.f != nil:
-				rt, rmode = condType, exprUintptr
-				v := c.f.newAutovarTyp(n, c.typ(n, condType))
-				w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
-				w.w("%s = %s;", v, c.pin(n, c.topExpr(w, n.ExpressionList, condType, exprUintptr)))
-				w.w("} else {")
-				w.w("%s = %s;", v, c.pin(n, c.topExpr(w, n.ConditionalExpression, condType, exprUintptr)))
-				w.w("};")
-				b.w("%s", v)
-			default:
-				rt, rmode = condType, exprUintptr
-				v := fmt.Sprintf("%sv%d", tag(ccgoAutomatic), c.id())
-				vs := fmt.Sprintf("var %s %s;", v, c.typ(n, condType))
-				w.w("%s", vs)
-				w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
-				w.w("%s = %s;", v, c.pin(n, c.topExpr(w, n.ExpressionList, condType, exprUintptr)))
-				w.w("} else {")
-				w.w("%s = %s;", v, c.pin(n, c.topExpr(w, n.ConditionalExpression, condType, exprUintptr)))
-				w.w("};")
-				b.w("%s", v)
-			}
-		case exprVoid:
-			rt, rmode = condType, mode
-			switch {
-			case c.canIgnore(n.ExpressionList):
-				w.w("if !(%s) {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
-				w.w("%s;", c.discardStr2(n.ConditionalExpression, c.topExpr(w, n.ConditionalExpression, condType, exprVoid)))
-				w.w("};")
-			default:
-				switch {
-				case c.canIgnore(n.ConditionalExpression):
+				case c.f != nil:
+					rt, rmode = condType, exprUintptr
+					v := c.f.newAutovarTyp(n, c.typ(n, condType))
 					w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
-					w.w("%s;", c.discardStr2(n.ExpressionList, c.topExpr(w, n.ExpressionList, condType, exprVoid)))
-					w.w("};")
-				default:
-					w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
-					w.w("%s;", c.discardStr2(n.ExpressionList, c.topExpr(w, n.ExpressionList, condType, exprVoid)))
+					w.w("%s = %s;", v, c.pin(n, c.topExpr(w, trueExpr, condType, exprUintptr)))
 					w.w("} else {")
+					w.w("%s = %s;", v, c.pin(n, c.topExpr(w, n.ConditionalExpression, condType, exprUintptr)))
+					w.w("};")
+					b.w("%s", v)
+			default:
+				rt, rmode = condType, exprUintptr
+					v := fmt.Sprintf("%sv%d", tag(ccgoAutomatic), c.id())
+					vs := fmt.Sprintf("var %s %s;", v, c.typ(n, condType))
+					w.w("%s", vs)
+					w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
+					w.w("%s = %s;", v, c.pin(n, c.topExpr(w, trueExpr, condType, exprUintptr)))
+					w.w("} else {")
+					w.w("%s = %s;", v, c.pin(n, c.topExpr(w, n.ConditionalExpression, condType, exprUintptr)))
+					w.w("};")
+					b.w("%s", v)
+			}
+			case exprVoid:
+				rt, rmode = condType, mode
+				switch {
+				case c.canIgnore(trueExpr):
+					w.w("if !(%s) {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
 					w.w("%s;", c.discardStr2(n.ConditionalExpression, c.topExpr(w, n.ConditionalExpression, condType, exprVoid)))
 					w.w("};")
-				}
+				default:
+					switch {
+					case c.canIgnore(n.ConditionalExpression):
+						w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
+						w.w("%s;", c.discardStr2(trueExpr, c.topExpr(w, trueExpr, condType, exprVoid)))
+						w.w("};")
+					default:
+						w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
+						w.w("%s;", c.discardStr2(trueExpr, c.topExpr(w, trueExpr, condType, exprVoid)))
+						w.w("} else {")
+						w.w("%s;", c.discardStr2(n.ConditionalExpression, c.topExpr(w, n.ConditionalExpression, condType, exprVoid)))
+						w.w("};")
+					}
 			}
 		default:
 			switch {
-			case c.f != nil:
+				case c.f != nil:
+					rt, rmode = condType, mode
+					v := c.f.newAutovarTyp(n, c.typ(n, condType))
+					w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
+					w.w("%s = %s;", v, c.topExpr(w, trueExpr, condType, exprDefault))
+					w.w("} else {")
+					w.w("%s = %s;", v, c.topExpr(w, n.ConditionalExpression, condType, exprDefault))
+					w.w("};")
+					b.w("%s", v)
+				default:
 				rt, rmode = condType, mode
-				v := c.f.newAutovarTyp(n, c.typ(n, condType))
-				w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
-				w.w("%s = %s;", v, c.topExpr(w, n.ExpressionList, condType, exprDefault))
-				w.w("} else {")
-				w.w("%s = %s;", v, c.topExpr(w, n.ConditionalExpression, condType, exprDefault))
-				w.w("};")
-				b.w("%s", v)
-			default:
-				rt, rmode = condType, mode
-				v := fmt.Sprintf("%sv%d", tag(ccgoAutomatic), c.id())
-				vs := fmt.Sprintf("var %s %s;", v, c.typ(n, condType))
-				w.w("%s", vs)
-				w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
-				w.w("%s = %s;", v, c.topExpr(w, n.ExpressionList, condType, exprDefault))
-				w.w("} else {")
-				w.w("%s = %s;", v, c.topExpr(w, n.ConditionalExpression, condType, exprDefault))
-				w.w("};")
-				b.w("%s", v)
+					v := fmt.Sprintf("%sv%d", tag(ccgoAutomatic), c.id())
+					vs := fmt.Sprintf("var %s %s;", v, c.typ(n, condType))
+					w.w("%s", vs)
+					w.w("if %s {", c.topExpr(w, n.LogicalOrExpression, nil, exprBool))
+					w.w("%s = %s;", v, c.topExpr(w, trueExpr, condType, exprDefault))
+					w.w("} else {")
+					w.w("%s = %s;", v, c.topExpr(w, n.ConditionalExpression, condType, exprDefault))
+					w.w("};")
+					b.w("%s", v)
 			}
 		}
 	default:
