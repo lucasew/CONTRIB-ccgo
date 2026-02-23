@@ -2001,8 +2001,8 @@ func (c *ctx) mul(n cc.ExpressionNode) (r string) {
 		switch {
 		case sz < 0:
 			d := c.declaratorOf(n)
-			switch _, ok := c.isVLA(x.Elem()); {
-			case c.f != nil && d != nil && ok:
+			switch {
+			case c.f != nil && d != nil && c.f.vlaSizes[d] != "":
 				return fmt.Sprintf("*%suintptr(%s)", tag(preserve), c.f.vlaSizes[d])
 			default:
 				c.err(errorf("%v: TODO", pos(n)))

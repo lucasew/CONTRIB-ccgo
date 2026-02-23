@@ -68,7 +68,7 @@ func (c *ctx) typ0(b *strings.Builder, n cc.Node, t cc.Type, useTypenames, useTa
 		return
 	}
 
-	if c.task.verifyTypes && !t.IsIncomplete() {
+	if c.task.verifyTypes && !t.IsIncomplete() && t.Size() >= 0 {
 		switch t.Kind() {
 		case cc.Struct, cc.Union, cc.Array:
 			c.verify[t] = struct{}{}
@@ -478,6 +478,11 @@ func (c *ctx) isValidType1(n cc.Node, t cc.Type, report bool) bool {
 	}
 
 	if t.Size() < 0 {
+		switch t.Undecay().Kind() {
+		case cc.Array, cc.Struct, cc.Union:
+			// Variably modified types can have runtime-only size.
+			return true
+		}
 		if report {
 			c.err(errorf("%v: invalid type size: %d", pos(n), t.Size()))
 		}

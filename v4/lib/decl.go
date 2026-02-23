@@ -1182,17 +1182,13 @@ func (c *ctx) initDeclarator(w writer, sep string, n *cc.InitDeclarator, isExter
 		if x, ok := dt.(*cc.PointerType); ok {
 			dt = x.Elem()
 		}
-		if x, ok := c.isVLA(dt); ok {
+		if sz, ok := c.variableSizeExpr(w, dt); ok {
 			v := c.f.newAutovarType(n, c.ast.SizeT)
 			if c.f.vlaSizes == nil {
 				c.f.vlaSizes = map[*cc.Declarator]string{}
 			}
 			c.f.vlaSizes[d] = v
-			k := ""
-			if sz := x.Elem().Size(); sz != 1 {
-				k = fmt.Sprintf("*%d", sz)
-			}
-			w.w("%s = (%s)%s;", c.f.vlaSizes[d], c.topExpr(w, x.SizeExpression(), c.ast.SizeT, exprDefault), k)
+			w.w("%s = (%s)(%s);", c.f.vlaSizes[d], c.typ(n, c.ast.SizeT), sz)
 		}
 	}
 
@@ -1413,6 +1409,63 @@ func (c *ctx) isVLA(t cc.Type) (*cc.ArrayType, bool) {
 	}
 
 	return nil, false
+}
+
+func (c *ctx) variableSizeExpr(w writer, t cc.Type) (r *buf, ok bool) {
+	switch x := t.Undecay().(type) {
+	case *cc.ArrayType:
+		if !x.IsVLA() || x.SizeExpression() == nil {
+			return nil, false
+		}
+
+		var b buf
+		b.w("(%s)", c.topExpr(w, x.SizeExpression(), c.ast.SizeT, exprDefault))
+		switch esz := x.Elem().Size(); {
+		case esz == 1:
+			// nop
+		case esz > 1:
+			b.w("*%d", esz)
+		default:
+			sz, ok := c.variableSizeExpr(w, x.Elem())
+			if !ok {
+				return nil, false
+			}
+			b.w("*(%s)", sz)
+		}
+		return &b, true
+	case *cc.StructType:
+		var dyn *cc.Field
+		var dynSz *buf
+		for i := 0; i < x.NumFields(); i++ {
+			f := x.FieldByIndex(i)
+			if f.IsFlexibleArrayMember() {
+				continue
+			}
+
+			if f.Type().Size() >= 0 {
+				continue
+			}
+
+			sz, ok := c.variableSizeExpr(w, f.Type())
+			if !ok || dyn != nil {
+				return nil, false
+			}
+			dyn = f
+			dynSz = sz
+		}
+		if dyn == nil {
+			return nil, false
+		}
+
+		var b buf
+		if off := dyn.Offset(); off != 0 {
+			b.w("%d+", off)
+		}
+		b.w("(%s)", dynSz)
+		return &b, true
+	default:
+		return nil, false
+	}
 }
 
 func (c *ctx) initCode(w writer, ref func(int64) string, n *cc.Initializer, t cc.Type) *buf {
