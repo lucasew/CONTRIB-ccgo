@@ -625,11 +625,11 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 		case gobinRC == cbinRC && gobinRC > 0:
 			// makarov et al
 			cExecFailed = false
-		default:
-			if cExecFailed || isTestExecKnownFail(fullPath) {
-				p.skip()
-				return nil
-			}
+			default:
+				if cCompilerFailed || cExecFailed || isTestExecKnownFail(fullPath) {
+					p.skip()
+					return nil
+				}
 
 			err := errorf("%s: %s: FAIL: %v\ngobinRC=%vcbinRC=%v", fullPath, goOut, err, gobinRC, cbinRC)
 			if *oPanic {
