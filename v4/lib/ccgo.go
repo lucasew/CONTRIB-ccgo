@@ -371,6 +371,7 @@ func (t *Task) main() (err error) {
 
 	// Ignored
 	set.Arg("MF", true, func(arg, val string) error { return nil })
+	set.Arg("MP", true, func(arg, val string) error { return nil })
 	set.Arg("MQ", true, func(arg, val string) error { return nil })
 	set.Arg("MT", true, func(arg, val string) error { return nil })
 	set.Arg("arch", true, func(arg, val string) error { return nil })

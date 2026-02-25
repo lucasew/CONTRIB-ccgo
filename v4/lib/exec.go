@@ -466,6 +466,7 @@ func (t *Task) cc(execCC, hostCC string, cflags []string) error {
 	set.Opt("-version", func(arg string) error { args.add(arg); return nil })
 	set.Opt("E", func(arg string) error { optE = true; return nil })
 	set.Opt("MMD", func(arg string) error { return nil })
+	set.Opt("MP", func(arg string) error { args.add(arg); return nil })
 	set.Opt("Qunused-arguments", func(arg string) error { args.add(arg); return nil })
 	set.Opt("ansi", func(arg string) error { args.add(arg); return nil })
 	set.Opt("c", func(arg string) error { args.add(arg); return nil })
