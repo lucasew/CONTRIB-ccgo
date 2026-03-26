@@ -4535,8 +4535,8 @@ out:
 					case cc.Array:
 						b.w("%s", linkName)
 					default:
-						panic(todo(""))
 						c.err(errorf("TODO %v", mode))
+						panic(todo(""))
 					}
 				case exprUintptr:
 					rt = x.Type().Pointer()
