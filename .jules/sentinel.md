@@ -1,0 +1,1 @@
+- 2026-03-30: [Medium] Ignored/swallowed errors via empty catch blocks (_ = err) mask downstream vulnerabilities.
