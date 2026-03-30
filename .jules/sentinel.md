@@ -1,0 +1,1 @@
+- 2024-05-24: [Medium] Swallowed errors (empty catch blocks) should be funneled through the centralized error reporting function.
