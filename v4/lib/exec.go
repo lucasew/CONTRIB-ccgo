@@ -761,7 +761,12 @@ func (t *Task) ar(execAR, hostAR string) (err error) {
 	// 		}
 	// 	}
 	// }
-	cmd = exec.Command(hostAR, []string(args[1:])...)
+
+	// Apple recently broke ar(1), the workaround is to disble the symbol table.
+	var nargs []string
+	nargs = append(nargs, args[1], "-S")
+	nargs = append(nargs, []string(args[2:])...)
+	cmd = exec.Command(hostAR, nargs...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
