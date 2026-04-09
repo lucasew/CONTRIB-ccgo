@@ -6,7 +6,6 @@ package ccgo // import "modernc.org/ccgo/v4/lib"
 
 import (
 	"fmt"
-
 	"os"
 	"os/exec"
 	"path/filepath"
