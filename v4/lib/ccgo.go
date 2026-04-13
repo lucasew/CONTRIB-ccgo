@@ -370,6 +370,7 @@ func (t *Task) main() (err error) {
 	set.Opt("verify-types", func(arg string) error { t.verifyTypes = true; return nil })
 
 	// Ignored
+	set.Arg("framework", false, func(arg, val string) error { return nil }) // darwin/clang
 	set.Arg("MF", true, func(arg, val string) error { return nil })
 	set.Arg("MP", true, func(arg, val string) error { return nil })
 	set.Arg("MQ", true, func(arg, val string) error { return nil })
