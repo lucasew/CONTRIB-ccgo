@@ -33,7 +33,7 @@ edit:
 
 editor:
 	gofmt -l -s -w *.go
-	go build
+	go test -i
 	go test 2>&1 | tee log
 	go build
 

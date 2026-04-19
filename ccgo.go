@@ -38,7 +38,7 @@ var (
 	idVoidPtr = ir.TypeID(dict.SID("*struct{}"))
 )
 
-// TODO remove me.
+//TODO remove me.
 func TODO(msg string, more ...interface{}) string { //TODOOK
 	_, fn, fl, _ := runtime.Caller(1)
 	fmt.Fprintf(os.Stderr, "%s:%d: %v\n", path.Base(fn), fl, fmt.Sprintf(msg, more...))
