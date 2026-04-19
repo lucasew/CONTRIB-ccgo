@@ -41,7 +41,10 @@ var (
 	isTesting bool
 )
 
-// Task represents a compilation job.
+// Task encapsulates the entire context and state of a C-to-Go compilation or linkage job.
+// It holds CLI arguments, target OS/Arch combinations, preprocessor configurations,
+// and the underlying C compiler configurations. It also tracks build artifacts and manages
+// cleanup of temporary directories spawned during the build lifecycle.
 type Task struct {
 	D                     []string            // -D
 	I                     []string            // -I
@@ -157,7 +160,11 @@ type Task struct {
 	doom                         bool // --doom
 }
 
-// NewTask returns a newly created Task. args[0] is the command name.
+// NewTask initializes a new Task with the provided target operating system, architecture,
+// CLI arguments, output streams, and file system.
+// It acts as a factory that sets up the initial toolchain routing mapping and provides
+// isolated environments for the build process.
+// args[0] should be the tool command name (e.g., ccgo, gcc, clang).
 func NewTask(goos, goarch string, args []string, stdout, stderr io.Writer, fs fs.FS) (r *Task) {
 	return &Task{
 		archiveLinkFiles: map[string]struct{}{},
@@ -177,7 +184,14 @@ func NewTask(goos, goarch string, args []string, stdout, stderr io.Writer, fs fs
 	}
 }
 
-// Exec executes a task having the "-exec=foo" option.
+// Exec processes tasks configured with the "-exec=foo" option.
+// It isolates the execution by delegating the command to a child environment and handles
+// the lifecycle of nested build invocations.
+//
+// Side Effects:
+//   - It clears the exec environment variables (`CCGO_EXEC_ENV`, etc) after completion to
+//     prevent unbounded recursion or state leakage into sub-processes.
+//   - It defers to Main() after preparing the environment.
 func (t *Task) Exec() (err error) {
 	// 	if dmesgs {
 	// 		dmesg(
@@ -190,7 +204,12 @@ func (t *Task) Exec() (err error) {
 	return t.Main()
 }
 
-// Main executes task.
+// Main orchestrates the core lifecycle of a Task.
+// It inspects the environment to determine if the task is running in a delegated
+// execution context (via environment variables like CCGO_EXEC_ENV). If so, it routes
+// the execution to the appropriate tool (e.g., ar, gcc) via `execed()`. Otherwise, it
+// falls back to `main()`, which performs the actual C-to-Go transpilation, compilation,
+// linking, or archiving logic directly.
 func (t *Task) Main() (err error) {
 	// 	if dmesgs {
 	// 		dmesg(
