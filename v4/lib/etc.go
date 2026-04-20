@@ -1117,8 +1117,9 @@ func (w *echoWriter) Write(b []byte) (int, error) {
 	return w.w.Write(b)
 }
 
-// IsExecEnv reports whether the environment is set up for executing the command after the -exec
-// option.
+// IsExecEnv reports whether the environment is set up for executing the command
+// after the -exec option, by checking if the corresponding environment variable
+// for the execution routing string is present.
 func IsExecEnv() (r bool) {
 	return execEnv() != ""
 }
