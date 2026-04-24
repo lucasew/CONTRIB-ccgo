@@ -126,6 +126,17 @@ func (c *ctx) mentionsFunc(n cc.ExpressionNode) bool {
 		return false
 	}
 
+	switch x := n.(type) {
+	case *cc.ExpressionList:
+		for ; x != nil; x = x.ExpressionList {
+			if c.mentionsFunc(x.AssignmentExpression) {
+				return true
+			}
+		}
+
+		return false
+	}
+
 	if n.Type().Kind() == cc.Function || n.Type().Kind() == cc.Ptr && n.Type().(*cc.PointerType).Elem().Kind() == cc.Function {
 		return true
 	}
