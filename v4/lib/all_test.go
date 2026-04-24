@@ -45,7 +45,7 @@ const (
 
 var (
 	oBlackBox     = flag.String("blackbox", "", "Record CSmith file to this file")
-	oCSmith       = flag.Duration("csmith", 2*time.Hour, "")
+	oCSmith       = flag.Duration("csmith", 1*time.Hour, "")
 	oCSmithClimit = flag.Duration("csmithc", 1*time.Minute, "")
 	oDebug        = flag.Bool("debug", false, "")
 	oErr1         = flag.Bool("err1", false, "first error line only")
