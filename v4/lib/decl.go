@@ -1294,10 +1294,13 @@ func (c *ctx) initDeclaratorInit(w writer, sep string, info *declInfo, d *cc.Dec
 			return
 		}
 
+		c.declBeingInitialized = d
+
 		var initPatches []initPatch
 		c.initPatch = func(off int64, b *buf) { initPatches = append(initPatches, initPatch{d, off, b}) }
 
 		defer func() {
+			c.declBeingInitialized = nil
 			c.initPatch = nil
 			if len(initPatches) == 0 {
 				return
