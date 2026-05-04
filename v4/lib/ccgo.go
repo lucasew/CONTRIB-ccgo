@@ -3,6 +3,8 @@
 // license that can be found in the LICENSE file.
 
 // Package ccgo implements the ccgo command.
+//
+// Please see README.md for details about the ccgo-generated code ABI.
 package ccgo // import "modernc.org/ccgo/v4/lib"
 
 //TODO Tucontext_t - Tucontext_t5
