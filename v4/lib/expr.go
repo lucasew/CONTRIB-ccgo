@@ -4536,7 +4536,6 @@ out:
 						b.w("%s", linkName)
 					default:
 						panic(todo(""))
-						c.err(errorf("TODO %v", mode))
 					}
 				case exprUintptr:
 					rt = x.Type().Pointer()

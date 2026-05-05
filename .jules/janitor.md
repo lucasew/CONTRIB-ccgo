@@ -1,0 +1,1 @@
+- 2024-05-24: Removed unreachable code after panics and exhaustive switch statements to fix go vet errors.
