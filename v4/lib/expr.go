@@ -44,6 +44,8 @@ const (
 	// enforced. Poor man's type annotation.
 	ccgoFuncParam = "__ccgo_fp_"
 	ccgoTS        = "__ccgo_ts"
+	// unsafe.Pointer
+	ccgoUP = "__ccgo_up"
 )
 
 var (
@@ -1729,7 +1731,8 @@ out:
 		switch mode {
 		case exprDefault, exprLvalue, exprVoid:
 			rt, rmode = n.Type(), mode
-			b.w("(*(*%s)(%s))", c.typ(n, n.CastExpression.Type().(*cc.PointerType).Elem()), unsafePointer(c.expr(w, n.CastExpression, nil, exprDefault)))
+			//TODO- b.w("(*(*%s)(%s))", c.typ(n, n.CastExpression.Type().(*cc.PointerType).Elem()), unsafePointer(c.expr(w, n.CastExpression, nil, exprDefault)))
+			b.w("(**(**%s)(%s%s(%s)))", c.typ(n, n.CastExpression.Type().(*cc.PointerType).Elem()), tag(preserve), ccgoUP, c.expr(w, n.CastExpression, nil, exprDefault))
 		case exprSelect:
 			rt, rmode = n.Type(), mode
 			b.w("((*%s)(%s))", c.typ(n, n.CastExpression.Type().(*cc.PointerType).Elem()), unsafePointer(c.expr(w, n.CastExpression, nil, exprDefault)))
@@ -2000,6 +2003,9 @@ func (c *ctx) postfixExpressionIndex(w writer, n, p, index cc.ExpressionNode, pt
 			b.w("(*(*%s)(%sunsafe.%sPointer(%s%s)))", c.typ(p, elem), tag(importQualifier), tag(preserve), c.expr(w, p, nil, exprDefault), c.indexOff(w, index, mul))
 		case *cc.PointerType:
 			b.w("(*(*%s)(%sunsafe.%sPointer(%s%s)))", c.typ(p, elem), tag(importQualifier), tag(preserve), c.expr(w, p, nil, exprDefault), c.indexOff(w, index, mul))
+			//TODO v := c.f.newAutovarType(n, c.pvoid)
+			//TODO w.w("\n%s := %s%\n", v, c.expr(w, p, nil, exprDefault), c.indexOff(w, index, mul))
+			//TODO b.w("(**(**%s)(%sunsafe.%sPointer(&%s)))", c.typ(p, elem), tag(importQualifier), tag(preserve), v)
 		default:
 			// trc("%v: %s[%s] %v %T", c.pos(p), cc.NodeSource(p), cc.NodeSource(index), mode, x)
 			c.err(errorf("TODO %T", x))
@@ -4482,7 +4488,8 @@ out:
 			case info != nil && info.pinned():
 				switch mode {
 				case exprLvalue, exprSelect, exprIndex:
-					b.w("(*(*%s)(%s))", c.typ(n, x.Type()), unsafePointer(bpOff(info.bpOff)))
+					//TODO- b.w("(*(*%s)(%s))", c.typ(n, x.Type()), unsafePointer(bpOff(info.bpOff)))
+					b.w("(**(**%s)(%s%s(%s)))", c.typ(n, x.Type()), tag(preserve), ccgoUP, bpOff(info.bpOff))
 				case exprUintptr:
 					rt = x.Type().Pointer()
 					b.w("%s", bpOff(info.bpOff))

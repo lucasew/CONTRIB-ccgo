@@ -1681,8 +1681,15 @@ func %s(f interface{}) uintptr {
 	type iface [2]uintptr
 	return (*iface)(unsafe.Pointer(&f))[1]
 }
+
 `, ccgoFP)
 	}
+	l.w(`
+
+func %s(n uintptr) unsafe.Pointer {
+	return unsafe.Pointer(&n)
+}
+`, ccgoUP)
 	var a []string
 	for k := range l.externVars {
 		a = append(a, k)

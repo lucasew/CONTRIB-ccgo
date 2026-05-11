@@ -59,8 +59,10 @@ var (
 	oTraceCC      = flag.Bool("trccc", false, "trace TestExec C compiler errors")
 	oTraceF       = flag.Bool("trcf", false, "print test file content")
 	oTraceO       = flag.Bool("trco", false, "print test output")
-	oXTags        = flag.String("xtags", "", "passed to go build of TestSQLite")
-	oXWork        = flag.String("xwork", "", "TestExec will use a go.work file for packages in the CSV list")
+	oVet          = flag.Bool("xvet", false, "run go vet on transpiled Go files") //TODO default<-true once #45 is fixed
+	//TODO oRace         = flag.Bool("xrace", false, "execute transpiled Go files with -race") //TODO default<-true once #45 is fixed
+	oXTags = flag.String("xtags", "", "passed to go build of TestSQLite")
+	oXWork = flag.String("xwork", "", "TestExec will use a go.work file for packages in the CSV list")
 
 	cfs         fs.FS
 	goarch      = runtime.GOARCH
@@ -577,6 +579,19 @@ func testExec1(t *testing.T, p *parallel, root, path string, execute bool, g *go
 		trc("`%s`: {}, // COMPILE FAIL: %v", fullPath, firstError(err, true))
 		p.err(err)
 		return errorf("%s: %s: FAIL: %v", fullPath, out.Bytes(), firstError(err, *oErr1))
+	}
+
+	if *oVet {
+		if shOut, err := shell(false, "go", "vet", "-unsafeptr", ofn); err != nil {
+			trc("%s\nFAIL: %v", shOut, err)
+			trc("`%s`: {}, // VET FAIL: %v", fullPath, firstError(err, true))
+			if *oTraceF {
+				b, _ := os.ReadFile(ofn)
+				fmt.Printf("\n----\n%s\n----\n", b)
+			}
+			p.err(err)
+			return firstError(err, *oErr1)
+		}
 	}
 
 	if !execute {
