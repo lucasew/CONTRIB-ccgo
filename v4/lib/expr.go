@@ -1731,7 +1731,6 @@ out:
 		switch mode {
 		case exprDefault, exprLvalue, exprVoid:
 			rt, rmode = n.Type(), mode
-			//TODO- b.w("(*(*%s)(%s))", c.typ(n, n.CastExpression.Type().(*cc.PointerType).Elem()), unsafePointer(c.expr(w, n.CastExpression, nil, exprDefault)))
 			b.w("(**(**%s)(%s%s(%s)))", c.typ(n, n.CastExpression.Type().(*cc.PointerType).Elem()), tag(preserve), ccgoUP, c.expr(w, n.CastExpression, nil, exprDefault))
 		case exprSelect:
 			rt, rmode = n.Type(), mode
@@ -2000,12 +1999,9 @@ func (c *ctx) postfixExpressionIndex(w writer, n, p, index cc.ExpressionNode, pt
 				}
 			}
 
-			b.w("(*(*%s)(%sunsafe.%sPointer(%s%s)))", c.typ(p, elem), tag(importQualifier), tag(preserve), c.expr(w, p, nil, exprDefault), c.indexOff(w, index, mul))
+			b.w("(**(**%s)(%s%s(%s%s)))", c.typ(p, elem), tag(preserve), ccgoUP, c.expr(w, p, nil, exprDefault), c.indexOff(w, index, mul))
 		case *cc.PointerType:
-			b.w("(*(*%s)(%sunsafe.%sPointer(%s%s)))", c.typ(p, elem), tag(importQualifier), tag(preserve), c.expr(w, p, nil, exprDefault), c.indexOff(w, index, mul))
-			//TODO v := c.f.newAutovarType(n, c.pvoid)
-			//TODO w.w("\n%s := %s%\n", v, c.expr(w, p, nil, exprDefault), c.indexOff(w, index, mul))
-			//TODO b.w("(**(**%s)(%sunsafe.%sPointer(&%s)))", c.typ(p, elem), tag(importQualifier), tag(preserve), v)
+			b.w("(**(**%s)(%s%s(%s%s)))", c.typ(p, elem), tag(preserve), ccgoUP, c.expr(w, p, nil, exprDefault), c.indexOff(w, index, mul))
 		default:
 			// trc("%v: %s[%s] %v %T", c.pos(p), cc.NodeSource(p), cc.NodeSource(index), mode, x)
 			c.err(errorf("TODO %T", x))
@@ -4380,7 +4376,7 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 						case ok && x.Case == cc.PostfixExpressionSelect:
 							w.w("\n%s %s= %s%s", c.expr(w, n.UnaryExpression, n.UnaryExpression.Type(), exprDefault), op, c.topExpr(w, n.AssignmentExpression, ct, exprDefault), k)
 						default:
-							w.w("\n(*(*%s)(%s)) %s= %s%s;", c.typ(n, ut), unsafePointer(c.topExpr(w, n.UnaryExpression, ut.Pointer(), exprUintptr)), op, c.topExpr(w, n.AssignmentExpression, ct, exprDefault), k)
+							w.w("\n(**(**%s)(%s%s(%s))) %s= %s%s;", c.typ(n, ut), tag(preserve), ccgoUP, c.topExpr(w, n.UnaryExpression, ut.Pointer(), exprUintptr), op, c.topExpr(w, n.AssignmentExpression, ct, exprDefault), k)
 						}
 					}
 				default:
@@ -4488,7 +4484,6 @@ out:
 			case info != nil && info.pinned():
 				switch mode {
 				case exprLvalue, exprSelect, exprIndex:
-					//TODO- b.w("(*(*%s)(%s))", c.typ(n, x.Type()), unsafePointer(bpOff(info.bpOff)))
 					b.w("(**(**%s)(%s%s(%s)))", c.typ(n, x.Type()), tag(preserve), ccgoUP, bpOff(info.bpOff))
 				case exprUintptr:
 					rt = x.Type().Pointer()
@@ -4499,7 +4494,7 @@ out:
 					case ok && !x.IsParam():
 						b.w("%s", bpOff(info.bpOff))
 					default:
-						b.w("(*(*%s)(%s))", c.typ(n, x.Type()), unsafePointer(bpOff(info.bpOff)))
+						b.w("(**(**%s)(%s%s(%s)))", c.typ(n, x.Type()), tag(preserve), ccgoUP, bpOff(info.bpOff))
 					}
 				case exprCall:
 					switch y := x.Type().Undecay().(type) {
