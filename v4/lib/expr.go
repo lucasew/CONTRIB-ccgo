@@ -2074,6 +2074,22 @@ func (c *ctx) postIncDecBitField(op string, w writer, n cc.ExpressionNode, mode 
 	return &b, rt, rmode
 }
 
+func (c *ctx) postfixExpressionCallInlineBuiltin(nm string, w writer, n *cc.PostfixExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode, ok bool) {
+	var b buf
+	switch nm {
+	case "nearbyint", "nearbyintf", "nearbyintl":
+		rt, rmode = c.ast.Double, exprDefault
+		b.w("(math.RoundToEven(%s))", c.expr(w, n.ArgumentExpressionList.AssignmentExpression, rt, rmode))
+		return &b, rt, rmode, true
+	case "trunc", "truncf", "truncl":
+		rt, rmode = c.ast.Double, exprDefault
+		b.w("(math.Trunc(%s))", c.expr(w, n.ArgumentExpressionList.AssignmentExpression, rt, rmode))
+		return &b, rt, rmode, true
+	default:
+		return nil, rt, rmode, false
+	}
+}
+
 func (c *ctx) postfixExpression(w writer, n *cc.PostfixExpression, t cc.Type, mode mode) (r *buf, rt cc.Type, rmode mode) {
 	var b buf
 out:
@@ -2091,7 +2107,16 @@ out:
 
 		c.err(errorf("TODO %v", n.Case))
 	case cc.PostfixExpressionCall: // PostfixExpression '(' ArgumentExpressionList ')'
-		switch c.declaratorOf(n.PostfixExpression).Name() {
+		nm := c.declaratorOf(n.PostfixExpression).Name()
+		if !c.task.strictISOMode && !c.task.freeStanding && !c.task.noBuiltin {
+			if _, ok := forcedBuiltins[nm]; ok {
+				if r, rt, rmode, ok := c.postfixExpressionCallInlineBuiltin(nm, w, n, t, mode); ok {
+					return r, rt, rmode
+				}
+			}
+		}
+
+		switch nm {
 		case "__darwin_check_fd_set_overflow": // See coments at unaryExpression()
 			b.w("(1)")
 			rt, rmode = n.Type(), mode
