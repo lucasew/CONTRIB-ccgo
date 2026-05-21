@@ -43,7 +43,10 @@ var (
 	isTesting bool
 )
 
-// Task represents a compilation job.
+// Task represents a complete ccgo compilation or linking job. It configures and
+// manages the state of the translation from C to Go for a set of input files,
+// holding context such as the target OS/Architecture, preprocessor directives,
+// include paths, and runtime configurations.
 type Task struct {
 	D                     []string            // -D
 	I                     []string            // -I
@@ -160,7 +163,10 @@ type Task struct {
 	doom                         bool // --doom
 }
 
-// NewTask returns a newly created Task. args[0] is the command name.
+// NewTask returns a newly created Task, initializing a base compilation environment
+// targeting the specified OS and architecture. The args parameter expects the
+// command arguments where args[0] is the command name. It sets up standard tool
+// routes and default settings required for subsequent compilation or linking execution.
 func NewTask(goos, goarch string, args []string, stdout, stderr io.Writer, fs fs.FS) (r *Task) {
 	return &Task{
 		archiveLinkFiles: map[string]struct{}{},
@@ -180,7 +186,9 @@ func NewTask(goos, goarch string, args []string, stdout, stderr io.Writer, fs fs
 	}
 }
 
-// Exec executes a task having the "-exec=foo" option.
+// Exec executes the compilation task in the context of an "-exec=foo" option,
+// transparently delegating the execution logic to the main workflow while
+// ensuring proper cleanup of the execution environment afterwards.
 func (t *Task) Exec() (err error) {
 	// 	if dmesgs {
 	// 		dmesg(
@@ -193,7 +201,9 @@ func (t *Task) Exec() (err error) {
 	return t.Main()
 }
 
-// Main executes task.
+// Main executes the compilation task. It evaluates whether the task is running
+// within an execution environment and routes the process accordingly. If standard
+// execution is needed, it triggers the core command line parsing and parsing/translation pipeline.
 func (t *Task) Main() (err error) {
 	// 	if dmesgs {
 	// 		dmesg(
