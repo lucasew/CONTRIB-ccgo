@@ -1,0 +1,1 @@
+- 2026-04-09: [Medium - Swallowed errors mask downstream bugs; all errors must route through the centralized reporter instead of being assigned to the blank identifier]
