@@ -1,0 +1,51 @@
+[tools]
+go = "1.21.0"
+"github:lucasew/workspaced" = "0.1.3"
+"go:golang.org/x/tools/cmd/stringer" = "v0.41.0"
+
+[tasks.lint]
+run = "workspaced codebase lint"
+description = "Run workspaced linter"
+
+[tasks.fmt]
+run = "workspaced codebase format"
+description = "Run workspaced formatter"
+
+[tasks.test]
+run = '''
+set -e
+(cd v3 && go test ./...)
+(cd v4 && go test ./...)
+'''
+description = "Run tests in all modules"
+
+[tasks.codegen]
+run = '''
+set -e
+go generate ./...
+(cd v3 && go generate ./...)
+(cd v4 && go generate ./...)
+'''
+description = "Generate code using go generate"
+
+[tasks.install]
+run = '''
+set -e
+go mod download
+(cd v3 && go mod download)
+(cd v4 && go mod download)
+'''
+description = "Install dependencies"
+
+[tasks.build]
+run = '''
+set -e
+mkdir -p dist
+(cd v3 && go build -o ../dist/ccgo-v3)
+(cd v4 && go build -o ../dist/ccgo-v4)
+'''
+description = "Build binaries"
+
+[tasks.ci]
+depends = ["lint", "test"]
+description = "Run CI pipeline"

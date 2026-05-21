@@ -1,0 +1,60 @@
+name: Autorelease
+on:
+  push:
+    branches: ["master", "main"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install mise
+        uses: jdx/mise-action@v2
+
+      - name: Install Dependencies
+        run: mise run install
+
+      - name: Codegen
+        run: mise run codegen
+
+      - name: Check for changes
+        id: git_status
+        run: |
+          if [[ -n $(git status --porcelain) ]]; then
+            echo "changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create PR if changes
+        if: steps.git_status.outputs.changes == 'true' && github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update generated code"
+          branch: "chore/update-generated-code"
+          title: "chore: update generated code"
+          body: "This PR updates the generated code."
+
+      - name: CI
+        run: mise run ci
+
+      - name: Build
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        run: mise run build
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create ${{ github.ref_name }} dist/* --generate-notes || true
