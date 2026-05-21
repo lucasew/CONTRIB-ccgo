@@ -23,6 +23,10 @@ const (
 	commaSep     = ","
 )
 
+// exec executes the command specified in args by setting up a temporary
+// environment. It creates symlinks for requested tools (like gcc, ar)
+// back to the ccgo binary and adjusts PATH. This ensures that any subprocesses
+// invoked by the command will seamlessly route back to ccgo's execed logic.
 func (t *Task) exec(args []string) (err error) {
 	// 	if dmesgs {
 	// 		dmesg(
@@ -119,6 +123,9 @@ type strSlice []string
 
 func (s *strSlice) add(v ...string) { *s = append(*s, v...) }
 
+// execed serves as the entry point for commands that have been intercepted
+// by the temporary environment set up in exec. It uses the provided routes
+// to delegate the call to the appropriate internal tool handler (e.g., cc, ar, libtool).
 func (t *Task) execed(routes string, cflags []string) (err error) {
 	if dmesgs {
 		wd, _ := os.Getwd()
@@ -201,6 +208,8 @@ func (t *Task) execed(routes string, cflags []string) (err error) {
 	return errorf("internal error: %q", cmd)
 }
 
+// noExe removes the ".exe" suffix from the given string if the target OS
+// is Windows. It is a no-op on other operating systems.
 func (t *Task) noExe(s string) string {
 	const tag = ".exe"
 	if t.goos != "windows" || !strings.HasSuffix(s, tag) {
@@ -210,6 +219,9 @@ func (t *Task) noExe(s string) string {
 	return s[:len(s)-len(tag)]
 }
 
+// libtool intercepts libtool execution. It runs the host's libtool and
+// translates the expected output library paths into ccgo's internal ".a" -> ".ago"
+// object mappings before finally running the archiver (AR) to build the Go-compatible archive.
 func (t *Task) libtool(execLibtool, hostLibtool, hostAR string) error {
 	cmd := exec.Command(execLibtool, t.args[1:]...)
 	cmd.Stdin = os.Stdin
@@ -406,6 +418,8 @@ func (t *Task) rm(execRM, hostRM string) error {
 	})
 }
 
+// goFile maps C object file extensions (like .o or .a) to their corresponding
+// Go source file names (e.g., .o.go or .ago). Unrecognized extensions return an empty string.
 func (t *Task) goFile(s string) string {
 	switch filepath.Ext(s) {
 	case ".go":
@@ -419,6 +433,9 @@ func (t *Task) goFile(s string) string {
 	}
 }
 
+// cc handles the compilation routing. It intercepts compiler executions (gcc, clang, cc),
+// parses the provided flags into a ccgo Task, maps output object files to Go files,
+// and invokes ccgo's main compilation logic to translate C into Go.
 func (t *Task) cc(execCC, hostCC string, cflags []string) error {
 	// 	if dmesgs {
 	// 		dmesg("cc(%q, %q, %q)", execCC, hostCC, cflags)
@@ -645,6 +662,9 @@ func (t *Task) cc(execCC, hostCC string, cflags []string) error {
 	return t.main()
 }
 
+// ar manages archive creation and updates. It intercepts the ar command,
+// parsing the archive operation (e.g., create, insert, update) and maps
+// the requested archive and its members to their corresponding ccgo generated Go files.
 func (t *Task) ar(execAR, hostAR string) (err error) {
 	// if dmesgs {
 	// 	dmesg("execAR=%s hostAR=%s t.args=%v", execAR, hostAR, t.args)
