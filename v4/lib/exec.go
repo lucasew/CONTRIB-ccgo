@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"modernc.org/ccgo/v4/lib/internal/reporter"
 	"modernc.org/opt"
 	"modernc.org/strutil"
 )
@@ -216,7 +217,7 @@ func (t *Task) libtool(execLibtool, hostLibtool, hostAR string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		_ = err
+		reporter.ReportError(err)
 		// if dmesgs {
 		// 	dmesg("NOTE: %s returns %v", execLibtool, err.(*exec.ExitError).ExitCode())
 		// }
@@ -280,7 +281,7 @@ func (t *Task) ln(execLN, hostLN string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		_ = err
+		reporter.ReportError(err)
 		// 		if dmesgs {
 		// 			dmesg("NOTE: %s returns %v", execLN, err.(*exec.ExitError).ExitCode())
 		// 		}
@@ -331,7 +332,7 @@ func (t *Task) mv(execMV, hostMV string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		_ = err
+		reporter.ReportError(err)
 		// if dmesgs {
 		// 	dmesg("SKIP: %s returns %v", execMV, err.(*exec.ExitError).ExitCode())
 		// }
@@ -375,7 +376,7 @@ func (t *Task) rm(execRM, hostRM string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		_ = err
+		reporter.ReportError(err)
 		// 		if dmesgs {
 		// 			dmesg("SKIP: %s returns %v", execRM, err.(*exec.ExitError).ExitCode())
 		// 		}
@@ -429,7 +430,7 @@ func (t *Task) cc(execCC, hostCC string, cflags []string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		_ = err
+		reporter.ReportError(err)
 		// if dmesgs {
 		// 	dmesg("NOTE: %s returns %v", execCC, err.(*exec.ExitError).ExitCode())
 		// }
@@ -672,7 +673,7 @@ func (t *Task) ar(execAR, hostAR string) (err error) {
 	// 	}
 	// }
 	if err := cmd.Run(); err != nil {
-		_ = err
+		reporter.ReportError(err)
 		if dmesgs {
 			dmesg("SKIP: %s returns %v", execAR, err.(*exec.ExitError).ExitCode())
 		}
