@@ -747,8 +747,6 @@ func (t *Task) ar(execAR, hostAR string) (err error) {
 				return errorf("TODO #%d: %q: faked args=%q", argN, arg, t.args)
 			}
 		}
-
-		return errorf("unexpected/unsupported argument: %s", arg)
 	}); err != nil {
 		return err
 	}
