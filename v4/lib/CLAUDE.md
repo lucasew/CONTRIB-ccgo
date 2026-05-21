@@ -19,7 +19,7 @@ All `make` targets must be run from `v4/lib`.
 ### Build tags
 
 - `ccgo.assert` — enables `assert == true` (used by `if assert { ... }` cheap-runtime asserts). The test target sets it. `noassert.go` flips it off when the tag is absent.
-- `ccgo.dmesg` — `dmesg()` writes timestamped lines to `/tmp/ccgo.log` (init-opened, append, sync). `nodmesg.go` is the no-op stub.
+- `ccgo.dmesg` — `dmesg()` writes timestamped lines to `<os.TempDir()>/ccgo.log` (init-opened, append, sync). `nodmesg.go` is the no-op stub.
 
 ### Running a single test / corpus subset
 
@@ -89,7 +89,7 @@ Generated Go uses C-heap memory via `modernc.org/libc` (selectable with `--libc`
 - `trc(format, args...)` (`etc.go:360`) — stderr printf with caller `file:line:func`, intended for ad-hoc debugging; commits should not leave new `trc` calls behind. Sprinkled throughout as `// trc(...)` placeholders.
 - `todo(...)` (`etc.go:346`) — marks not-yet-implemented branches; pair with `c.err(errorf("internal error %T %v", n, n.Case))` for unreachable-case complaints. With `-trctodo`, any `errorf` whose message starts with `TODO` prints its origin.
 - `errorf(...)` (`etc.go:403`) — error constructor. With `-extended-errors` (or `extendedErrors = true`, which `TestMain` sets), errors carry a 6-deep call-origin chain; this is what `TestExec` prints when reporting a failure.
-- `dmesg(...)` — `/tmp/ccgo.log` when built with `-tags=ccgo.dmesg`.
+- `dmesg(...)` — `<os.TempDir()>/ccgo.log` when built with `-tags=ccgo.dmesg`.
 
 ## Stringer-generated code
 
