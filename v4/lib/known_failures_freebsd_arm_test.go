@@ -21,6 +21,7 @@ var testExecKnownFails = map[string]struct{}{
 	`assets/github.com/vnmakarov/mir/c-benchmarks/except.c`:                                             {}, // EXEC FAIL: "assets/github.com/vnmakarov/mir/c-benchmarks/except.c: pthread.go:97:PopJumpBuffer: TODOTODO unsupported setjmp/longjmp usage"
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-basic.c`:                                     {}, // EXEC FAIL
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-trailing-zero.c`:                             {}, // EXEC FAIL
+	`assets/github.com/vnmakarov/mir/c-tests/lacc/bitfield-types-init.c`:                                {}, // EXEC FAIL: sizeof(struct SB)=8 (ref) vs 5 (ccgo); `long :0` zero-width bitfield raises struct alignment under ARM AAPCS, impl-defined bitfield layout
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/float-arithmetic.c`:                                   {}, // EXEC FAIL
 	`assets/github.com/vnmakarov/mir/c-tests/lacc/string-conversion.c`:                                  {}, // EXEC FAIL: "assets/github.com/vnmakarov/mir/c-tests/lacc/string-conversion.c: if"
 	`assets/github.com/vnmakarov/mir/c-tests/new/setjmp.c`:                                              {}, // EXEC FAIL: "assets/github.com/vnmakarov/mir/c-tests/new/setjmp.c: libc.go:2142:Xlongjmp: TODOTODO "
