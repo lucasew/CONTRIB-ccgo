@@ -2456,11 +2456,7 @@ out:
 			b.w("(%s)", bpOff(bp))
 			return &b, t.Pointer(), mode
 		default:
-			off0 := int64(0)
-			if len(a) > 0 {
-				off0 = a[0].Offset()
-			}
-			return c.initializer(w, n, a, t, off0, t.Kind() == cc.Array), t, exprDefault
+			return c.initializer(w, n, a, t, 0, t.Kind() == cc.Array), t, exprDefault
 		}
 	default:
 		c.err(errorf("internal error %T %v", n, n.Case))
@@ -4277,16 +4273,8 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 			b.reset()
 			return &b, n.Type(), exprVoid
 		case exprUintptr:
-			rt, rmode = n.UnaryExpression.Type().Pointer(), mode
-			switch d := c.declaratorOf(n.UnaryExpression); {
-			case d != nil:
-				w.w("%s = %s;", c.expr(w, n.UnaryExpression, nil, exprDefault), c.checkVolatileExpr(w, n.AssignmentExpression, n.UnaryExpression.Type(), exprDefault))
-				dp := &buf{n: d}
-				dp.w("%s", c.declaratorTag(d)+d.Name())
-				b.w("%suintptr(%s)", tag(preserve), unsafeAddr(c.pin(n, dp)))
-			default:
-				c.err(errorf("TODO %v", mode))
-			}
+			w.w("%s = %s;", c.expr(w, n.UnaryExpression, nil, exprDefault), c.checkVolatileExpr(w, n.AssignmentExpression, n.UnaryExpression.Type(), exprDefault))
+			return c.expr(w, n.UnaryExpression, n.UnaryExpression.Type().Pointer(), exprUintptr), n.UnaryExpression.Type().Pointer(), mode
 		default:
 			c.err(errorf("TODO %v", mode))
 			// panic(todo(""))
@@ -4512,16 +4500,6 @@ out:
 			if c.pass == 2 {
 				if nm := c.f.locals[x]; nm != "" {
 					linkName = nm
-				} else {
-					// x from ResolvedTo() may differ from the key in f.locals,
-					// find the matching declarator by name.
-					for k, v := range c.f.locals {
-						if k.Name() == nm && v != "" {
-							linkName = v
-							x = k
-							break
-						}
-					}
 				}
 			}
 			c.externsMentioned[nm] = struct{}{}
