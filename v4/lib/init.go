@@ -404,6 +404,10 @@ func (c *ctx) initializerUnion(w writer, n cc.Node, a []*cc.Initializer, t *cc.U
 }
 
 func (c *ctx) initializerUnionMany(w writer, n cc.Node, a []*cc.Initializer, t *cc.UnionType, off0 int64, arrayElem bool) (r *buf) {
+	var arrayElemOff int64
+	if arrayElem {
+		arrayElemOff = off0 - off0%t.Size()
+	}
 	var b buf
 	var paths [][]*cc.Initializer
 	for _, v := range a {
@@ -458,14 +462,15 @@ done:
 		return c.initializer(w, n, a, lcaType, off0, false)
 	}
 
-	pre := lcaOff - off0
+	pre := lcaOff - arrayElemOff
+	post := t.Size() - lcaType.Size() - pre
 	b.w("struct{")
 	if lcaOff != 0 {
 		b.w("%s_ [%d]byte;", tag(preserve), pre)
 	}
 	b.w("%sf ", tag(preserve))
 	b.w("%s ", c.typ(n, lcaType))
-	if post := t.Size() - lcaType.Size() - pre; post > 0 {
+	if post != 0 {
 		b.w("; %s_ [%d]byte", tag(preserve), post)
 	}
 	b.w("}{%sf: ", tag(preserve))
@@ -571,7 +576,7 @@ func (c *ctx) initializerUnionOne(w writer, n cc.Node, a []*cc.Initializer, t *c
 	default:
 		b.w("%s ", c.typ(n, in.Type()))
 	}
-	if post := t.Size() - (pre + in.Type().Size()); post > 0 {
+	if post := t.Size() - (pre + in.Type().Size()); post != 0 {
 		b.w("; %s_ [%d]byte", tag(preserve), post)
 	}
 	b.w("}{%sf: ", tag(preserve))
