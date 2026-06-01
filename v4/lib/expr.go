@@ -4272,6 +4272,9 @@ func (c *ctx) assignmentExpression(w writer, n *cc.AssignmentExpression, t cc.Ty
 			w.w("%s;", &b)
 			b.reset()
 			return &b, n.Type(), exprVoid
+		case exprUintptr:
+			w.w("%s = %s;", c.expr(w, n.UnaryExpression, nil, exprDefault), c.checkVolatileExpr(w, n.AssignmentExpression, n.UnaryExpression.Type(), exprDefault))
+			return c.expr(w, n.UnaryExpression, n.UnaryExpression.Type().Pointer(), exprUintptr), n.UnaryExpression.Type().Pointer(), mode
 		default:
 			c.err(errorf("TODO %v", mode))
 			// panic(todo(""))
