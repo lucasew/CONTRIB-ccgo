@@ -3052,8 +3052,6 @@ func (p *project) initDeclaratorDeclVLA(f *function, n *cc.InitDeclarator, sep s
 	}
 	if local.isPinned {
 		panic(todo(""))
-		p.w("%s// var %s %s at %s%s, %d\n", sep, local.name, p.typ(n, d.Type()), f.bpName, nonZeroUintptr(local.off), d.Type().Size())
-		return
 	}
 
 	p.w("%s%s = %sXrealloc(%s, %s, types.Size_t(", sep, local.name, p.task.crt, f.tlsName, local.name)
@@ -3525,9 +3523,6 @@ func (p *project) declaratorSelectArray(n cc.Node, f *function, d *cc.Declarator
 	if local := f.locals[d]; local != nil {
 		if local.isPinned {
 			panic(todo("", p.pos(n)))
-			//TODO type error
-			p.w("(*%s)(unsafe.Pointer(%s%s/* &%s */))", p.typ(d, d.Type()), f.bpName, nonZeroUintptr(local.off), local.name)
-			return
 		}
 
 		p.w("%s", local.name)
@@ -4606,13 +4601,11 @@ func (p *project) blockItem(f *function, n *cc.BlockItem, mode exprMode) (r *cc.
 		}
 	case cc.BlockItemLabel: // LabelDeclaration
 		panic(todo("", p.pos(n)))
-		p.w(";")
 	case cc.BlockItemFuncDef: // DeclarationSpecifiers Declarator CompoundStatement
 		p.err(n, "nested functions not supported")
 		p.w(";")
 	case cc.BlockItemPragma: // PragmaSTDC
 		panic(todo("", p.pos(n)))
-		p.w(";")
 	default:
 		panic(todo("%v: internal error: %v", n.Position(), n.Case))
 	}
@@ -9141,7 +9134,6 @@ func (p *project) unaryExpressionDerefLValue(f *function, n *cc.UnaryExpression,
 		p.unaryExpressionDerefLValueNormal(f, n, t, mode, flags)
 	case opArray:
 		panic(todo("", p.pos(n)))
-		p.unaryExpressionDerefLValueArray(f, n, t, mode, flags)
 	case opArrayParameter:
 		p.unaryExpressionDerefLValueNormal(f, n, t, mode, flags)
 	default:
@@ -10189,7 +10181,6 @@ func (p *project) postfixExpressionValuePSelectStruct(f *function, n *cc.Postfix
 			p.w("&%#x>>%d%s", fld.Mask(), fld.BitFieldOffset(), x)
 			if fld.Type().IsSignedType() {
 				panic(todo(""))
-				p.w("<<%d>>%[1]d", int(fld.Promote().Size()*8)-fld.BitFieldWidth())
 			}
 		default:
 			x := p.convertType(n, nil, fld.Promote(), flags)
@@ -11627,7 +11618,6 @@ func (p *project) primaryExpressionPSelect(f *function, n *cc.PrimaryExpression,
 			switch k := p.declaratorKind(d); k {
 			case opArray:
 				panic(todo("", p.pos(n)))
-				p.primaryExpression(f, n, t, exprDecay, flags)
 			default:
 				p.declarator(n, f, d, t, mode, flags)
 			}
