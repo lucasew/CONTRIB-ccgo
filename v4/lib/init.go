@@ -410,10 +410,6 @@ func (c *ctx) initializerUnion(w writer, n cc.Node, a []*cc.Initializer, t *cc.U
 }
 
 func (c *ctx) initializerUnionMany(w writer, n cc.Node, a []*cc.Initializer, t *cc.UnionType, off0 int64, arrayElem bool) (r *buf) {
-	var arrayElemOff int64
-	if arrayElem {
-		arrayElemOff = off0 - off0%t.Size()
-	}
 	var b buf
 	var paths [][]*cc.Initializer
 	for _, v := range a {
@@ -468,7 +464,11 @@ done:
 		return c.initializer(w, n, a, lcaType, off0, false)
 	}
 
-	pre := lcaOff - arrayElemOff
+	// fixLCA returns lcaOff as the offset of the active member relative to the
+	// top-level initialized object; off0 is the same-frame offset of the union
+	// t. The padding before the active member, expressed within t, is therefore
+	// lcaOff-off0. See issue #47.
+	pre := lcaOff - off0
 	post := t.Size() - lcaType.Size() - pre
 	b.w("struct{")
 	if lcaOff != 0 {
